@@ -272,14 +272,17 @@ local f = CreateFrame("Frame")
 local function Attach()
 	local frame = _G.PlayerSpellsFrame or _G.PlayerTalentFrame
 	if attached or not frame then return end
-	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	-- own top-level frame (the window's inner panels were drawn over a child button); follows the window
+	local b = CreateFrame("Button", "DpwsProfilesTalentButton", UIParent, "UIPanelButtonTemplate")
 	b:SetSize(120, 22)
-	-- inside the window's top-right corner, left of the close button: can't end up off-screen
+	b:SetFrameStrata("DIALOG")
 	b:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -1)
-	b:SetFrameLevel(frame:GetFrameLevel() + 20)
 	b:SetText("dpws Profiles")
 	b:SetScript("OnClick", OpenMenu)
-	attached = true
+	b:SetShown(frame:IsShown())
+	frame:HookScript("OnShow", function() b:Show() end)
+	frame:HookScript("OnHide", function() b:Hide() end)
+	attached = b
 	f:UnregisterEvent("ADDON_LOADED")
 end
 f:RegisterEvent("ADDON_LOADED") -- the talent UI loads on demand
@@ -289,6 +292,11 @@ f:SetScript("OnEvent", Attach)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.frames = function()
 	print(("dpws_tools: profiles button attached: %s"):format(attached and "yes" or "no"))
+	if attached then
+		local x, y = attached:GetCenter()
+		print(("  button visible: %s, position: %s, %s (screen %d x %d)"):format(tostring(attached:IsVisible()),
+			tostring(x and math.floor(x)), tostring(y and math.floor(y)), UIParent:GetWidth(), UIParent:GetHeight()))
+	end
 	local found = 0
 	for name, obj in pairs(_G) do
 		if type(name) == "string" and (name:find("Talent") or name:find("Spells")) and type(obj) == "table" then
