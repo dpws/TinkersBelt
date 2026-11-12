@@ -233,10 +233,76 @@ local function BuildPoisonsPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
-local TOOLS = {
-	{ name = "Bar Switching", build = BuildBarSwitchPage },
-	{ name = "Poisons", build = BuildPoisonsPage },
+-- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
+local GROUPS = {
+	{ name = "General", tools = {
+		{ name = "Bar Switching", build = BuildBarSwitchPage },
+	} },
+	{ name = "Rogue", class = "ROGUE", tools = {
+		{ name = "Poisons", build = BuildPoisonsPage },
+	} },
 }
+
+-- Questie/AceGUI-style top tab: 3-slice active/inactive textures from the options frame
+local function TopTab(parent, text)
+	local tab = CreateFrame("Button", nil, parent)
+	tab:SetHeight(24)
+	local function Slices(file, layerPoint)
+		local l, m, r = tab:CreateTexture(nil, "BORDER"), tab:CreateTexture(nil, "BORDER"), tab:CreateTexture(nil, "BORDER")
+		for _, t in ipairs({ l, m, r }) do t:SetTexture(file); t:SetHeight(24) end
+		l:SetWidth(20); r:SetWidth(20)
+		l:SetPoint(layerPoint, 0, layerPoint == "BOTTOMLEFT" and -3 or 0)
+		r:SetPoint("TOP", l, "TOP"); r:SetPoint("RIGHT", tab, "RIGHT")
+		m:SetPoint("TOPLEFT", l, "TOPRIGHT"); m:SetPoint("BOTTOMRIGHT", r, "BOTTOMLEFT")
+		l:SetTexCoord(0, 0.15625, 0, 1); m:SetTexCoord(0.15625, 0.84375, 0, 1); r:SetTexCoord(0.84375, 1, 0, 1)
+		return { l, m, r }
+	end
+	local active = Slices("Interface\\OptionsFrame\\UI-OptionsFrame-ActiveTab", "BOTTOMLEFT")
+	local inactive = Slices("Interface\\OptionsFrame\\UI-OptionsFrame-InActiveTab", "TOPLEFT")
+	local fs = tab:CreateFontString(nil, "OVERLAY")
+	tab:SetFontString(fs)
+	tab:SetNormalFontObject(GameFontNormalSmall)
+	tab:SetHighlightFontObject(GameFontHighlightSmall)
+	tab:SetDisabledFontObject(GameFontHighlightSmall)
+	tab:SetText(text)
+	tab:SetWidth(fs:GetStringWidth() + 40)
+	tab:SetHighlightTexture("Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight", "ADD")
+	tab:GetHighlightTexture():ClearAllPoints()
+	tab:GetHighlightTexture():SetPoint("LEFT", 10, -4)
+	tab:GetHighlightTexture():SetPoint("RIGHT", -10, -4)
+	function tab:SetSelected(on)
+		for _, t in ipairs(active) do t:SetShown(on) end
+		for _, t in ipairs(inactive) do t:SetShown(not on) end
+		fs:ClearAllPoints()
+		fs:SetPoint("CENTER", 0, on and -2 or -3)
+		self:SetEnabled(not on)
+	end
+	return tab
+end
+
+-- left: vertical tool tabs, right: the selected tool's page
+local function BuildGroup(parent, tools)
+	local tabs = {}
+	local function Select(index)
+		for i, t in ipairs(tabs) do
+			t.page:SetShown(i == index)
+			if i == index then t:LockHighlight() else t:UnlockHighlight() end
+		end
+	end
+	for i, tool in ipairs(tools) do
+		local tab = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+		tab:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 30)
+		tab:SetSize(130, 26)
+		tab:SetText(tool.name)
+		tab:SetScript("OnClick", function() Select(i) end)
+		tab.page = CreateFrame("Frame", nil, parent)
+		tab.page:SetPoint("TOPLEFT", 146, -4)
+		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
+		tool.build(tab.page)
+		tabs[i] = tab
+	end
+	Select(1)
+end
 
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
@@ -259,14 +325,6 @@ local function CreateWindow()
 	f:SetPoint(pos.point or "CENTER", UIParent, pos.point or "CENTER", pos.x or 0, pos.y or 0)
 	tinsert(UISpecialFrames, f:GetName()) -- Esc closes it
 
-	-- left: tool tabs, right: the selected tool's page
-	local tabs = {}
-	local function Select(index)
-		for i, t in ipairs(tabs) do
-			t.page:SetShown(i == index)
-			if i == index then t:LockHighlight() else t:UnlockHighlight() end
-		end
-	end
 	-- toolbar strip on top, shared by all tabs
 	local TOOLBAR = 40
 	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
@@ -289,19 +347,44 @@ local function CreateWindow()
 	line:SetPoint("TOPRIGHT", -4, -TOOLBAR)
 	line:SetHeight(1)
 
-	for i, tool in ipairs(TOOLS) do
-		local tab = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-		tab:SetPoint("TOPLEFT", 8, -TOOLBAR - 8 - (i - 1) * 30)
-		tab:SetSize(130, 26)
-		tab:SetText(tool.name)
-		tab:SetScript("OnClick", function() Select(i) end)
-		tab.page = CreateFrame("Frame", nil, f.Inset)
-		tab.page:SetPoint("TOPLEFT", 150, -TOOLBAR - 4)
-		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
-		tool.build(tab.page)
-		tabs[i] = tab
+	-- bordered content box under the top tabs (AceGUI pane look)
+	local box = CreateFrame("Frame", nil, f.Inset, "BackdropTemplate")
+	box:SetPoint("TOPLEFT", 6, -TOOLBAR - 30)
+	box:SetPoint("BOTTOMRIGHT", -6, 6)
+	box:SetBackdrop({
+		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = true, tileSize = 16, edgeSize = 16,
+		insets = { left = 3, right = 3, top = 5, bottom = 3 },
+	})
+	box:SetBackdropColor(0.1, 0.1, 0.1, 0.5)
+	box:SetBackdropBorderColor(0.4, 0.4, 0.4)
+
+	local playerClass = select(2, UnitClass("player"))
+	local groups = {}
+	local function SelectGroup(index)
+		for i, g in ipairs(groups) do
+			g.tab:SetSelected(i == index)
+			g.content:SetShown(i == index)
+		end
 	end
-	Select(1)
+	for _, group in ipairs(GROUPS) do
+		if not group.class or group.class == playerClass then
+			local i = #groups + 1
+			local tab = TopTab(f.Inset, group.name)
+			if i == 1 then
+				tab:SetPoint("BOTTOMLEFT", box, "TOPLEFT", 6, -3)
+			else
+				tab:SetPoint("LEFT", groups[i - 1].tab, "RIGHT", -10, 0)
+			end
+			tab:SetScript("OnClick", function() SelectGroup(i) end)
+			local content = CreateFrame("Frame", nil, box)
+			content:SetAllPoints()
+			BuildGroup(content, group.tools)
+			groups[i] = { tab = tab, content = content }
+		end
+	end
+	SelectGroup(1)
 
 	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
 	f:Hide()
