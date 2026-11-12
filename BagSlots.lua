@@ -22,9 +22,15 @@ table.insert(ns.loginHooks, function()
 	for i, b in ipairs(BAGS) do
 		local button = _G[b.button]
 		if button then
-			-- top of the button: the game's own total free count sits at the bottom of the backpack
-			local fs = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
-			fs:SetPoint("TOP", 0, -2)
+			-- big, outlined, on its own top layer so the bag icon doesn't swallow it
+			local holder = CreateFrame("Frame", nil, button)
+			holder:SetAllPoints()
+			holder:SetFrameLevel(button:GetFrameLevel() + 5)
+			local fs = holder:CreateFontString(nil, "OVERLAY")
+			fs:SetFont(STANDARD_TEXT_FONT, 18, "THICKOUTLINE")
+			fs:SetTextColor(1, 0.85, 0.1)
+			fs:SetShadowOffset(1, -1)
+			fs:SetPoint("CENTER", 0, 2)
 			labels[i] = fs
 		end
 	end
