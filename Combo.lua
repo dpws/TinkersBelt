@@ -76,7 +76,8 @@ local function Update()
 	local amount = ns.ComboSoundFor(last, cp)
 	if amount then ns.PlayComboSound(ns.db.combo.sounds[amount]) end
 	last = cp
-	bar:SetShown(hostile or ns.unlocked) -- visible while unlocked so it can be placed
+	-- in combat with a hostile target; always while unlocked so it can be placed
+	bar:SetShown((hostile and UnitAffectingCombat("player")) or ns.unlocked)
 end
 
 local elapsed = 0
