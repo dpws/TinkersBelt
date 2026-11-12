@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: dpws tools
+## Notes: Small quality-of-life tools. /dpws
+## Author: dpws
+## Version: 0.1.0
+## SavedVariablesPerCharacter: DpwsToolsCharDB
+
+Core.lua
+BarSwitch.lua
+Config.lua
