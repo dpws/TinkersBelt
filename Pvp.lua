@@ -18,6 +18,22 @@ function ns.PvpScoreText(e)
 	return ("|cff%s%d : %d|r"):format(color, e.k, e.d)
 end
 
+-- history: oldest first, at most `cap` entries
+function ns.PvpLogAdd(log, entry, cap)
+	log[#log + 1] = entry
+	while #log > cap do table.remove(log, 1) end
+end
+
+-- one page of the history, newest first; page is clamped to 1..pages
+function ns.PvpPage(log, page, perPage)
+	local pages = math.max(1, math.ceil(#log / perPage))
+	page = math.min(math.max(page, 1), pages)
+	local items = {}
+	local first = #log - (page - 1) * perPage
+	for i = first, math.max(first - perPage + 1, 1), -1 do items[#items + 1] = log[i] end
+	return items, pages, page
+end
+
 if not CreateFrame then return end -- offline test stops here
 
 local KILLER_WINDOW = 10
@@ -31,21 +47,46 @@ end
 -- open world only: no battlegrounds, arenas or dungeons
 local function OpenWorld() return not IsInInstance() end
 
+local LOG_CAP = 500
+
+-- the combat log has no level: remember levels of players we see (session only)
+local levels = {}
+local function Seen(unit)
+	if UnitExists(unit) and UnitIsPlayer(unit) then
+		local guid = UnitGUID(unit)
+		if guid then levels[guid] = UnitLevel(unit) end
+	end
+end
+
+local function Record(guid, name, kind)
+	ns.PvpRecord(ns.adb.pvp, guid, name, kind)
+	Seen("target"); Seen("mouseover")
+	local _, class = GetPlayerInfoByGUID(guid)
+	ns.PvpLogAdd(ns.adb.pvpLog, { t = time(), kind = kind, name = name, class = class, level = levels[guid] }, LOG_CAP)
+	if ns.OnPvpLogChanged then ns.OnPvpLogChanged() end
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 f:RegisterEvent("PLAYER_DEAD")
-f:SetScript("OnEvent", function(_, event)
+f:RegisterEvent("PLAYER_TARGET_CHANGED")
+f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+f:SetScript("OnEvent", function(_, event, arg1)
+	if event == "PLAYER_TARGET_CHANGED" then return Seen("target") end
+	if event == "UPDATE_MOUSEOVER_UNIT" then return Seen("mouseover") end
+	if event == "NAME_PLATE_UNIT_ADDED" then return Seen(arg1) end
 	if not ns.adb or not OpenWorld() then return end
 	if event == "PLAYER_DEAD" then
 		local killer = ns.PvpKiller(lastHit, GetTime(), KILLER_WINDOW)
-		if killer then ns.PvpRecord(ns.adb.pvp, killer, lastHit.name, "d") end
+		if killer then Record(killer, lastHit.name, "d") end
 		lastHit = nil
 		return
 	end
 	local _, sub, _, srcGUID, srcName, srcFlags, _, dstGUID, dstName, dstFlags = CombatLogGetCurrentEventInfo()
 	local me = UnitGUID("player")
 	if sub == "PARTY_KILL" and srcGUID == me and IsEnemyPlayer(dstGUID, dstFlags) then
-		ns.PvpRecord(ns.adb.pvp, dstGUID, dstName, "k")
+		Record(dstGUID, dstName, "k")
 	elseif DAMAGE[sub] and dstGUID == me and IsEnemyPlayer(srcGUID, srcFlags) then
 		lastHit = { guid = srcGUID, name = srcName, time = GetTime() }
 	end

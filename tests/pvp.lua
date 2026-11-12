@@ -29,4 +29,21 @@ check("ahead green", ns.PvpScoreText({ k = 3, d = 1 }) == "|cff40ff403 : 1|r")
 check("behind red", ns.PvpScoreText({ k = 0, d = 2 }) == "|cffff40400 : 2|r")
 check("even white", ns.PvpScoreText({ k = 1, d = 1 }) == "|cffffffff1 : 1|r")
 
+-- history log: capped, oldest dropped
+local log = {}
+for i = 1, 7 do ns.PvpLogAdd(log, { n = i }, 5) end
+check("log capped", #log == 5)
+check("oldest dropped", log[1].n == 3 and log[5].n == 7)
+
+-- pages: newest first, 2 per page
+local items, pages = ns.PvpPage(log, 1, 2)
+check("page 1 newest first", #items == 2 and items[1].n == 7 and items[2].n == 6)
+check("page count", pages == 3)
+items = ns.PvpPage(log, 3, 2)
+check("last page partial", #items == 1 and items[1].n == 3)
+items, pages = ns.PvpPage(log, 9, 2)
+check("page clamped to last", #items == 1 and items[1].n == 3)
+items, pages = ns.PvpPage({}, 1, 15)
+check("empty log: 1 page, no items", #items == 0 and pages == 1)
+
 print("pvp: " .. passed .. " passed")

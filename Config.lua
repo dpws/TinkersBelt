@@ -312,8 +312,9 @@ local function BuildPvpPage(parent)
 	reset:SetScript("OnClick", function()
 		if armed then
 			wipe(a.pvp)
+			wipe(a.pvpLog)
 			armed = false
-			ShowStats()
+			ns.OnPvpLogChanged()
 		else
 			armed = true
 		end
@@ -321,11 +322,69 @@ local function BuildPvpPage(parent)
 	end)
 	refreshers[#refreshers + 1] = function() armed = false; ResetText() end
 
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -124)
-	hint:SetWidth(400)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("Open world only (not battlegrounds, arenas or dungeons). Score is your kills : their kills, shared by all your characters. A death counts for the last enemy player who hit you within 10 seconds.")
+	-- history: 15 per page, newest first
+	local PER_PAGE, ROW = 15, 18
+	local COLS = { { "When", 0 }, { "", 80 }, { "Name", 130 }, { "Class", 270 }, { "Lvl", 360 } }
+	local top = -124
+	for _, col in ipairs(COLS) do
+		local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+		h:SetPoint("TOPLEFT", 16 + col[2], top)
+		h:SetText(col[1])
+	end
+	local rows = {}
+	for i = 1, PER_PAGE do
+		local cells = {}
+		for c, col in ipairs(COLS) do
+			local fs = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+			fs:SetPoint("TOPLEFT", 16 + col[2], top - 4 - i * ROW)
+			fs:SetWidth((COLS[c + 1] and COLS[c + 1][2] or 400) - col[2] - 4)
+			fs:SetJustifyH("LEFT")
+			fs:SetWordWrap(false)
+			cells[c] = fs
+		end
+		rows[i] = cells
+	end
+
+	local page = 1
+	local pagerY = top - 12 - (PER_PAGE + 1) * ROW
+	local pageText = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	pageText:SetPoint("TOPLEFT", 150, pagerY - 6)
+	local prev = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	prev:SetPoint("TOPLEFT", 16, pagerY)
+	prev:SetSize(100, 22)
+	prev:SetText("< Newer")
+	local nextB = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	nextB:SetPoint("TOPLEFT", 270, pagerY)
+	nextB:SetSize(100, 22)
+	nextB:SetText("Older >")
+
+	local function ShowPage()
+		local items, pages, p = ns.PvpPage(a.pvpLog, page, PER_PAGE)
+		page = p
+		for i, cells in ipairs(rows) do
+			local e = items[i]
+			if e then
+				local color = e.class and RAID_CLASS_COLORS[e.class]
+				local className = e.class and (LOCALIZED_CLASS_NAMES_MALE[e.class] or e.class) or "?"
+				cells[1]:SetText(date("%m-%d %H:%M", e.t))
+				cells[2]:SetText(e.kind == "k" and "|cff40ff40Killed|r" or "|cffff4040Died|r")
+				cells[3]:SetText(e.name or "?")
+				cells[4]:SetText(color and ("|c%s%s|r"):format(color.colorStr, className) or className)
+				cells[5]:SetText((e.level and e.level > 0) and e.level or "??")
+			else
+				for _, fs in ipairs(cells) do fs:SetText("") end
+			end
+		end
+		if #a.pvpLog == 0 then rows[1][3]:SetText("No kills or deaths yet") end
+		pageText:SetText(("Page %d / %d"):format(page, pages))
+		prev:SetEnabled(page > 1)
+		nextB:SetEnabled(page < pages)
+	end
+	prev:SetScript("OnClick", function() page = page - 1; ShowPage() end)
+	nextB:SetScript("OnClick", function() page = page + 1; ShowPage() end)
+	refreshers[#refreshers + 1] = function() page = 1; ShowPage() end
+	-- live update while the page is open
+	ns.OnPvpLogChanged = function() if parent:IsVisible() then ShowStats(); ShowPage() end end
 
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end

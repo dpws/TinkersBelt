@@ -84,6 +84,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		DpwsToolsDB = DpwsToolsDB or {}
 		local adb = DpwsToolsDB
 		adb.pvp = adb.pvp or {}
+		adb.pvpLog = adb.pvpLog or {}
 		if adb.pvpTooltip == nil then adb.pvpTooltip = true end
 		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
