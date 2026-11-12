@@ -243,6 +243,8 @@ local function BuildPoisonsPage(parent)
 		function() return (p.scale or 1) * 100 end, function(v) p.scale = v / 100; Rescale() end)
 	refreshers[#refreshers + 1] = Slider(parent, -190, 50, 200, 10, "Poison icon: %d%%",
 		function() return (p.poisonScale or 1) * 100 end, function(v) p.poisonScale = v / 100; Rescale() end)
+	refreshers[#refreshers + 1] = Slider(parent, -280, 5, 60, 5, "Craft button: keep %d of each chosen poison",
+		function() return p.craftTarget or 20 end, function(v) p.craftTarget = v end)
 
 	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 	hint:SetPoint("TOPLEFT", 16, -230)
@@ -441,6 +443,108 @@ local function BuildPvpPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+local function BuildRestockPage(parent)
+	local r = ns.db.restock
+	local refreshers = {
+		Checkbox(parent, -12, "Buy missing items when I open a vendor", function() return r.enabled end, function(v) r.enabled = v end),
+		Slider(parent, -50, 1, 50, 1, "Spend at most %d gold per vendor visit",
+			function() return math.floor(r.budget / 10000) end, function(v) r.budget = v * 10000 end),
+	}
+	local rows, Refresh = {}, nil
+
+	local preset = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	preset:SetPoint("TOPLEFT", 16, -100)
+	preset:SetSize(200, 22)
+	local className = UnitClass("player")
+	preset:SetText("Add " .. className .. " preset")
+	preset:SetScript("OnClick", function()
+		if not ns.AddRestockPreset() then print("dpws_tools: no preset for your class, add items yourself") end
+		Refresh()
+	end)
+
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	label:SetPoint("TOPLEFT", 16, -132)
+	label:SetText("Add item: Shift-click an item link into the box, or type an item ID")
+	local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+	input:SetPoint("TOPLEFT", 22, -148)
+	input:SetSize(220, 22)
+	input:SetAutoFocus(false)
+	local add = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	add:SetPoint("LEFT", input, "RIGHT", 8, 0)
+	add:SetSize(60, 22)
+	add:SetText("Add")
+	local function DoAdd()
+		local text = input:GetText() or ""
+		local id = tonumber(text:match("item:(%d+)") or text:match("^%s*(%d+)%s*$"))
+		if id then r.items[id] = r.items[id] or 20 end
+		input:SetText("")
+		input:ClearFocus()
+		Refresh()
+	end
+	add:SetScript("OnClick", DoAdd)
+	input:SetScript("OnEnterPressed", DoAdd)
+	input:SetScript("OnEscapePressed", input.ClearFocus)
+	-- Shift-click on an item puts its link into our box while it has focus
+	local function InsertLink(link)
+		if input:HasFocus() and link then input:Insert(link) end
+	end
+	if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
+	if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
+
+	local MAX_ROWS = 10
+	for i = 1, MAX_ROWS do
+		local y = -184 - (i - 1) * 24
+		local row = {}
+		row.icon = parent:CreateTexture(nil, "ARTWORK")
+		row.icon:SetSize(18, 18)
+		row.icon:SetPoint("TOPLEFT", 16, y)
+		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+		row.name:SetPoint("TOPLEFT", 40, y - 2)
+		row.name:SetWidth(220)
+		row.name:SetJustifyH("LEFT")
+		row.name:SetWordWrap(false)
+		row.count = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+		row.count:SetPoint("TOPLEFT", 276, y + 1)
+		row.count:SetSize(50, 20)
+		row.count:SetAutoFocus(false)
+		row.count:SetNumeric(true)
+		row.remove = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+		row.remove:SetPoint("TOPLEFT", 336, y + 1)
+		row.remove:SetSize(70, 20)
+		row.remove:SetText("Remove")
+		rows[i] = row
+	end
+	local more = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	more:SetPoint("TOPLEFT", 16, -184 - MAX_ROWS * 24)
+
+	Refresh = function()
+		local ids = {}
+		for id in pairs(r.items) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for i, row in ipairs(rows) do
+			local id = ids[i]
+			for _, w in pairs(row) do w:SetShown(id ~= nil) end
+			if id then
+				row.icon:SetTexture((C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id))
+				row.name:SetText((C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id))
+				row.count:SetText(r.items[id])
+				local function Save()
+					local n = tonumber(row.count:GetText())
+					if n and n > 0 then r.items[id] = n end
+					row.count:ClearFocus()
+				end
+				row.count:SetScript("OnEnterPressed", Save)
+				row.count:SetScript("OnEditFocusLost", Save)
+				row.remove:SetScript("OnClick", function() r.items[id] = nil; Refresh() end)
+			end
+		end
+		more:SetText(#ids > MAX_ROWS and ("+%d more (remove some to see them)"):format(#ids - MAX_ROWS) or
+			(#ids == 0 and "No items yet: add your class preset or your own items" or ""))
+	end
+	refreshers[#refreshers + 1] = Refresh
+	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
+end
+
 local function BuildProfilesPage(parent)
 	local MAX_ROWS = 12
 	local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -540,6 +644,7 @@ local GROUPS = {
 		{ name = "PvP Settings", build = BuildPvpSettingsPage },
 		{ name = "Nearby Enemies", build = BuildNearbyPage },
 		{ name = "Profiles", build = BuildProfilesPage },
+		{ name = "Auto Restock", build = BuildRestockPage },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
