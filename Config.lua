@@ -39,7 +39,7 @@ end
 local function MakeRow(parent, y, state, bar)
 	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	label:SetPoint("TOPLEFT", 16, y - 6)
-	label:SetText(BarLabel(bar) .. "  \226\134\146") -- "Bar 2  →"
+	label:SetText(BarLabel(bar) .. "  >")
 
 	local warn = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 	warn:SetPoint("TOPLEFT", 270, y - 7)
@@ -71,7 +71,7 @@ local function MakeRow(parent, y, state, bar)
 		end
 	end)
 	return function()
-		label:SetText(BarLabel(bar) .. "  \226\134\146")
+		label:SetText(BarLabel(bar) .. "  >")
 		dd:GenerateMenu()
 		UpdateWarn()
 	end
