@@ -286,7 +286,7 @@ local function CreateWindow()
 	end
 	Select(1)
 
-	f:SetScript("OnHide", function() SetHighlights(false) end)
+	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
 	f:Hide()
 	return f
 end
