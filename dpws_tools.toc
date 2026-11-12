@@ -17,3 +17,4 @@ Poisons.lua
 Combo.lua
 Pvp.lua
 Nearby.lua
+BagSlots.lua
