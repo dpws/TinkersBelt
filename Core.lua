@@ -16,25 +16,40 @@ end
 ns.panels = {}
 ns.unlocked = false
 
-local function ShowOverlay(p) p.bg:SetShown(ns.unlocked); p.label:SetShown(ns.unlocked) end
-
-function ns.RegisterPanel(frame, name)
-	-- on the panel frame itself, BACKGROUND layer: draws under its child buttons
-	local bg = frame:CreateTexture(nil, "BACKGROUND")
-	bg:SetPoint("TOPLEFT", -6, 6)
-	bg:SetPoint("BOTTOMRIGHT", 6, -20)
+-- onMoved(frame) saves the position after a drag
+function ns.RegisterPanel(frame, name, onMoved)
+	-- child at the panel's own frame level: under its buttons, but catches the mouse everywhere else
+	local o = CreateFrame("Frame", nil, frame)
+	o:SetFrameLevel(frame:GetFrameLevel())
+	o:SetPoint("TOPLEFT", -6, 6)
+	o:SetPoint("BOTTOMRIGHT", 6, -20)
+	local bg = o:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints()
 	bg:SetColorTexture(0.1, 0.5, 1, 0.35)
-	local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	label:SetPoint("BOTTOM", bg, "BOTTOM", 0, 4)
+	local label = o:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	label:SetPoint("BOTTOM", 0, 4)
 	label:SetText(name)
-	local p = { bg = bg, label = label }
-	ns.panels[#ns.panels + 1] = p
-	ShowOverlay(p)
+	o:EnableMouse(true)
+	o:RegisterForDrag("LeftButton")
+	o:SetScript("OnDragStart", function() ns.StartMovingPanel(frame) end)
+	o:SetScript("OnDragStop", function() ns.StopMovingPanel(frame) end)
+	frame.dpwsOnMoved = onMoved
+	o:SetShown(ns.unlocked)
+	ns.panels[#ns.panels + 1] = o
+end
+
+function ns.StartMovingPanel(frame)
+	if ns.unlocked and not InCombatLockdown() then frame:StartMoving() end
+end
+
+function ns.StopMovingPanel(frame)
+	frame:StopMovingOrSizing()
+	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
 
 function ns.SetUnlocked(on)
 	ns.unlocked = on
-	for _, p in ipairs(ns.panels) do ShowOverlay(p) end
+	for _, o in ipairs(ns.panels) do o:SetShown(on) end
 end
 
 local f = CreateFrame("Frame")

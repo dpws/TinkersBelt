@@ -147,12 +147,8 @@ local function MakeButton(info, i)
 		if button == "RightButton" then OpenMenu(self, info) end
 	end)
 	-- drag moves the whole bar while panels are unlocked (/dpws)
-	b:SetScript("OnDragStart", function() if ns.unlocked and not InCombatLockdown() then bar:StartMoving() end end)
-	b:SetScript("OnDragStop", function()
-		bar:StopMovingOrSizing()
-		local point, _, relPoint, x, y = bar:GetPoint()
-		ns.db.poisons.pos = { point = point, relPoint = relPoint, x = x, y = y }
-	end)
+	b:SetScript("OnDragStart", function() ns.StartMovingPanel(bar) end)
+	b:SetScript("OnDragStop", function() ns.StopMovingPanel(bar) end)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetInventoryItem("player", info.slot)
@@ -207,7 +203,10 @@ local function Create()
 		bar:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
 	end
 	for i, info in ipairs(P.SLOTS) do buttons[i] = MakeButton(info, i) end
-	ns.RegisterPanel(bar, "Poisons")
+	ns.RegisterPanel(bar, "Poisons", function(self)
+		local point, _, relPoint, x, y = self:GetPoint()
+		ns.db.poisons.pos = { point = point, relPoint = relPoint, x = x, y = y }
+	end)
 	bar:SetScript("OnUpdate", OnUpdate)
 
 	bar:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
