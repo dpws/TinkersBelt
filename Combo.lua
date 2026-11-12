@@ -129,12 +129,12 @@ local function Update()
 
 	-- per-row visibility; everything enabled shows while unlocked so it can be placed
 	local inCombat = UnitAffectingCombat("player")
-	local function Visible(row, mode, extra)
-		row:SetShown(row.enabled and (ns.unlocked or ((inCombat or Mode(mode) == "always") and extra)))
+	local function Visible(row, mode)
+		row:SetShown(row.enabled and (ns.unlocked or inCombat or Mode(mode) == "always"))
 	end
-	Visible(hpBar, "healthMode", true)
-	Visible(enBar, "energyMode", true)
-	Visible(cpRow, "comboMode", hostile) -- combo points only mean something with a hostile target
+	Visible(hpBar, "healthMode")
+	Visible(enBar, "energyMode")
+	Visible(cpRow, "comboMode")
 end
 
 local elapsed = 0
