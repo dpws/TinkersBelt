@@ -323,7 +323,7 @@ local function BuildPvpPage(parent)
 	refreshers[#refreshers + 1] = function() armed = false; ResetText() end
 
 	-- history: 15 per page, newest first
-	local PER_PAGE, ROW = 15, 18
+	local PER_PAGE, ROW = 15, 17
 	local COLS = { { "When", 0 }, { "", 80 }, { "Name", 130 }, { "Class", 270 }, { "Lvl", 360 } }
 	local top = -124
 	for _, col in ipairs(COLS) do
@@ -466,7 +466,7 @@ local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
 	ButtonFrameTemplate_HidePortrait(f)
 	f:SetTitle("dpws tools")
-	f:SetSize(660, 580)
+	f:SetSize(660, 620)
 	f:SetFrameStrata("HIGH")
 	f:SetToplevel(true)
 	f:SetClampedToScreen(true)
