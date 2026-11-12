@@ -90,7 +90,8 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		adb.nearby = adb.nearby or { enabled = true, timeout = 60, alert = "off" }
 		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
-		for _, hook in ipairs(ns.loginHooks) do hook() end
+		-- one module failing must not stop the others; the error still reaches BugSack
+		for _, hook in ipairs(ns.loginHooks) do xpcall(hook, geterrorhandler()) end
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		local pending = queue
 		queue = {}

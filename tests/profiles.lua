@@ -41,4 +41,14 @@ local n = 0
 for _ in pairs(plan) do n = n + 1 end
 check("exactly two changes", n == 2)
 
+-- things we can't put back are never touched (cleared or overwritten)
+plan = ns.BarRestorePlan({ [1] = { t = "spell", id = 1 } }, { [1] = { t = "flyout", id = 9 } }, 1)
+check("current flyout not overwritten", plan[1] == nil)
+plan = ns.BarRestorePlan({}, { [1] = { t = "summonmount", id = 9 } }, 1)
+check("current mount not cleared", plan[1] == nil)
+plan = ns.BarRestorePlan({ [1] = { t = "companion", id = 9 } }, { [1] = { t = "spell", id = 2 } }, 1)
+check("saved pet doesn't replace a spell", plan[1] == nil)
+plan = ns.BarRestorePlan({ [1] = { t = "spell", id = 1 } }, { [1] = { t = "unknown" } }, 1)
+check("unreadable macro not overwritten", plan[1] == nil)
+
 print("profiles: " .. passed .. " passed")

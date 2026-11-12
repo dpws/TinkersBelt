@@ -21,11 +21,17 @@ local function SameAction(a, b)
 	return a.t == b.t and a.id == b.id and a.name == b.name
 end
 
+-- action kinds we can put back; anything else (mounts, pets, flyouts, unreadable macros) is never touched
+local RESTORABLE = { spell = true, item = true, macro = true, equipmentset = true }
+
 -- Slots whose content differs: { [slot] = { action = saved or nil (= clear) } }
 function ns.BarRestorePlan(want, have, slots)
 	local plan = {}
 	for s = 1, slots do
-		if not SameAction(want[s], have[s]) then plan[s] = { action = want[s] } end
+		local w, h = want[s], have[s]
+		if not SameAction(w, h) and (h == nil or RESTORABLE[h.t]) and (w == nil or RESTORABLE[w.t]) then
+			plan[s] = { action = w }
+		end
 	end
 	return plan
 end
@@ -48,13 +54,38 @@ local function SpellName(id)
 	return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id))
 end
 
+-- bar APIs moved into C_ namespaces on newer engines: resolve once, refuse to start if any is missing
+local function ResolveAPI()
+	local api = {
+		pickupSpell = C_Spell and C_Spell.PickupSpell or PickupSpell,
+		pickupItem = C_Item and C_Item.PickupItem or PickupItem,
+		pickupMacro = PickupMacro,
+		pickupAction = C_ActionBar and C_ActionBar.PickupAction or PickupAction,
+		placeAction = C_ActionBar and C_ActionBar.PlaceAction or PlaceAction,
+		actionText = C_ActionBar and C_ActionBar.GetActionText or GetActionText,
+		macroIndex = GetMacroIndexByName,
+	}
+	for k, fn in pairs(api) do
+		if type(fn) ~= "function" then return nil, k end
+	end
+	return api
+end
+
 local function SnapshotBars()
+	local api = ResolveAPI()
 	local bars = {}
 	for s = 1, SLOTS do
-		local t, id = GetActionInfo(s)
+		local t, id, subType = GetActionInfo(s)
 		if t == "macro" then
-			local name = GetMacroInfo(id)
-			if name then bars[s] = { t = "macro", name = name } end
+			-- a macro showing a spell/item reports that spell/item id, not the macro index: find it by its name
+			local name
+			if subType == "spell" or subType == "item" then
+				name = api and api.actionText(s)
+			else
+				name = GetMacroInfo(id)
+			end
+			local index = name and name ~= "" and GetMacroIndexByName(name)
+			bars[s] = (index and index > 0) and { t = "macro", name = name } or { t = "unknown" }
 		elseif t == "equipmentset" then
 			bars[s] = { t = "equipmentset", name = id }
 		elseif t then
@@ -102,22 +133,22 @@ function P.Delete(name)
 end
 
 -- put one saved action on the cursor and into the slot; false if it couldn't be placed
-local function Place(slot, a)
+local function Place(api, slot, a)
 	ClearCursor()
 	if a.t == "spell" then
-		PickupSpell(a.id)
-		if not GetCursorInfo() and SpellName(a.id) then PickupSpell(SpellName(a.id)) end -- other rank: by name
+		api.pickupSpell(a.id)
+		if not GetCursorInfo() and SpellName(a.id) then api.pickupSpell(SpellName(a.id)) end -- other rank: by name
 	elseif a.t == "item" then
-		(C_Item and C_Item.PickupItem or PickupItem)(a.id)
+		api.pickupItem(a.id)
 	elseif a.t == "macro" then
-		local index = GetMacroIndexByName(a.name)
-		if index and index > 0 then PickupMacro(index) end
+		local index = api.macroIndex(a.name)
+		if index and index > 0 then api.pickupMacro(index) end
 	elseif a.t == "equipmentset" and C_EquipmentSet then
 		local id = C_EquipmentSet.GetEquipmentSetID(a.name)
 		if id then C_EquipmentSet.PickupEquipmentSet(id) end
 	end
 	if not GetCursorInfo() then return false end
-	PlaceAction(slot)
+	api.placeAction(slot)
 	ClearCursor()
 	return true
 end
@@ -132,16 +163,21 @@ function P.LoadBars(name)
 	if InCombatLockdown() then print("dpws_tools: can't change action bars in combat") return end
 	local profile = Store()[name]
 	if not profile then return end
-	local want = profile.bars -- read before the backup may overwrite it
+	local api, missing = ResolveAPI()
+	if not api then print("dpws_tools: can't load bars on this client (missing " .. missing .. "), nothing changed") return end
+	local plan = ns.BarRestorePlan(profile.bars, SnapshotBars(), SLOTS) -- built before the backup may overwrite it
+	if not next(plan) then print(("dpws_tools: bars already match '%s'"):format(name)) return end
 	if name ~= BACKUP then P.Save(BACKUP) end
 	local failed = {}
-	for slot, step in pairs(ns.BarRestorePlan(want, SnapshotBars(), SLOTS)) do
-		if step.action then
-			if not Place(slot, step.action) then failed[#failed + 1] = Describe(step.action) end
-		else
-			PickupAction(slot)
+	for slot, step in pairs(plan) do
+		-- one slot failing must not stop the rest halfway
+		local ok, placed = pcall(function()
+			if step.action then return Place(api, slot, step.action) end
+			api.pickupAction(slot)
 			ClearCursor()
-		end
+			return true
+		end)
+		if not (ok and placed) and step.action then failed[#failed + 1] = Describe(step.action) end
 	end
 	ClearCursor()
 	if #failed > 0 then
@@ -156,41 +192,63 @@ local function Unspent()
 	return UnitCharacterPoints("player") or 0
 end
 
--- one point at a time; each LearnTalent waits for the server before the next
-local applying
-local function TalentStep()
+-- One point at a time. A point is only sent when none is pending; a pending point resolves when its rank
+-- goes up (landed) or after PENDING_TIMEOUT (refused). Never two requests for the same rank.
+local PENDING_TIMEOUT, MAX_FAILS = 2, 2
+local applying, ticker
+
+local function Finish()
+	if ticker then ticker:Cancel(); ticker = nil end
+	local a = applying
+	applying = nil
+	local missing = 0
+	for _, s in ipairs(a.saved) do missing = missing + math.max(0, s.rank - CurrentRank(s.tab, s.i)) end
+	print(("dpws_tools: talents from '%s' done%s"):format(a.name,
+		missing > 0 and (", %d points not spent (reset talents at a trainer first?)"):format(missing) or ""))
+	if a.onDone then a.onDone() end
+end
+
+local function TalentTick()
 	if not applying then return end
-	local t = Unspent() > 0 and ns.TalentNextStep(applying.saved, CurrentRank, applying.skip)
-	if not t then
-		local missing = 0
-		for _, s in ipairs(applying.saved) do missing = missing + math.max(0, s.rank - CurrentRank(s.tab, s.i)) end
-		print(("dpws_tools: talents from '%s' done%s"):format(applying.name,
-			missing > 0 and (", %d points not spent (reset talents at a trainer first?)"):format(missing) or ""))
-		applying = nil
-		return
+	local a = applying
+	local p = a.pending
+	if p then
+		if CurrentRank(p.tab, p.i) > p.rank then
+			a.pending, a.skip = nil, {} -- landed: a blocked talent may be learnable now
+		elseif GetTime() - p.sentAt > PENDING_TIMEOUT then
+			a.pending = nil
+			a.fails[p.key] = (a.fails[p.key] or 0) + 1
+			if a.fails[p.key] >= MAX_FAILS then a.skip[p.key] = true end
+		else
+			return -- still waiting for the server
+		end
 	end
-	local k = TKey(t)
-	if applying.lastKey == k and CurrentRank(t.tab, t.i) == applying.lastRank then
-		applying.tries = applying.tries + 1
-		if applying.tries >= 3 then applying.skip[k] = true end -- server keeps refusing: move on
-	else
-		applying.lastKey, applying.lastRank, applying.tries = k, CurrentRank(t.tab, t.i), 0
-	end
-	if not applying.skip[k] then LearnTalent(t.tab, t.i) end
-	C_Timer.After(0.4, TalentStep)
+	local t = Unspent() > 0 and ns.TalentNextStep(a.saved, CurrentRank, a.skip)
+	if not t then return Finish() end
+	a.pending = { tab = t.tab, i = t.i, key = TKey(t), rank = CurrentRank(t.tab, t.i), sentAt = GetTime() }
+	LearnTalent(t.tab, t.i)
 end
 
-function P.LoadTalents(name)
+-- onDone runs after the last point (used by LoadBoth to place talent spells afterwards)
+function P.LoadTalents(name, onDone)
 	local profile = Store()[name]
-	if not profile or applying then return end
-	if Unspent() == 0 then print("dpws_tools: no unspent talent points (reset talents at a trainer first)") return end
-	applying = { name = name, saved = profile.talents, skip = {} }
-	TalentStep()
+	if not profile or applying then return false end
+	if Unspent() == 0 then print("dpws_tools: no unspent talent points (reset talents at a trainer first)") return false end
+	applying = { name = name, saved = profile.talents, skip = {}, fails = {}, onDone = onDone }
+	ticker = C_Timer.NewTicker(0.25, function()
+		local ok, err = pcall(TalentTick)
+		if not ok then -- never leave the stepper stuck
+			if ticker then ticker:Cancel(); ticker = nil end
+			applying = nil
+			print("dpws_tools: talent loading stopped: " .. tostring(err))
+		end
+	end)
+	return true
 end
 
+-- talents first: spells granted by talents must be known before they can go on the bars
 function P.LoadBoth(name)
-	P.LoadBars(name)
-	P.LoadTalents(name)
+	if not P.LoadTalents(name, function() P.LoadBars(name) end) then P.LoadBars(name) end
 end
 
 -- Talent window: a button with a profiles menu
@@ -209,20 +267,19 @@ local function OpenMenu(owner)
 	end)
 end
 
+local f = CreateFrame("Frame")
+-- Classic talent window only (PlayerSpellsFrame is the spellbook on this client)
 local function Attach()
-	if attached then return end
-	-- Classic talent window; on the Retail-style UI only its talents panel (PlayerSpellsFrame is also the spellbook)
-	local frame = _G.PlayerTalentFrame or (_G.PlayerSpellsFrame and _G.PlayerSpellsFrame.TalentsFrame)
-	if not frame then return end
+	local frame = _G.PlayerTalentFrame
+	if attached or not frame then return end
 	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	b:SetSize(120, 22)
 	b:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -24, 2)
 	b:SetText("dpws Profiles")
 	b:SetScript("OnClick", OpenMenu)
 	attached = true
+	f:UnregisterEvent("ADDON_LOADED")
 end
-
-local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED") -- the talent UI loads on demand
 f:SetScript("OnEvent", Attach)
 table.insert(ns.loginHooks, Attach)
