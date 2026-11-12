@@ -1,19 +1,33 @@
 local _, ns = ...
 
 -- Free slot count on the backpack and reagent bag buttons (bag bar, bottom right).
+-- backpack button: all general bags (backpack + 4 bag slots); reagent button: the reagent bag
 local BAGS = {
-	{ button = "MainMenuBarBackpackButton", bag = 0 },
-	{ button = "CharacterReagentBag0Slot", bag = Enum.BagIndex and Enum.BagIndex.ReagentBag or 5 },
+	{ button = "MainMenuBarBackpackButton", bags = { 0, 1, 2, 3, 4 }, generalOnly = true },
+	{ button = "CharacterReagentBag0Slot", bags = { Enum.BagIndex and Enum.BagIndex.ReagentBag or 5 } },
 }
 
 local labels = {}
+
+-- free slots and total size; generalOnly skips special bags (quiver, ammo, soul, herb...: bagType ~= 0)
+local function Free(bags, generalOnly)
+	local free, size = 0, 0
+	for _, bag in ipairs(bags) do
+		local n = C_Container.GetContainerNumSlots(bag)
+		local f, bagType = C_Container.GetContainerNumFreeSlots(bag)
+		if n > 0 and (not generalOnly or bagType == 0) then
+			free, size = free + f, size + n
+		end
+	end
+	return free, size
+end
 
 local function Update()
 	for i, b in ipairs(BAGS) do
 		local fs = labels[i]
 		if fs then
-			local size = C_Container.GetContainerNumSlots(b.bag)
-			fs:SetText(size > 0 and C_Container.GetContainerNumFreeSlots(b.bag) or "")
+			local free, size = Free(b.bags, b.generalOnly)
+			fs:SetText(size > 0 and free or "")
 			fs.shade:SetShown(size > 0)
 		end
 	end
