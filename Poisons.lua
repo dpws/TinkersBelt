@@ -1,17 +1,18 @@
 local _, ns = ...
 
 -- Pure reminder logic per weapon. Returns new state and nil | "early" | "expired".
-function ns.PoisonStep(prev, hasEnchant, msLeft, warnMs)
-	prev = prev or {}
+-- itemID: the equipped weapon; a different weapon in the slot starts fresh (no false warnings on swap)
+function ns.PoisonStep(prev, hasEnchant, msLeft, warnMs, itemID)
+	if not prev or prev.item ~= itemID then prev = {} end
 	if not hasEnchant then
-		return { applied = false }, prev.applied and "expired" or nil
+		return { applied = false, item = itemID }, prev.applied and "expired" or nil
 	end
 	-- new application (first seen, or time jumped up = reapplied)
 	if not prev.applied or msLeft > (prev.msLeft or 0) + 1000 then
-		return { applied = true, early = msLeft < warnMs, msLeft = msLeft }, nil
+		return { applied = true, early = msLeft < warnMs, msLeft = msLeft, item = itemID }, nil
 	end
 	local event = (not prev.early and msLeft < warnMs) and "early" or nil
-	return { applied = true, early = prev.early or event ~= nil, msLeft = msLeft }, event
+	return { applied = true, early = prev.early or event ~= nil, msLeft = msLeft, item = itemID }, event
 end
 
 if not CreateFrame then return end -- offline test stops here
@@ -125,6 +126,8 @@ local function MakeButton(info, i)
 	b:SetSize(40, 40)
 	b:SetPoint("LEFT", (i - 1) * 48, 0)
 	b:RegisterForClicks("AnyUp")
+	-- with ActionButtonUseKeyDown on (default) the template acts on press, which an up-only button never gets
+	b:SetAttribute("useOnKeyDown", false)
 	b:RegisterForDrag("LeftButton")
 	b:SetAttribute("type1", "macro")
 
@@ -171,9 +174,10 @@ local function OnUpdate(_, dt)
 	for _, b in ipairs(buttons) do
 		local key, d = b.info.key, data[b.info.key]
 		local has, ms, charges = d[1], d[2] or 0, d[3] or 0
-		if GetInventoryItemID("player", b.info.slot) then
+		local itemID = GetInventoryItemID("player", b.info.slot)
+		if itemID then
 			local event
-			states[key], event = ns.PoisonStep(states[key], has, ms, warnMs)
+			states[key], event = ns.PoisonStep(states[key], has, ms, warnMs, itemID)
 			if event == "early" then
 				Warn(("%s poison: %d min left"):format(b.info.name, ns.db.poisons.warnMinutes))
 			elseif event == "expired" then

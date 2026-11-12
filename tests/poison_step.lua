@@ -41,4 +41,14 @@ check("fresh application already below N: silent", e == nil and s.early)
 s, e = Step(s, true, 100000, W)
 check("still silent", e == nil)
 
+-- weapon swap: same slot, different item = fresh start, no false warnings
+s, e = Step(nil, true, 1800000, W, 1001)
+s, e = Step(s, false, 0, W, 2002)
+check("swap to unpoisoned weapon: no expired", e == nil and not s.applied)
+s, e = Step(nil, true, 1800000, W, 1001)
+s, e = Step(s, true, 120000, W, 2002)
+check("swap to weapon with little time: no early", e == nil and s.early)
+s, e = Step(s, false, 0, W, 2002)
+check("same weapon expiring still warns", e == "expired")
+
 print("poison_step: " .. passed .. " passed")
