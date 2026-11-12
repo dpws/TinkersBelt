@@ -4,7 +4,9 @@
 ## Author: dpws
 ## Version: 0.1.0
 ## SavedVariablesPerCharacter: DpwsToolsCharDB
+## IconTexture: Interface\AddOns\dpws_tools\media\icon
 
 Core.lua
 BarSwitch.lua
 Config.lua
+Minimap.lua
