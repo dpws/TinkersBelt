@@ -47,6 +47,19 @@ function ns.StopMovingPanel(frame)
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
 
+-- scale around the panel's center (call out of combat for frames with secure children)
+function ns.SetPanelScale(frame, scale)
+	if frame:GetScale() == scale then return end
+	local cx, cy = frame:GetCenter()
+	if not cx then frame:SetScale(scale); return end
+	local old = frame:GetEffectiveScale()
+	frame:SetScale(scale)
+	local new = frame:GetEffectiveScale()
+	frame:ClearAllPoints()
+	frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", cx * old / new, cy * old / new)
+	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
+end
+
 function ns.SetUnlocked(on)
 	ns.unlocked = on
 	for _, o in ipairs(ns.panels) do o:SetShown(on) end

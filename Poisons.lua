@@ -77,7 +77,7 @@ function P.ApplyScale()
 	for _, b in ipairs(buttons) do
 		b.poison:SetSize(18 * (p.poisonScale or 1), 18 * (p.poisonScale or 1))
 	end
-	ns.RunOutOfCombat(function() bar:SetScale(p.scale or 1) end)
+	ns.RunOutOfCombat(function() ns.SetPanelScale(bar, p.scale or 1) end)
 end
 
 function P.Refresh()
@@ -205,6 +205,8 @@ local function Create()
 	bar:SetSize(88, 40)
 	bar:SetMovable(true)
 	bar:SetClampedToScreen(true)
+	-- scale before positioning: saved offsets are in the bar's scaled coordinates
+	bar:SetScale(ns.db.poisons.scale or 1)
 	local pos = ns.db.poisons.pos
 	if pos then
 		bar:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
