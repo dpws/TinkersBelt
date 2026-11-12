@@ -22,6 +22,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		local db = DpwsToolsCharDB
 		db.barSwitch = db.barSwitch or {}
 		db.window = db.window or {}
+		db.poisons = db.poisons or { enabled = true, warnMinutes = 5, sound = true }
 		ns.db = db
 	elseif event == "PLAYER_LOGIN" then
 		for _, hook in ipairs(ns.loginHooks) do hook() end
