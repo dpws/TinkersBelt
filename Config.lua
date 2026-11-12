@@ -127,6 +127,38 @@ local function BuildBarSwitchPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+-- on-screen overlays showing the number of each visible bar
+local overlays, highlightsOn = {}, false
+local HIGHLIGHT_BARS = { { frame = "MainActionBar", name = "Bar 1" } }
+for _, bar in ipairs(ns.BARS) do HIGHLIGHT_BARS[#HIGHLIGHT_BARS + 1] = bar end
+
+local function SetHighlights(on)
+	highlightsOn = on
+	for _, bar in ipairs(HIGHLIGHT_BARS) do
+		local target = _G[bar.frame] or (bar.name == "Bar 1" and _G.MainMenuBar)
+		local o = overlays[bar.name]
+		if on and target and target:IsVisible() then
+			if not o then
+				-- parented to UIParent, only anchored to the bar: never touches the protected bar itself
+				o = CreateFrame("Frame", nil, UIParent)
+				o:SetFrameStrata("DIALOG")
+				local bg = o:CreateTexture(nil, "BACKGROUND")
+				bg:SetAllPoints()
+				bg:SetColorTexture(0.1, 0.6, 1, 0.35)
+				local text = o:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+				text:SetPoint("CENTER")
+				text:SetText(bar.name:match("%d+"))
+				overlays[bar.name] = o
+			end
+			o:ClearAllPoints()
+			o:SetAllPoints(target)
+			o:Show()
+		elseif o then
+			o:Hide()
+		end
+	end
+end
+
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
 	ButtonFrameTemplate_HidePortrait(f)
@@ -155,11 +187,18 @@ local function CreateWindow()
 	tab:SetText("Bar Switching")
 	tab:LockHighlight()
 
+	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
+	hl:SetPoint("BOTTOMLEFT", 8, 8)
+	hl:SetSize(130, 26)
+	hl:SetText("Highlight bars")
+	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
+
 	local page = CreateFrame("Frame", nil, f.Inset)
 	page:SetPoint("TOPLEFT", 150, -4)
 	page:SetPoint("BOTTOMRIGHT", -4, 4)
 	BuildBarSwitchPage(page)
 
+	f:SetScript("OnHide", function() SetHighlights(false) end)
 	f:Hide()
 	return f
 end
