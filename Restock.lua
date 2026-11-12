@@ -29,11 +29,6 @@ function ns.RestockPlan(list, count, goods, budget)
 	return buys, total, total > budget
 end
 
--- how many to craft: up to the target, limited by what the materials allow
-function ns.CraftCount(target, have, canMake)
-	return math.max(0, math.min(target - have, canMake))
-end
-
 if not CreateFrame then return end -- offline test stops here
 
 -- Class presets (item IDs, target counts). Added to the list, never replacing what's there.
@@ -73,8 +68,14 @@ end
 
 local function Restock()
 	local r = ns.db.restock
-	if not r.enabled or not next(r.items) then return end
-	local buys, total, over = ns.RestockPlan(r.items, Count, Goods(), r.budget)
+	-- shopping list = restock items (if on) + poison ingredients for the Poison Stock list
+	local items = {}
+	if r.enabled then for id, n in pairs(r.items) do items[id] = n end end
+	if ns.PoisonStock then
+		for id, n in pairs(ns.PoisonStock.MaterialTargets()) do items[id] = math.max(items[id] or 0, n) end
+	end
+	if not next(items) then return end
+	local buys, total, over = ns.RestockPlan(items, Count, Goods(), r.budget)
 	if #buys == 0 then return end
 	if over then
 		print(("dpws_tools: restock skipped, it would cost %s (limit %s)"):format(
@@ -115,86 +116,3 @@ ev:RegisterEvent("MERCHANT_SHOW")
 -- the vendor's list fills in a moment after the window opens
 ev:SetScript("OnEvent", function() C_Timer.After(0.3, function() pcall(Restock) end) end)
 
----------------------------------------------------------------------------
--- Craft button on the profession window (rogue): crafts the chosen poisons up to "keep in bags".
--- Crafting has to come from a click, so this is a button, not automatic.
-
-local function FindRecipe(itemID)
-	if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
-		for _, rid in ipairs(C_TradeSkillUI.GetAllRecipeIDs() or {}) do
-			local s = C_TradeSkillUI.GetRecipeSchematic(rid, false)
-			if s and s.outputItemID == itemID then
-				local info = C_TradeSkillUI.GetRecipeInfo(rid)
-				return { recipeID = rid, canMake = info and info.numAvailable or 0 }
-			end
-		end
-	end
-	if GetNumTradeSkills then
-		for i = 1, GetNumTradeSkills() do
-			local _, kind, canMake = GetTradeSkillInfo(i)
-			local link = kind ~= "header" and GetTradeSkillItemLink(i)
-			local id = link and tonumber(link:match("item:(%d+)"))
-			if id == itemID then return { index = i, canMake = canMake or 0 } end
-		end
-	end
-end
-
--- next thing to craft: main hand poison first, then off hand
-local function NextJob()
-	local p = ns.db.poisons
-	local target = p.craftTarget or 20
-	for _, key in ipairs({ "mh", "oh" }) do
-		local id = p[key]
-		local recipe = id and FindRecipe(id)
-		if recipe then
-			local n = ns.CraftCount(target, Count(id), recipe.canMake)
-			if n > 0 then return { id = id, n = n, recipe = recipe } end
-		end
-	end
-end
-
-local craftButton
-local function UpdateCraftButton()
-	if not craftButton or not craftButton:IsShown() then return end
-	local ok, job = pcall(NextJob)
-	job = ok and job
-	craftButton.job = job
-	craftButton:SetText(job and ("Craft %d %s"):format(job.n, ItemName(job.id)) or "Poisons: nothing to craft")
-	craftButton:SetEnabled(job ~= nil)
-end
-
-local function Craft()
-	local job = craftButton.job
-	if not job then return end
-	if job.recipe.recipeID then
-		C_TradeSkillUI.CraftRecipe(job.recipe.recipeID, job.n)
-	else
-		DoTradeSkill(job.recipe.index, job.n)
-	end
-end
-
-local function AttachCraft()
-	if craftButton or select(2, UnitClass("player")) ~= "ROGUE" then return end
-	local frame = _G.ProfessionsFrame or _G.TradeSkillFrame
-	if not frame then return end
-	-- own top-level button below the window (inner panels can cover a child button)
-	craftButton = CreateFrame("Button", "DpwsCraftPoisonsButton", UIParent, "UIPanelButtonTemplate")
-	craftButton:SetSize(240, 24)
-	craftButton:SetFrameStrata("DIALOG")
-	craftButton:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", 0, -2)
-	craftButton:SetScript("OnClick", Craft)
-	craftButton:SetShown(frame:IsShown())
-	frame:HookScript("OnShow", function() craftButton:Show(); UpdateCraftButton() end)
-	frame:HookScript("OnHide", function() craftButton:Hide() end)
-	UpdateCraftButton()
-end
-
-local cf = CreateFrame("Frame")
-cf:RegisterEvent("ADDON_LOADED") -- profession UI loads on demand
-cf:RegisterEvent("TRADE_SKILL_SHOW")
-cf:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
-cf:RegisterEvent("BAG_UPDATE_DELAYED")
-cf:SetScript("OnEvent", function(_, event)
-	if event == "ADDON_LOADED" or event == "TRADE_SKILL_SHOW" then AttachCraft() end
-	UpdateCraftButton()
-end)

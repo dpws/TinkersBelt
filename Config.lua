@@ -243,8 +243,6 @@ local function BuildPoisonsPage(parent)
 		function() return (p.scale or 1) * 100 end, function(v) p.scale = v / 100; Rescale() end)
 	refreshers[#refreshers + 1] = Slider(parent, -190, 50, 200, 10, "Poison icon: %d%%",
 		function() return (p.poisonScale or 1) * 100 end, function(v) p.poisonScale = v / 100; Rescale() end)
-	refreshers[#refreshers + 1] = Slider(parent, -280, 5, 60, 5, "Craft button: keep %d of each chosen poison",
-		function() return p.craftTarget or 20 end, function(v) p.craftTarget = v end)
 
 	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 	hint:SetPoint("TOPLEFT", 16, -230)
@@ -441,6 +439,98 @@ local function BuildPvpPage(parent)
 	ns.OnPvpLogChanged = function() if parent:IsVisible() then ShowStats(); ShowPage() end end
 
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
+local function BuildPoisonStockPage(parent)
+	local p = ns.db.poisons
+	p.stock = p.stock or {}
+	local function Changed() if ns.PoisonStock then ns.PoisonStock.Update() end end
+	local Refresh
+	local refreshers = {
+		Checkbox(parent, -12, "Buy ingredients at vendors to keep this stock", function() return p.buyMats ~= false end,
+			function(v) p.buyMats = v end),
+	}
+	local status = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	status:SetPoint("TOPLEFT", 16, -46)
+	status:SetWidth(440)
+	status:SetJustifyH("LEFT")
+
+	local add = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+	add:SetPoint("TOPLEFT", 16, -70)
+	add:SetWidth(220)
+	add:SetDefaultText("Add poison...")
+	add:SetupMenu(function(_, root)
+		for _, id in ipairs(ns.POISON_IDS) do
+			if not p.stock[id] then
+				local name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id)
+				root:CreateButton(name, function() p.stock[id] = 20; Refresh(); Changed() end)
+			end
+		end
+	end)
+
+	local rows, MAX_ROWS = {}, 10
+	for i = 1, MAX_ROWS do
+		local y = -106 - (i - 1) * 24
+		local row = {}
+		row.icon = parent:CreateTexture(nil, "ARTWORK")
+		row.icon:SetSize(18, 18)
+		row.icon:SetPoint("TOPLEFT", 16, y)
+		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+		row.name:SetPoint("TOPLEFT", 40, y - 2)
+		row.name:SetWidth(200)
+		row.name:SetJustifyH("LEFT")
+		row.name:SetWordWrap(false)
+		row.have = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+		row.have:SetPoint("TOPLEFT", 244, y - 3)
+		row.count = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+		row.count:SetPoint("TOPLEFT", 296, y + 1)
+		row.count:SetSize(44, 20)
+		row.count:SetAutoFocus(false)
+		row.count:SetNumeric(true)
+		row.remove = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+		row.remove:SetPoint("TOPLEFT", 348, y + 1)
+		row.remove:SetSize(70, 20)
+		row.remove:SetText("Remove")
+		rows[i] = row
+	end
+
+	Refresh = function()
+		local learned = 0
+		for _ in pairs(ns.adb.poisonRecipes or {}) do learned = learned + 1 end
+		status:SetText(learned > 0 and ("%d poison recipes known. Amount = how many to keep in bags."):format(learned)
+			or "|cffffcc00Open your Poisons window once so the addon learns the recipes (until then nothing is bought).|r")
+		local ids = {}
+		for id in pairs(p.stock) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for i, row in ipairs(rows) do
+			local id = ids[i]
+			for _, w in pairs(row) do w:SetShown(id ~= nil) end
+			if id then
+				row.icon:SetTexture((C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id))
+				row.name:SetText((C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id))
+				row.have:SetText(("have %d"):format((C_Item and C_Item.GetItemCount or GetItemCount)(id)))
+				row.count:SetText(p.stock[id])
+				local function Save()
+					local n = tonumber(row.count:GetText())
+					if n and n > 0 and p.stock[id] then p.stock[id] = n; Changed() end
+					row.count:ClearFocus()
+				end
+				row.count:SetScript("OnEnterPressed", Save)
+				row.count:SetScript("OnEditFocusLost", Save)
+				row.remove:SetScript("OnClick", function() p.stock[id] = nil; Refresh(); Changed() end)
+			end
+		end
+		add:GenerateMenu()
+	end
+	refreshers[#refreshers + 1] = Refresh
+
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -106 - MAX_ROWS * 24 - 8)
+	hint:SetWidth(440)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click to pick a poison. Ingredients use the Auto Restock spending limit.")
+
+	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
 end
 
 local function BuildRestockPage(parent)
@@ -649,6 +739,7 @@ local GROUPS = {
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },
+		{ name = "Poison Stock", build = BuildPoisonStockPage },
 		{ name = "Combat Bars", build = BuildComboPage },
 	} },
 }

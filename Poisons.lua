@@ -202,6 +202,7 @@ end
 
 local function Create()
 	bar = CreateFrame("Frame", "DpwsPoisonBar", UIParent)
+	P.bar = bar -- PoisonStock.lua puts its craft button next to it
 	bar:SetSize(88, 40)
 	bar:SetMovable(true)
 	bar:SetClampedToScreen(true)

@@ -14,6 +14,7 @@ Config.lua
 Minimap.lua
 Poisons_Data.lua
 Poisons.lua
+PoisonStock.lua
 Combo.lua
 Pvp.lua
 Nearby.lua

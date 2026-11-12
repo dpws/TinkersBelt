@@ -39,9 +39,4 @@ local dup = { goods[1], { index = 9, id = 100, price = 5, batch = 1, available =
 buys = ns.RestockPlan(list, count, dup, 100000)
 check("same item twice: bought once", #buys == 1)
 
--- crafting: how many to make
-check("craft up to target", ns.CraftCount(20, 8, 99) == 12)
-check("craft limited by materials", ns.CraftCount(20, 8, 5) == 5)
-check("enough already: 0", ns.CraftCount(20, 25, 99) == 0)
-
 print("restock: " .. passed .. " passed")
