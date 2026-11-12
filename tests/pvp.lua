@@ -46,4 +46,11 @@ check("page clamped to last", #items == 1 and items[1].n == 3)
 items, pages = ns.PvpPage({}, 1, 15)
 check("empty log: 1 page, no items", #items == 0 and pages == 1)
 
+-- announcement text
+local score = { k = 3, d = 1 }
+check("kill text", ns.PvpAnnounceText("k", "Gank", "Rogue", 60, score) == "Killed Gank (60 Rogue)  |cff40ff403 : 1|r")
+check("death text, unknown level", ns.PvpAnnounceText("d", "Orc", "Warrior", nil, score) == "Killed by Orc (?? Warrior)  |cff40ff403 : 1|r")
+check("skull level -1 shows ??", ns.PvpAnnounceText("d", "Orc", "Warrior", -1, score) == "Killed by Orc (?? Warrior)  |cff40ff403 : 1|r")
+check("unknown class", ns.PvpAnnounceText("k", "X", nil, 10, score) == "Killed X (10 ?)  |cff40ff403 : 1|r")
+
 print("pvp: " .. passed .. " passed")

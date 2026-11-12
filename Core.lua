@@ -86,6 +86,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		adb.pvp = adb.pvp or {}
 		adb.pvpLog = adb.pvpLog or {}
 		if adb.pvpTooltip == nil then adb.pvpTooltip = true end
+		if adb.pvpAnnounce == nil then adb.pvpAnnounce = true end
 		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
 		for _, hook in ipairs(ns.loginHooks) do hook() end

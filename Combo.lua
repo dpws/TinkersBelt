@@ -10,20 +10,6 @@ if not CreateFrame then return end -- offline test stops here
 local C = {}
 ns.Combo = C
 
--- SOUNDKIT keys; missing ones on this client are skipped when played
-ns.COMBO_SOUNDS = {
-	{ key = "MAP_PING", name = "Ping" },
-	{ key = "TELL_MESSAGE", name = "Whisper" },
-	{ key = "READY_CHECK", name = "Ready check" },
-	{ key = "RAID_WARNING", name = "Raid warning" },
-	{ key = "ALARM_CLOCK_WARNING_2", name = "Alarm 1" },
-	{ key = "ALARM_CLOCK_WARNING_3", name = "Alarm 2" },
-}
-
-function ns.PlayComboSound(key)
-	local id = key and SOUNDKIT[key]
-	if id then PlaySound(id, "Master") end
-end
 
 local bar, driver, hpBar, enBar, cpRow
 local segs, last, max = {}, 0, 5
@@ -123,7 +109,7 @@ local function Update()
 	if guid ~= C.lastGuid then last, C.lastGuid = cp, guid end
 	if Mode("comboMode") ~= "off" then
 		local amount = ns.ComboSoundFor(last, cp)
-		if amount then ns.PlayComboSound(ns.db.combo.sounds[amount]) end
+		if amount then ns.PlaySoundKey(ns.db.combo.sounds[amount]) end
 	end
 	last = cp
 

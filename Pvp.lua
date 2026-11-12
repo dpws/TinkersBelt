@@ -34,6 +34,13 @@ function ns.PvpPage(log, page, perPage)
 	return items, pages, page
 end
 
+-- "Killed Gank (60 Rogue)  3 : 1" / "Killed by Orc (?? Warrior)  3 : 2"
+function ns.PvpAnnounceText(kind, name, className, level, score)
+	local lvl = (level and level > 0) and tostring(level) or "??"
+	return ("%s %s (%s %s)  %s"):format(kind == "k" and "Killed" or "Killed by", name or "?", lvl,
+		className or "?", ns.PvpScoreText(score))
+end
+
 if not CreateFrame then return end -- offline test stops here
 
 local KILLER_WINDOW = 10
@@ -63,6 +70,14 @@ local function Record(guid, name, kind)
 	Seen("target"); Seen("mouseover")
 	local _, class = GetPlayerInfoByGUID(guid)
 	ns.PvpLogAdd(ns.adb.pvpLog, { t = time(), kind = kind, name = name, class = class, level = levels[guid] }, LOG_CAP)
+	local a = ns.adb
+	if a.pvpAnnounce then
+		local className = class and (LOCALIZED_CLASS_NAMES_MALE[class] or class)
+		local color = class and RAID_CLASS_COLORS[class]
+		if color then className = ("|c%s%s|r"):format(color.colorStr, className) end
+		ns.Notify(ns.PvpAnnounceText(kind, name, className, levels[guid], a.pvp[guid]))
+	end
+	ns.PlaySoundKey(kind == "k" and a.pvpKillSound or a.pvpDeathSound)
 	if ns.OnPvpLogChanged then ns.OnPvpLogChanged() end
 end
 

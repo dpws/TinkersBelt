@@ -169,6 +169,26 @@ local function Checkbox(parent, y, text, get, set)
 	return function() cb:SetChecked(get()) end
 end
 
+-- labelled dropdown of ns.SOUNDS (+ None); picking one previews it. Returns a refresher.
+local function SoundDropdown(parent, y, text, get, set)
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("TOPLEFT", 16, y - 6)
+	label:SetText(text)
+	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+	dd:SetPoint("TOPLEFT", 110, y)
+	dd:SetWidth(170)
+	dd:SetupMenu(function(_, root)
+		root:CreateRadio("None", function() return get() == nil end, function() set(nil) end)
+		for _, s in ipairs(ns.SOUNDS) do
+			root:CreateRadio(s.name, function() return get() == s.key end, function()
+				set(s.key)
+				ns.PlaySoundKey(s.key)
+			end)
+		end
+	end)
+	return function() dd:GenerateMenu() end
+end
+
 -- plain slider with own textures: no dependency on templates that changed between clients.
 -- fmt shows the value (e.g. "Scale: %d%%"); returns a refresher.
 local function Slider(parent, y, min, max, step, fmt, get, set)
@@ -262,22 +282,8 @@ local function BuildComboPage(parent)
 	h:SetText("Combo point sounds")
 	for n = 1, 5 do
 		local y = -238 - (n - 1) * 30
-		local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-		label:SetPoint("TOPLEFT", 16, y - 6)
-		label:SetText(n == 1 and "1 point" or (n .. " points"))
-		local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-		dd:SetPoint("TOPLEFT", 100, y)
-		dd:SetWidth(170)
-		dd:SetupMenu(function(_, root)
-			root:CreateRadio("None", function() return c.sounds[n] == nil end, function() c.sounds[n] = nil end)
-			for _, s in ipairs(ns.COMBO_SOUNDS or {}) do
-				root:CreateRadio(s.name, function() return c.sounds[n] == s.key end, function()
-					c.sounds[n] = s.key
-					ns.PlayComboSound(s.key) -- preview
-				end)
-			end
-		end)
-		refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+		refreshers[#refreshers + 1] = SoundDropdown(parent, y, n == 1 and "1 point" or (n .. " points"),
+			function() return c.sounds[n] end, function(key) c.sounds[n] = key end)
 	end
 
 	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
@@ -289,13 +295,27 @@ local function BuildComboPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
-local function BuildPvpPage(parent)
+local function BuildPvpSettingsPage(parent)
 	local a = ns.adb
 	local refreshers = {
 		Checkbox(parent, -12, "Show PvP score on player tooltips", function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end),
+		Checkbox(parent, -44, "Announce kills and deaths (name, level, class, score)", function() return a.pvpAnnounce end, function(v) a.pvpAnnounce = v end),
+		SoundDropdown(parent, -90, "Kill sound", function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end),
+		SoundDropdown(parent, -120, "Death sound", function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end),
 	}
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -160)
+	hint:SetWidth(400)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("Open world only (not battlegrounds, arenas or dungeons). A death counts for the last enemy player who hit you within 10 seconds. Announcements use the Notifications panel (Unlock panels to move it).")
+	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
+local function BuildPvpPage(parent)
+	local a = ns.adb
+	local refreshers = {}
 	local stats = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	stats:SetPoint("TOPLEFT", 16, -56)
+	stats:SetPoint("TOPLEFT", 16, -16)
 	local function ShowStats()
 		local players, k, d = 0, 0, 0
 		for _, e in pairs(a.pvp) do players, k, d = players + 1, k + e.k, e.d + d end
@@ -305,7 +325,7 @@ local function BuildPvpPage(parent)
 
 	-- two clicks to reset: no popup dialog
 	local reset = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	reset:SetPoint("TOPLEFT", 16, -84)
+	reset:SetPoint("TOPLEFT", 16, -40)
 	reset:SetSize(180, 26)
 	local armed = false
 	local function ResetText() reset:SetText(armed and "Click again to reset" or "Reset all scores") end
@@ -325,7 +345,7 @@ local function BuildPvpPage(parent)
 	-- history: 15 per page, newest first
 	local PER_PAGE, ROW = 15, 17
 	local COLS = { { "When", 0 }, { "", 80 }, { "Name", 130 }, { "Class", 270 }, { "Lvl", 360 } }
-	local top = -124
+	local top = -82
 	for _, col in ipairs(COLS) do
 		local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 		h:SetPoint("TOPLEFT", 16 + col[2], top)
@@ -393,6 +413,7 @@ end
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP Kills", build = BuildPvpPage },
+		{ name = "PvP Settings", build = BuildPvpSettingsPage },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
