@@ -289,9 +289,52 @@ local function BuildComboPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+local function BuildPvpPage(parent)
+	local a = ns.adb
+	local refreshers = {
+		Checkbox(parent, -12, "Show PvP score on player tooltips", function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end),
+	}
+	local stats = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	stats:SetPoint("TOPLEFT", 16, -56)
+	local function ShowStats()
+		local players, k, d = 0, 0, 0
+		for _, e in pairs(a.pvp) do players, k, d = players + 1, k + e.k, e.d + d end
+		stats:SetText(("%d players tracked. Total: %s"):format(players, ns.PvpScoreText({ k = k, d = d })))
+	end
+	refreshers[#refreshers + 1] = ShowStats
+
+	-- two clicks to reset: no popup dialog
+	local reset = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	reset:SetPoint("TOPLEFT", 16, -84)
+	reset:SetSize(180, 26)
+	local armed = false
+	local function ResetText() reset:SetText(armed and "Click again to reset" or "Reset all scores") end
+	reset:SetScript("OnClick", function()
+		if armed then
+			wipe(a.pvp)
+			armed = false
+			ShowStats()
+		else
+			armed = true
+		end
+		ResetText()
+	end)
+	refreshers[#refreshers + 1] = function() armed = false; ResetText() end
+
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -124)
+	hint:SetWidth(400)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("Open world only (not battlegrounds, arenas or dungeons). Score is your kills : their kills, shared by all your characters. A death counts for the last enemy player who hit you within 10 seconds.")
+
+	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
 -- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
 local GROUPS = {
-	{ name = "General", tools = {} },
+	{ name = "General", tools = {
+		{ name = "PvP Kills", build = BuildPvpPage },
+	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },

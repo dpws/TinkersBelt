@@ -80,6 +80,12 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		-- older settings: combo bar switched off with a checkbox
 		if db.combo.enabled == false and not db.combo.comboMode then db.combo.comboMode = "off" end
 		ns.db = db
+		-- account-wide (all characters)
+		DpwsToolsDB = DpwsToolsDB or {}
+		local adb = DpwsToolsDB
+		adb.pvp = adb.pvp or {}
+		if adb.pvpTooltip == nil then adb.pvpTooltip = true end
+		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
 		for _, hook in ipairs(ns.loginHooks) do hook() end
 	elseif event == "PLAYER_REGEN_ENABLED" then

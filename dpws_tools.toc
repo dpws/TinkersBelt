@@ -3,6 +3,7 @@
 ## Notes: Small quality-of-life tools. /dpws
 ## Author: dpws
 ## Version: 0.1.0
+## SavedVariables: DpwsToolsDB
 ## SavedVariablesPerCharacter: DpwsToolsCharDB
 ## IconTexture: Interface\AddOns\dpws_tools\media\icon
 
@@ -14,3 +15,4 @@ Minimap.lua
 Poisons_Data.lua
 Poisons.lua
 Combo.lua
+Pvp.lua
