@@ -14,6 +14,7 @@ local function Update()
 		if fs then
 			local size = C_Container.GetContainerNumSlots(b.bag)
 			fs:SetText(size > 0 and C_Container.GetContainerNumFreeSlots(b.bag) or "")
+			fs.shade:SetShown(size > 0)
 		end
 	end
 end
@@ -29,8 +30,16 @@ table.insert(ns.loginHooks, function()
 			local fs = holder:CreateFontString(nil, "OVERLAY")
 			fs:SetFont(STANDARD_TEXT_FONT, 18, "THICKOUTLINE")
 			fs:SetTextColor(1, 0.85, 0.1)
-			fs:SetShadowOffset(1, -1)
+			fs:SetShadowOffset(2, -2)
+			fs:SetShadowColor(0, 0, 0, 1)
 			fs:SetPoint("CENTER", 0, 2)
+			-- dark round backing so the number reads on any bag icon
+			local shade = holder:CreateTexture(nil, "ARTWORK")
+			shade:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+			shade:SetVertexColor(0, 0, 0, 0.75)
+			shade:SetSize(28, 28)
+			shade:SetPoint("CENTER", fs, "CENTER", 0, 0)
+			fs.shade = shade
 			labels[i] = fs
 		end
 	end
