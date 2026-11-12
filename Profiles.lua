@@ -268,13 +268,15 @@ local function OpenMenu(owner)
 end
 
 local f = CreateFrame("Frame")
--- Classic talent window only (PlayerSpellsFrame is the spellbook on this client)
+-- Forever shows talents in PlayerSpellsFrame (spellbook + talents window); PlayerTalentFrame on other clients
 local function Attach()
-	local frame = _G.PlayerTalentFrame
+	local frame = _G.PlayerSpellsFrame or _G.PlayerTalentFrame
 	if attached or not frame then return end
 	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	b:SetSize(120, 22)
-	b:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -24, 2)
+	-- inside the window's top-right corner, left of the close button: can't end up off-screen
+	b:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -1)
+	b:SetFrameLevel(frame:GetFrameLevel() + 20)
 	b:SetText("dpws Profiles")
 	b:SetScript("OnClick", OpenMenu)
 	attached = true
