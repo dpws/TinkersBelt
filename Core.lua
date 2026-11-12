@@ -76,7 +76,9 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		db.barSwitch = db.barSwitch or {}
 		db.window = db.window or {}
 		db.poisons = db.poisons or { enabled = true, warnMinutes = 5, sound = true }
-		db.combo = db.combo or { enabled = true, width = 200, height = 14, sounds = {} }
+		db.combo = db.combo or { width = 200, height = 14, sounds = {} }
+		-- older settings: combo bar switched off with a checkbox
+		if db.combo.enabled == false and not db.combo.comboMode then db.combo.comboMode = "off" end
 		ns.db = db
 	elseif event == "PLAYER_LOGIN" then
 		for _, hook in ipairs(ns.loginHooks) do hook() end

@@ -236,17 +236,32 @@ end
 local function BuildComboPage(parent)
 	local c = ns.db.combo
 	local function Relayout() if ns.Combo then ns.Combo.Layout() end end
-	local refreshers = {
-		Checkbox(parent, -12, "Show combo points bar", function() return c.enabled end, function(v) c.enabled = v; Relayout() end),
-		Slider(parent, -50, 60, 400, 10, "Width: %d", function() return c.width end, function(v) c.width = v; Relayout() end),
-		Slider(parent, -100, 6, 40, 1, "Height: %d", function() return c.height end, function(v) c.height = v; Relayout() end),
-	}
+	local refreshers = {}
+	-- one mode dropdown per bar: Always / Only in combat / Disabled
+	for i, row in ipairs({ { "Health", "healthMode" }, { "Energy", "energyMode" }, { "Combo points", "comboMode" } }) do
+		local y = -8 - (i - 1) * 30
+		local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+		label:SetPoint("TOPLEFT", 16, y - 6)
+		label:SetText(row[1])
+		local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+		dd:SetPoint("TOPLEFT", 120, y)
+		dd:SetWidth(170)
+		dd:SetupMenu(function(_, root)
+			for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do
+				root:CreateRadio(m.name, function() return (c[row[2]] or "combat") == m.key end,
+					function() c[row[2]] = m.key; Relayout() end)
+			end
+		end)
+		refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+	end
+	refreshers[#refreshers + 1] = Slider(parent, -110, 60, 400, 10, "Width: %d", function() return c.width end, function(v) c.width = v; Relayout() end)
+	refreshers[#refreshers + 1] = Slider(parent, -160, 6, 40, 1, "Height: %d", function() return c.height end, function(v) c.height = v; Relayout() end)
 
 	local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	h:SetPoint("TOPLEFT", 12, -150)
-	h:SetText("Sounds")
+	h:SetPoint("TOPLEFT", 12, -210)
+	h:SetText("Combo point sounds")
 	for n = 1, 5 do
-		local y = -178 - (n - 1) * 30
+		local y = -238 - (n - 1) * 30
 		local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 		label:SetPoint("TOPLEFT", 16, y - 6)
 		label:SetText(n == 1 and "1 point" or (n .. " points"))
@@ -266,7 +281,7 @@ local function BuildComboPage(parent)
 	end
 
 	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -335)
+	hint:SetPoint("TOPLEFT", 16, -395)
 	hint:SetWidth(400)
 	hint:SetJustifyH("LEFT")
 	hint:SetText("A sound plays when your combo points rise to that amount. Use Unlock panels (top) to move the bar.")
@@ -280,7 +295,7 @@ local GROUPS = {
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },
-		{ name = "Combo Points", build = BuildComboPage },
+		{ name = "Combat Bars", build = BuildComboPage },
 	} },
 }
 

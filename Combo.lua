@@ -25,38 +25,84 @@ function ns.PlayComboSound(key)
 	if id then PlaySound(id, "Master") end
 end
 
-local bar, driver
+local bar, driver, hpBar, enBar, cpRow
 local segs, last, max = {}, 0, 5
+local GAP = 3
 
 local function MaxPoints()
 	local m = UnitPowerMax("player", Enum.PowerType.ComboPoints)
 	return (m and m > 0) and m or 5
 end
 
+-- per-bar mode: "always" | "combat" | "off"; default only in combat
+ns.COMBAT_BAR_MODES = {
+	{ key = "always", name = "Always" },
+	{ key = "combat", name = "Only in combat" },
+	{ key = "off", name = "Disabled" },
+}
+local function Mode(key) return ns.db.combo[key] or "combat" end
+
+local function MakeStatusBar(r, g, b)
+	local s = CreateFrame("StatusBar", nil, bar)
+	s:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	s:SetStatusBarColor(r, g, b)
+	local bg = s:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints()
+	bg:SetColorTexture(0, 0, 0, 0.6)
+	s.text = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	s.text:SetPoint("CENTER")
+	return s
+end
+
+-- stack enabled rows top to bottom: health, energy, combo points
 function C.Layout()
 	if not bar then return end
 	local c = ns.db.combo
 	max = MaxPoints()
-	bar:SetSize(c.width, c.height)
-	local gap = 3
-	local w = (c.width - 2 - gap * (max - 1)) / max
+	local rows = {
+		{ frame = hpBar, on = Mode("healthMode") ~= "off" },
+		{ frame = enBar, on = Mode("energyMode") ~= "off" },
+		{ frame = cpRow, on = Mode("comboMode") ~= "off" },
+	}
+	-- positions only depend on which rows are enabled, so hiding one out of combat leaves its slot
+	local y = 0
+	for _, row in ipairs(rows) do
+		row.frame:ClearAllPoints()
+		row.frame.enabled = row.on
+		if not row.on then row.frame:Hide() end
+		if row.on then
+			row.frame:SetSize(c.width, c.height)
+			row.frame:SetPoint("TOPLEFT", 0, -y)
+			y = y + c.height + GAP
+		end
+	end
+	bar:SetSize(c.width, math.max(y - GAP, 1))
+
+	local w = (c.width - 2 - GAP * (max - 1)) / max
 	for i = 1, math.max(max, #segs) do
 		local s = segs[i]
 		if not s then
-			s = bar:CreateTexture(nil, "ARTWORK")
+			s = cpRow:CreateTexture(nil, "ARTWORK")
 			segs[i] = s
 		end
 		s:ClearAllPoints()
 		if i <= max then
 			s:SetSize(w, c.height - 2)
-			s:SetPoint("LEFT", 1 + (i - 1) * (w + gap), 0)
+			s:SetPoint("LEFT", 1 + (i - 1) * (w + GAP), 0)
 			s:Show()
 		else
 			s:Hide()
 		end
 	end
-	driver:SetShown(c.enabled)
-	if not c.enabled then bar:Hide() end
+	local any = rows[1].on or rows[2].on or rows[3].on
+	driver:SetShown(any)
+	bar:SetShown(any)
+end
+
+local function UpdateStatus(s, value, maxValue)
+	s:SetMinMaxValues(0, math.max(maxValue, 1))
+	s:SetValue(value)
+	s.text:SetText(value)
 end
 
 local function Update()
@@ -70,14 +116,25 @@ local function Update()
 			segs[i]:SetColorTexture(0.15, 0.15, 0.15, 0.8)
 		end
 	end
+	UpdateStatus(hpBar, UnitHealth("player"), UnitHealthMax("player"))
+	UpdateStatus(enBar, UnitPower("player", Enum.PowerType.Energy), UnitPowerMax("player", Enum.PowerType.Energy))
 	-- switching to a target that already has points is not "gaining" them: no sound
 	local guid = UnitGUID("target")
 	if guid ~= C.lastGuid then last, C.lastGuid = cp, guid end
-	local amount = ns.ComboSoundFor(last, cp)
-	if amount then ns.PlayComboSound(ns.db.combo.sounds[amount]) end
+	if Mode("comboMode") ~= "off" then
+		local amount = ns.ComboSoundFor(last, cp)
+		if amount then ns.PlayComboSound(ns.db.combo.sounds[amount]) end
+	end
 	last = cp
-	-- in combat with a hostile target; always while unlocked so it can be placed
-	bar:SetShown((hostile and UnitAffectingCombat("player")) or ns.unlocked)
+
+	-- per-row visibility; everything enabled shows while unlocked so it can be placed
+	local inCombat = UnitAffectingCombat("player")
+	local function Visible(row, mode, extra)
+		row:SetShown(row.enabled and (ns.unlocked or ((inCombat or Mode(mode) == "always") and extra)))
+	end
+	Visible(hpBar, "healthMode", true)
+	Visible(enBar, "energyMode", true)
+	Visible(cpRow, "comboMode", hostile) -- combo points only mean something with a hostile target
 end
 
 local elapsed = 0
@@ -87,7 +144,10 @@ table.insert(ns.loginHooks, function()
 	bar = CreateFrame("Frame", "DpwsComboBar", UIParent)
 	bar:SetMovable(true)
 	bar:SetClampedToScreen(true)
-	local bg = bar:CreateTexture(nil, "BACKGROUND")
+	hpBar = MakeStatusBar(0.1, 0.8, 0.1)
+	enBar = MakeStatusBar(1, 0.85, 0.1)
+	cpRow = CreateFrame("Frame", nil, bar)
+	local bg = cpRow:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
 	bg:SetColorTexture(0, 0, 0, 0.6)
 	if c.pos then
@@ -95,7 +155,7 @@ table.insert(ns.loginHooks, function()
 	else
 		bar:SetPoint("CENTER", UIParent, "CENTER", 0, -160)
 	end
-	ns.RegisterPanel(bar, "Combo Points", function(self)
+	ns.RegisterPanel(bar, "Combat Bars", function(self)
 		local point, _, relPoint, x, y = self:GetPoint()
 		c.pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
