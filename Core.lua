@@ -100,6 +100,9 @@ f:SetScript("OnEvent", function(_, event, arg1)
 end)
 
 SLASH_DPWS1 = "/dpws"
-SlashCmdList.DPWS = function()
+-- /dpws opens the window; /dpws <word> runs a module command (e.g. /dpws debug)
+SlashCmdList.DPWS = function(msg)
+	local cmd = strtrim(msg or ""):lower()
+	if cmd ~= "" and ns.slashCommands and ns.slashCommands[cmd] then return ns.slashCommands[cmd]() end
 	if ns.ToggleWindow then ns.ToggleWindow() else print("dpws_tools loaded") end
 end
