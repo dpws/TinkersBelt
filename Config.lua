@@ -463,7 +463,8 @@ local function BuildPoisonStockPage(parent)
 		for _, id in ipairs(ns.POISON_IDS) do
 			if not p.stock[id] then
 				local name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id)
-				root:CreateButton(name, function() p.stock[id] = 20; Refresh(); Changed() end)
+				local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id)
+				root:CreateButton(("|T%s:16|t %s"):format(icon or 134400, name), function() p.stock[id] = 20; Refresh(); Changed() end)
 			end
 		end
 	end)
