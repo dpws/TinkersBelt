@@ -233,12 +233,54 @@ local function BuildPoisonsPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+local function BuildComboPage(parent)
+	local c = ns.db.combo
+	local function Relayout() if ns.Combo then ns.Combo.Layout() end end
+	local refreshers = {
+		Checkbox(parent, -12, "Show combo points bar", function() return c.enabled end, function(v) c.enabled = v; Relayout() end),
+		Slider(parent, -50, 60, 400, 10, "Width: %d", function() return c.width end, function(v) c.width = v; Relayout() end),
+		Slider(parent, -100, 6, 40, 1, "Height: %d", function() return c.height end, function(v) c.height = v; Relayout() end),
+	}
+
+	local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	h:SetPoint("TOPLEFT", 12, -150)
+	h:SetText("Sounds")
+	for n = 1, 5 do
+		local y = -178 - (n - 1) * 30
+		local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+		label:SetPoint("TOPLEFT", 16, y - 6)
+		label:SetText(n == 1 and "1 point" or (n .. " points"))
+		local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+		dd:SetPoint("TOPLEFT", 100, y)
+		dd:SetWidth(170)
+		dd:SetupMenu(function(_, root)
+			root:CreateRadio("None", function() return c.sounds[n] == nil end, function() c.sounds[n] = nil end)
+			for _, s in ipairs(ns.COMBO_SOUNDS or {}) do
+				root:CreateRadio(s.name, function() return c.sounds[n] == s.key end, function()
+					c.sounds[n] = s.key
+					ns.PlayComboSound(s.key) -- preview
+				end)
+			end
+		end)
+		refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+	end
+
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -335)
+	hint:SetWidth(400)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("A sound plays when your combo points rise to that amount. Use Unlock panels (top) to move the bar.")
+
+	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
 -- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
 local GROUPS = {
 	{ name = "General", tools = {} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },
+		{ name = "Combo Points", build = BuildComboPage },
 	} },
 }
 
