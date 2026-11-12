@@ -70,6 +70,16 @@ local function UpdateSecure()
 	end)
 end
 
+-- weapon scale = whole bar (secure children: only out of combat); poison icon size is insecure
+function P.ApplyScale()
+	if not bar then return end
+	local p = ns.db.poisons
+	for _, b in ipairs(buttons) do
+		b.poison:SetSize(18 * (p.poisonScale or 1), 18 * (p.poisonScale or 1))
+	end
+	ns.RunOutOfCombat(function() bar:SetScale(p.scale or 1) end)
+end
+
 function P.Refresh()
 	if not bar then return end
 	UpdateSecure()
@@ -207,6 +217,7 @@ local function Create()
 		ns.db.poisons.pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
 	bar:SetScript("OnUpdate", OnUpdate)
+	P.ApplyScale()
 
 	bar:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 	bar:RegisterEvent("BAG_UPDATE_DELAYED")

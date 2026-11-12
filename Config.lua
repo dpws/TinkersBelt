@@ -169,6 +169,39 @@ local function Checkbox(parent, y, text, get, set)
 	return function() cb:SetChecked(get()) end
 end
 
+-- plain slider with own textures: no dependency on templates that changed between clients.
+-- fmt shows the value (e.g. "Scale: %d%%"); returns a refresher.
+local function Slider(parent, y, min, max, step, fmt, get, set)
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("TOPLEFT", 16, y)
+	local s = CreateFrame("Slider", nil, parent)
+	s:SetPoint("TOPLEFT", 16, y - 22)
+	s:SetSize(220, 16)
+	s:SetOrientation("HORIZONTAL")
+	s:SetMinMaxValues(min, max)
+	s:SetValueStep(step)
+	s:SetObeyStepOnDrag(true)
+	s:EnableMouse(true)
+	local track = s:CreateTexture(nil, "BACKGROUND")
+	track:SetColorTexture(0, 0, 0, 0.6)
+	track:SetPoint("LEFT")
+	track:SetPoint("RIGHT")
+	track:SetHeight(6)
+	s:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+	local loading = false
+	s:SetScript("OnValueChanged", function(_, v)
+		v = math.floor(v / step + 0.5) * step
+		label:SetText(fmt:format(v))
+		if not loading then set(v) end
+	end)
+	return function()
+		loading = true
+		s:SetValue(get())
+		label:SetText(fmt:format(math.floor(get() + 0.5)))
+		loading = false
+	end
+end
+
 local function BuildPoisonsPage(parent)
 	if select(2, UnitClass("player")) ~= "ROGUE" then
 		local t = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -183,32 +216,16 @@ local function BuildPoisonsPage(parent)
 		Checkbox(parent, -44, "Play sound with warnings", function() return p.sound end, function(v) p.sound = v end),
 	}
 
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, -90)
-	-- plain slider with own textures: no dependency on templates that changed between clients
-	local s = CreateFrame("Slider", nil, parent)
-	s:SetPoint("TOPLEFT", 16, -112)
-	s:SetSize(220, 16)
-	s:SetOrientation("HORIZONTAL")
-	s:SetMinMaxValues(1, 15)
-	s:SetValueStep(1)
-	s:SetObeyStepOnDrag(true)
-	s:EnableMouse(true)
-	local track = s:CreateTexture(nil, "BACKGROUND")
-	track:SetColorTexture(0, 0, 0, 0.6)
-	track:SetPoint("LEFT")
-	track:SetPoint("RIGHT")
-	track:SetHeight(6)
-	s:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-	local function ShowValue() label:SetText(("Warn when less than %d min left"):format(p.warnMinutes)) end
-	s:SetScript("OnValueChanged", function(_, v)
-		p.warnMinutes = math.floor(v + 0.5)
-		ShowValue()
-	end)
-	refreshers[#refreshers + 1] = function() s:SetValue(p.warnMinutes); ShowValue() end
+	local function Rescale() if ns.Poisons then ns.Poisons.ApplyScale() end end
+	refreshers[#refreshers + 1] = Slider(parent, -90, 1, 15, 1, "Warn when less than %d min left",
+		function() return p.warnMinutes end, function(v) p.warnMinutes = v end)
+	refreshers[#refreshers + 1] = Slider(parent, -140, 50, 200, 10, "Weapon icons: %d%%",
+		function() return (p.scale or 1) * 100 end, function(v) p.scale = v / 100; Rescale() end)
+	refreshers[#refreshers + 1] = Slider(parent, -190, 50, 200, 10, "Poison icon: %d%%",
+		function() return (p.poisonScale or 1) * 100 end, function(v) p.poisonScale = v / 100; Rescale() end)
 
 	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -150)
+	hint:SetPoint("TOPLEFT", 16, -230)
 	hint:SetWidth(400)
 	hint:SetJustifyH("LEFT")
 	hint:SetText("On the bar: left-click applies the chosen poison, right-click chooses it. Use Unlock panels (top) to move the bar.")
