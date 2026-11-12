@@ -235,10 +235,9 @@ end
 
 -- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
 local GROUPS = {
-	{ name = "General", tools = {
-		{ name = "Bar Switching", build = BuildBarSwitchPage },
-	} },
+	{ name = "General", tools = {} },
 	{ name = "Rogue", class = "ROGUE", tools = {
+		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },
 	} },
 }
@@ -292,11 +291,11 @@ local function BuildGroup(parent, tools)
 	for i, tool in ipairs(tools) do
 		local tab = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 		tab:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 30)
-		tab:SetSize(130, 26)
+		tab:SetSize(150, 26)
 		tab:SetText(tool.name)
 		tab:SetScript("OnClick", function() Select(i) end)
 		tab.page = CreateFrame("Frame", nil, parent)
-		tab.page:SetPoint("TOPLEFT", 146, -4)
+		tab.page:SetPoint("TOPLEFT", 166, -4)
 		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
 		tool.build(tab.page)
 		tabs[i] = tab
@@ -308,7 +307,7 @@ local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
 	ButtonFrameTemplate_HidePortrait(f)
 	f:SetTitle("dpws tools")
-	f:SetSize(620, 500)
+	f:SetSize(660, 500)
 	f:SetFrameStrata("HIGH")
 	f:SetToplevel(true)
 	f:SetClampedToScreen(true)
@@ -369,7 +368,7 @@ local function CreateWindow()
 		end
 	end
 	for _, group in ipairs(GROUPS) do
-		if not group.class or group.class == playerClass then
+		if (not group.class or group.class == playerClass) and #group.tools > 0 then
 			local i = #groups + 1
 			local tab = TopTab(f.Inset, group.name)
 			if i == 1 then
@@ -385,6 +384,11 @@ local function CreateWindow()
 		end
 	end
 	SelectGroup(1)
+	if #groups == 0 then
+		local t = box:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+		t:SetPoint("CENTER")
+		t:SetText("No tools for your class yet")
+	end
 
 	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
 	f:Hide()
