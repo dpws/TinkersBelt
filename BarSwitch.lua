@@ -2,10 +2,10 @@ local _, ns = ...
 
 -- page = fallback if the game doesn't expose its "actionpage" attribute; real value read at login
 ns.BARS = {
-	{ index = 2, frame = "MultiBarBottomLeft", name = "Bottom Left", page = 6 },
-	{ index = 3, frame = "MultiBarBottomRight", name = "Bottom Right", page = 5 },
-	{ index = 4, frame = "MultiBarRight", name = "Right", page = 3 },
-	{ index = 5, frame = "MultiBarLeft", name = "Left", page = 4 },
+	{ index = 2, frame = "MultiBarBottomLeft", name = "Bar 2", page = 6 },
+	{ index = 3, frame = "MultiBarBottomRight", name = "Bar 3", page = 5 },
+	{ index = 4, frame = "MultiBarRight", name = "Bar 4", page = 3 },
+	{ index = 5, frame = "MultiBarLeft", name = "Bar 5", page = 4 },
 	{ index = 6, frame = "MultiBar5", name = "Bar 6", page = 13 },
 	{ index = 7, frame = "MultiBar6", name = "Bar 7", page = 14 },
 	{ index = 8, frame = "MultiBar7", name = "Bar 8", page = 15 },

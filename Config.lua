@@ -11,27 +11,38 @@ local window
 
 -- name of a currently visible bar that owns this page, if any
 local function VisibleOwner(page)
-	if page == 1 then return "Main Bar" end
+	if page == 1 then return "Bar 1" end
 	for _, bar in ipairs(ns.BARS) do
 		local f = _G[bar.frame]
 		if bar.page == page and f and f:IsVisible() then return bar.name end
 	end
 end
 
+-- green = bar visible now, gray = hidden (good to borrow)
+local function Colored(name, visible)
+	return (visible and "|cff40ff40%s|r" or "|cff909090%s|r"):format(name)
+end
+
+local function BarLabel(bar)
+	local f = _G[bar.frame]
+	return Colored(bar.name, f and f:IsVisible())
+end
+
 local function PageLabel(page)
 	for _, bar in ipairs(ns.BARS) do
-		if bar.page == page then return ("%s (page %d)"):format(bar.name, page) end
+		if bar.page == page then return BarLabel(bar) end
 	end
-	return page == 1 and "Main Bar (page 1)" or ("Page %d"):format(page)
+	if page == 1 then return Colored("Bar 1", true) end
+	return Colored(("Bar 1, page %d"):format(page), false)
 end
 
 local function MakeRow(parent, y, state, bar)
 	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	label:SetPoint("TOPLEFT", 16, y - 6)
-	label:SetText(bar.name)
+	label:SetText(BarLabel(bar) .. "  \226\134\146") -- "Bar 2  →"
 
 	local warn = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-	warn:SetPoint("TOPLEFT", 330, y - 7)
+	warn:SetPoint("TOPLEFT", 270, y - 7)
 	warn:SetTextColor(1, 0.5, 0.1)
 
 	local function Get()
@@ -39,7 +50,7 @@ local function MakeRow(parent, y, state, bar)
 	end
 	local function UpdateWarn()
 		local owner = Get() and VisibleOwner(Get())
-		warn:SetText(owner and ("also shown on " .. owner) or "")
+		warn:SetText(owner and ("in use on " .. owner) or "")
 	end
 	local function Set(page)
 		ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
@@ -51,15 +62,19 @@ local function MakeRow(parent, y, state, bar)
 	end
 
 	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	dd:SetPoint("TOPLEFT", 130, y)
-	dd:SetWidth(190)
+	dd:SetPoint("TOPLEFT", 90, y)
+	dd:SetWidth(170)
 	dd:SetupMenu(function(_, root)
 		root:CreateRadio("None", function() return Get() == nil end, function() Set(nil) end)
 		for _, page in ipairs(ns.ValidPages(bar.index)) do
 			root:CreateRadio(PageLabel(page), function() return Get() == page end, function() Set(page) end)
 		end
 	end)
-	return function() dd:GenerateMenu(); UpdateWarn() end
+	return function()
+		label:SetText(BarLabel(bar) .. "  \226\134\146")
+		dd:GenerateMenu()
+		UpdateWarn()
+	end
 end
 
 local function BuildBarSwitchPage(parent)
@@ -84,6 +99,16 @@ local function BuildBarSwitchPage(parent)
 		hint:SetJustifyH("LEFT")
 		hint:SetText("Pick which page each bar shows while in a state. Put spells on that page by dragging them onto the bar while the state is active.")
 		y = y - 36
+		-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
+		if _G.MelloUIActionBar2Button1 then
+			local mello = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+			mello:SetPoint("TOPLEFT", 16, y)
+			mello:SetWidth(400)
+			mello:SetJustifyH("LEFT")
+			mello:SetTextColor(1, 0.3, 0.3)
+			mello:SetText("MelloUI's own action bars are active: bar switching won't affect them.")
+			y = y - 30
+		end
 		for state = 1, 4 do
 			if labels[state] then
 				local h = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -152,7 +177,6 @@ table.insert(ns.loginHooks, function()
 	b:SetSize(180, 26)
 	b:SetText("Open dpws tools")
 	b:SetScript("OnClick", function()
-		if SettingsPanel and SettingsPanel:IsShown() then HideUIPanel(SettingsPanel) end
 		window = window or CreateWindow()
 		window:Show()
 	end)
