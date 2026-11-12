@@ -12,6 +12,31 @@ function ns.RunOutOfCombat(fn)
 	end
 end
 
+-- movable panels: overlay + drag only while unlocked (starts locked every session)
+ns.panels = {}
+ns.unlocked = false
+
+local function ShowOverlay(p) p.bg:SetShown(ns.unlocked); p.label:SetShown(ns.unlocked) end
+
+function ns.RegisterPanel(frame, name)
+	-- on the panel frame itself, BACKGROUND layer: draws under its child buttons
+	local bg = frame:CreateTexture(nil, "BACKGROUND")
+	bg:SetPoint("TOPLEFT", -6, 6)
+	bg:SetPoint("BOTTOMRIGHT", 6, -20)
+	bg:SetColorTexture(0.1, 0.5, 1, 0.35)
+	local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	label:SetPoint("BOTTOM", bg, "BOTTOM", 0, 4)
+	label:SetText(name)
+	local p = { bg = bg, label = label }
+	ns.panels[#ns.panels + 1] = p
+	ShowOverlay(p)
+end
+
+function ns.SetUnlocked(on)
+	ns.unlocked = on
+	for _, p in ipairs(ns.panels) do ShowOverlay(p) end
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")

@@ -211,7 +211,7 @@ local function BuildPoisonsPage(parent)
 	hint:SetPoint("TOPLEFT", 16, -150)
 	hint:SetWidth(400)
 	hint:SetJustifyH("LEFT")
-	hint:SetText("On the bar: left-click applies the chosen poison, right-click chooses it, Shift+drag moves the bar.")
+	hint:SetText("On the bar: left-click applies the chosen poison, right-click chooses it. Use Unlock panels (top) to move the bar.")
 
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
@@ -250,25 +250,41 @@ local function CreateWindow()
 			if i == index then t:LockHighlight() else t:UnlockHighlight() end
 		end
 	end
+	-- toolbar strip on top, shared by all tabs
+	local TOOLBAR = 40
+	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
+	hl:SetPoint("TOPLEFT", 8, -8)
+	hl:SetSize(130, 26)
+	hl:SetText("Highlight bars")
+	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
+
+	local lock = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
+	lock:SetPoint("LEFT", hl, "RIGHT", 8, 0)
+	lock:SetSize(130, 26)
+	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
+	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked); LockText() end)
+	lock:SetScript("OnShow", LockText)
+	LockText()
+
+	local line = f.Inset:CreateTexture(nil, "ARTWORK")
+	line:SetColorTexture(1, 1, 1, 0.15)
+	line:SetPoint("TOPLEFT", 4, -TOOLBAR)
+	line:SetPoint("TOPRIGHT", -4, -TOOLBAR)
+	line:SetHeight(1)
+
 	for i, tool in ipairs(TOOLS) do
 		local tab = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-		tab:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 30)
+		tab:SetPoint("TOPLEFT", 8, -TOOLBAR - 8 - (i - 1) * 30)
 		tab:SetSize(130, 26)
 		tab:SetText(tool.name)
 		tab:SetScript("OnClick", function() Select(i) end)
 		tab.page = CreateFrame("Frame", nil, f.Inset)
-		tab.page:SetPoint("TOPLEFT", 150, -4)
+		tab.page:SetPoint("TOPLEFT", 150, -TOOLBAR - 4)
 		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
 		tool.build(tab.page)
 		tabs[i] = tab
 	end
 	Select(1)
-
-	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-	hl:SetPoint("BOTTOMLEFT", 8, 8)
-	hl:SetSize(130, 26)
-	hl:SetText("Highlight bars")
-	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
 
 	f:SetScript("OnHide", function() SetHighlights(false) end)
 	f:Hide()
