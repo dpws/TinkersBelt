@@ -36,7 +36,7 @@ State per weapon from `GetWeaponEnchantInfo()` (expiration ms, charges), polled 
 - **Early warning**: once per application, when time left first drops below N → sound + center message `"<Main Hand> poison: N min left"`.
 - **Expiry warning**: when an applied poison disappears (time or charges) → sound + `"<Main Hand> poison expired!"`. Once per application.
 - **Combat warning**: on `PLAYER_REGEN_DISABLED`, if any shown weapon has no poison → sound + `"No poison on <Main Hand / Off Hand>!"`.
-- Center message via `RaidNotice_AddMessage(RaidWarningFrame, msg, ChatTypeInfo.RAID_WARNING)`; sound via `PlaySound(SOUNDKIT.RAID_WARNING)`; sound can be turned off (`db.poisons.sound`).
+- Center message via `ns.Notify(msg, playSound)` (addon-wide movable notification panel, Notify.lua); sound `SOUNDKIT.RAID_WARNING`; sound can be turned off (`db.poisons.sound`).
 - Logic lives in a pure function `ns.PoisonStep(prev, hasEnchant, msLeft, warnMs) -> newState, event` (event = nil | "early" | "expired"), tested offline with LuaJIT.
 
 ## Data

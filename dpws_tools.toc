@@ -7,6 +7,7 @@
 ## IconTexture: Interface\AddOns\dpws_tools\media\icon
 
 Core.lua
+Notify.lua
 BarSwitch.lua
 Config.lua
 Minimap.lua

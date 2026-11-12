@@ -39,8 +39,7 @@ local function Count(id)
 end
 
 local function Warn(msg)
-	RaidNotice_AddMessage(RaidWarningFrame, msg, ChatTypeInfo.RAID_WARNING)
-	if ns.db.poisons.sound then PlaySound(SOUNDKIT.RAID_WARNING) end
+	ns.Notify(msg, ns.db.poisons.sound)
 end
 
 local function FormatTime(ms)
