@@ -441,12 +441,105 @@ local function BuildPvpPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+local function BuildProfilesPage(parent)
+	local MAX_ROWS = 12
+	local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	title:SetPoint("TOPLEFT", 16, -12)
+	title:SetText("Save current action bars and talents as:")
+	local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+	input:SetPoint("TOPLEFT", 22, -32)
+	input:SetSize(200, 22)
+	input:SetAutoFocus(false)
+	input:SetMaxLetters(32)
+	local save = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	save:SetPoint("LEFT", input, "RIGHT", 8, 0)
+	save:SetSize(80, 22)
+	save:SetText("Save")
+	local function DoSave()
+		local name = strtrim(input:GetText() or "")
+		if name == "" then return end
+		ns.Profiles.Save(name)
+		input:SetText("")
+		input:ClearFocus()
+		print(("dpws_tools: saved profile '%s'"):format(name))
+	end
+	save:SetScript("OnClick", DoSave)
+	input:SetScript("OnEnterPressed", DoSave)
+	input:SetScript("OnEscapePressed", input.ClearFocus)
+
+	local note = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	note:SetPoint("TOPLEFT", 16, -62)
+	note:SetWidth(440)
+	note:SetJustifyH("LEFT")
+	note:SetText("Shared by all your characters of this class. Loading bars first saves your current bars as '(backup)'.")
+
+	local function SmallButton(text, x, y)
+		local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+		b:SetPoint("TOPLEFT", x, y)
+		b:SetSize(58, 20)
+		b:SetText(text)
+		return b
+	end
+	local rows = {}
+	for i = 1, MAX_ROWS do
+		local y = -96 - (i - 1) * 26
+		local row = {}
+		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+		row.name:SetPoint("TOPLEFT", 16, y - 2)
+		row.name:SetWidth(170)
+		row.name:SetJustifyH("LEFT")
+		row.name:SetWordWrap(false)
+		row.info = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+		row.info:SetPoint("TOPLEFT", 16, y - 14)
+		row.bars = SmallButton("Bars", 190, y)
+		row.talents = SmallButton("Talents", 250, y)
+		row.both = SmallButton("Both", 310, y)
+		row.delete = SmallButton("Delete", 380, y)
+		rows[i] = row
+	end
+
+	local armedDelete
+	local function Refresh()
+		local names = ns.Profiles.List()
+		for i, row in ipairs(rows) do
+			local name = names[i]
+			for _, w in pairs(row) do w:SetShown(name ~= nil) end
+			if name then
+				local p = ns.Profiles.Get(name)
+				row.name:SetText(name)
+				row.info:SetText(("by %s, %s"):format(p.by or "?", date("%Y-%m-%d %H:%M", p.at or 0)))
+				row.bars:SetScript("OnClick", function() ns.Profiles.LoadBars(name) end)
+				row.talents:SetScript("OnClick", function() ns.Profiles.LoadTalents(name) end)
+				row.both:SetScript("OnClick", function() ns.Profiles.LoadBoth(name) end)
+				-- two clicks to delete: no popup dialog
+				row.delete:SetText(armedDelete == name and "Sure?" or "Delete")
+				row.delete:SetScript("OnClick", function()
+					if armedDelete == name then
+						armedDelete = nil
+						ns.Profiles.Delete(name)
+					else
+						armedDelete = name
+						Refresh()
+					end
+				end)
+			end
+		end
+		if #names == 0 then
+			rows[1].name:SetText("No profiles yet")
+			rows[1].name:Show()
+		end
+	end
+	ns.OnProfilesChanged = function() if parent:IsVisible() then Refresh() end end
+	parent:SetScript("OnShow", function() armedDelete = nil; Refresh() end)
+end
+
 -- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP Kills", build = BuildPvpPage },
 		{ name = "PvP Settings", build = BuildPvpSettingsPage },
 		{ name = "Nearby Enemies", build = BuildNearbyPage },
+		{ name = "Profiles", build = BuildProfilesPage },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
@@ -514,7 +607,10 @@ local function BuildGroup(parent, tools)
 		tabs[i] = tab
 	end
 	Select(1)
+	return Select
 end
+
+local toolSelectors = {} -- tool name -> function showing that tool
 
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
@@ -592,8 +688,11 @@ local function CreateWindow()
 			tab:SetScript("OnClick", function() SelectGroup(i) end)
 			local content = CreateFrame("Frame", nil, box)
 			content:SetAllPoints()
-			BuildGroup(content, group.tools)
+			local selectTool = BuildGroup(content, group.tools)
 			groups[i] = { tab = tab, content = content }
+			for t, tool in ipairs(group.tools) do
+				toolSelectors[tool.name] = function() SelectGroup(i); selectTool(t) end
+			end
 		end
 	end
 	SelectGroup(1)
@@ -611,6 +710,13 @@ end
 function ns.ToggleWindow()
 	window = window or CreateWindow()
 	window:SetShown(not window:IsShown())
+end
+
+-- open the window on a given tool, e.g. ns.OpenWindow("Profiles")
+function ns.OpenWindow(toolName)
+	window = window or CreateWindow()
+	window:Show()
+	if toolSelectors[toolName] then toolSelectors[toolName]() end
 end
 
 -- Esc > Options > AddOns entry

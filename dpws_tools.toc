@@ -18,3 +18,4 @@ Combo.lua
 Pvp.lua
 Nearby.lua
 BagSlots.lua
+Profiles.lua
