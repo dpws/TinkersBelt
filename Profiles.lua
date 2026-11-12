@@ -282,4 +282,21 @@ local function Attach()
 end
 f:RegisterEvent("ADDON_LOADED") -- the talent UI loads on demand
 f:SetScript("OnEvent", Attach)
+
+-- /dpws frames: which talent-like windows are open (to find the talent window on this client)
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.frames = function()
+	print(("dpws_tools: profiles button attached: %s"):format(attached and "yes" or "no"))
+	local found = 0
+	for name, obj in pairs(_G) do
+		if type(name) == "string" and (name:find("Talent") or name:find("Spells")) and type(obj) == "table" then
+			local ok, shown = pcall(function() return obj.IsShown and obj:IsShown() and obj.GetObjectType and obj:GetObjectType() == "Frame" end)
+			if ok and shown then
+				found = found + 1
+				print("  shown: " .. name)
+			end
+		end
+	end
+	if found == 0 then print("  no talent/spells window is open - open it and try again") end
+end
 table.insert(ns.loginHooks, Attach)
