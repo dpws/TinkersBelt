@@ -159,6 +159,68 @@ local function SetHighlights(on)
 	end
 end
 
+local function Checkbox(parent, y, text, get, set)
+	local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+	cb:SetPoint("TOPLEFT", 12, y)
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+	label:SetText(text)
+	cb:SetScript("OnClick", function(self) set(self:GetChecked()) end)
+	return function() cb:SetChecked(get()) end
+end
+
+local function BuildPoisonsPage(parent)
+	if select(2, UnitClass("player")) ~= "ROGUE" then
+		local t = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+		t:SetPoint("TOP", 0, -40)
+		t:SetText("Poison bar is for rogues")
+		return
+	end
+	local p = ns.db.poisons
+	local function Changed() if ns.Poisons then ns.Poisons.Refresh() end end
+	local refreshers = {
+		Checkbox(parent, -12, "Show poison bar", function() return p.enabled end, function(v) p.enabled = v; Changed() end),
+		Checkbox(parent, -44, "Play sound with warnings", function() return p.sound end, function(v) p.sound = v end),
+	}
+
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("TOPLEFT", 16, -90)
+	-- plain slider with own textures: no dependency on templates that changed between clients
+	local s = CreateFrame("Slider", nil, parent)
+	s:SetPoint("TOPLEFT", 16, -112)
+	s:SetSize(220, 16)
+	s:SetOrientation("HORIZONTAL")
+	s:SetMinMaxValues(1, 15)
+	s:SetValueStep(1)
+	s:SetObeyStepOnDrag(true)
+	s:EnableMouse(true)
+	local track = s:CreateTexture(nil, "BACKGROUND")
+	track:SetColorTexture(0, 0, 0, 0.6)
+	track:SetPoint("LEFT")
+	track:SetPoint("RIGHT")
+	track:SetHeight(6)
+	s:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+	local function ShowValue() label:SetText(("Warn when less than %d min left"):format(p.warnMinutes)) end
+	s:SetScript("OnValueChanged", function(_, v)
+		p.warnMinutes = math.floor(v + 0.5)
+		ShowValue()
+	end)
+	refreshers[#refreshers + 1] = function() s:SetValue(p.warnMinutes); ShowValue() end
+
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -150)
+	hint:SetWidth(400)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("On the bar: left-click applies the chosen poison, right-click chooses it, Shift+drag moves the bar.")
+
+	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
+local TOOLS = {
+	{ name = "Bar Switching", build = BuildBarSwitchPage },
+	{ name = "Poisons", build = BuildPoisonsPage },
+}
+
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
 	ButtonFrameTemplate_HidePortrait(f)
@@ -180,23 +242,33 @@ local function CreateWindow()
 	f:SetPoint(pos.point or "CENTER", UIParent, pos.point or "CENTER", pos.x or 0, pos.y or 0)
 	tinsert(UISpecialFrames, f:GetName()) -- Esc closes it
 
-	-- left: tool list (one tool for now)
-	local tab = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-	tab:SetPoint("TOPLEFT", 8, -8)
-	tab:SetSize(130, 26)
-	tab:SetText("Bar Switching")
-	tab:LockHighlight()
+	-- left: tool tabs, right: the selected tool's page
+	local tabs = {}
+	local function Select(index)
+		for i, t in ipairs(tabs) do
+			t.page:SetShown(i == index)
+			if i == index then t:LockHighlight() else t:UnlockHighlight() end
+		end
+	end
+	for i, tool in ipairs(TOOLS) do
+		local tab = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
+		tab:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 30)
+		tab:SetSize(130, 26)
+		tab:SetText(tool.name)
+		tab:SetScript("OnClick", function() Select(i) end)
+		tab.page = CreateFrame("Frame", nil, f.Inset)
+		tab.page:SetPoint("TOPLEFT", 150, -4)
+		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
+		tool.build(tab.page)
+		tabs[i] = tab
+	end
+	Select(1)
 
 	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
 	hl:SetPoint("BOTTOMLEFT", 8, 8)
 	hl:SetSize(130, 26)
 	hl:SetText("Highlight bars")
 	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
-
-	local page = CreateFrame("Frame", nil, f.Inset)
-	page:SetPoint("TOPLEFT", 150, -4)
-	page:SetPoint("BOTTOMRIGHT", -4, 4)
-	BuildBarSwitchPage(page)
 
 	f:SetScript("OnHide", function() SetHighlights(false) end)
 	f:Hide()
