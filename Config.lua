@@ -311,6 +311,38 @@ local function BuildPvpSettingsPage(parent)
 	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
 end
 
+local function BuildNearbyPage(parent)
+	local s = ns.adb.nearby
+	local function Changed() if ns.RefreshNearby then ns.RefreshNearby() end end
+	local refreshers = {
+		Checkbox(parent, -12, "Show nearby enemies (opposite faction)", function() return s.enabled end, function(v) s.enabled = v; Changed() end),
+		Slider(parent, -50, 15, 300, 15, "Remove after not seen for %d sec", function() return s.timeout end, function(v) s.timeout = v end),
+	}
+
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("TOPLEFT", 16, -106)
+	label:SetText("Alert")
+	local ALERTS = { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } }
+	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+	dd:SetPoint("TOPLEFT", 110, -100)
+	dd:SetWidth(200)
+	dd:SetupMenu(function(_, root)
+		for _, a in ipairs(ALERTS) do
+			root:CreateRadio(a[2], function() return s.alert == a[1] end, function() s.alert = a[1] end)
+		end
+	end)
+	refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+	refreshers[#refreshers + 1] = SoundDropdown(parent, -130, "Alert sound", function() return s.sound end, function(key) s.sound = key end)
+
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -172)
+	hint:SetWidth(400)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("Players are found by their nameplates (turn on enemy nameplates for best results) and by what they do in the combat log. Stealthed players are not seen until they act. Open world only. Use Unlock panels (top) to move the list.")
+
+	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+end
+
 local function BuildPvpPage(parent)
 	local a = ns.adb
 	local refreshers = {}
@@ -414,6 +446,7 @@ local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP Kills", build = BuildPvpPage },
 		{ name = "PvP Settings", build = BuildPvpSettingsPage },
+		{ name = "Nearby Enemies", build = BuildNearbyPage },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
