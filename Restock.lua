@@ -43,6 +43,13 @@ ns.RESTOCK_PRESETS = {
 }
 
 local function Count(id) return (C_Item and C_Item.GetItemCount or GetItemCount)(id) end
+
+-- gold text: GetCoinTextureString moved to C_CurrencyInfo on newer engines (the global is nil on Forever)
+local function Coins(copper)
+	local fn = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+	if fn then return fn(copper) end
+	return ("%dg %ds %dc"):format(copper / 10000, (copper / 100) % 100, copper % 100)
+end
 local function ItemName(id)
 	return (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or (GetItemInfo and GetItemInfo(id)) or ("item " .. id)
 end
@@ -98,7 +105,7 @@ local function Restock(verbose)
 	if #buys == 0 then return Say("nothing to buy here (vendor doesn't sell them, or you have enough)") end
 	if over then
 		print(("dpws_tools: restock skipped, it would cost %s (limit %s)"):format(
-			GetCoinTextureString(total), GetCoinTextureString(r.budget)))
+			Coins(total), Coins(r.budget)))
 		return
 	end
 	if GetMoney() < total then print("dpws_tools: restock skipped, not enough gold") return end
@@ -118,7 +125,7 @@ local function Restock(verbose)
 			parts[#parts + 1] = ("%d %s"):format(b.qty, ItemName(b.id))
 		end
 	end
-	print(("dpws_tools: restocking %s (%s)"):format(table.concat(parts, ", "), GetCoinTextureString(total)))
+	print(("dpws_tools: restocking %s (%s)"):format(table.concat(parts, ", "), Coins(total)))
 	RunQueue()
 end
 
