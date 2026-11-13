@@ -101,6 +101,55 @@ f:SetScript("OnEvent", function(_, event, arg1)
 end)
 
 SLASH_DPWS1 = "/dpws"
+-- WoW chat can't be copied: show text in a selectable box (Ctrl+C) for diagnostics
+local copyFrame
+function ns.ShowCopyWindow(text)
+	if not copyFrame then
+		copyFrame = CreateFrame("Frame", "DpwsCopyWindow", UIParent, "BasicFrameTemplateWithInset")
+		copyFrame:SetSize(560, 360)
+		copyFrame:SetPoint("CENTER")
+		copyFrame:SetFrameStrata("DIALOG")
+		copyFrame:SetMovable(true)
+		copyFrame:EnableMouse(true)
+		copyFrame:RegisterForDrag("LeftButton")
+		copyFrame:SetScript("OnDragStart", copyFrame.StartMoving)
+		copyFrame:SetScript("OnDragStop", copyFrame.StopMovingOrSizing)
+		local title = copyFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		title:SetPoint("TOP", 0, -5)
+		title:SetText("dpws tools - press Ctrl+C to copy, Esc to close")
+		local scroll = CreateFrame("ScrollFrame", nil, copyFrame, "ScrollFrameTemplate")
+		scroll:SetPoint("TOPLEFT", 12, -30)
+		scroll:SetPoint("BOTTOMRIGHT", -30, 10)
+		local box = CreateFrame("EditBox", nil, scroll)
+		box:SetMultiLine(true)
+		box:SetFontObject(ChatFontNormal)
+		box:SetWidth(500)
+		box:SetAutoFocus(false)
+		box:SetScript("OnEscapePressed", function() copyFrame:Hide() end)
+		scroll:SetScrollChild(box)
+		copyFrame.box = box
+		tinsert(UISpecialFrames, "DpwsCopyWindow")
+	end
+	copyFrame.box:SetText(text)
+	copyFrame:Show()
+	copyFrame.box:SetFocus()
+	copyFrame.box:HighlightText()
+end
+
+-- run fn(Say) printing each line to chat and also collecting it for the copy window
+function ns.Diagnose(fn)
+	local lines = {}
+	local function Say(msg)
+		print(msg)
+		lines[#lines + 1] = msg
+	end
+	xpcall(function() fn(Say) end, function(err)
+		Say("ERROR: " .. tostring(err))
+		geterrorhandler()(err)
+	end)
+	ns.ShowCopyWindow(table.concat(lines, "\n"))
+end
+
 -- /dpws opens the window; /dpws <word> runs a module command (e.g. /dpws debug)
 SlashCmdList.DPWS = function(msg)
 	local cmd = strtrim(msg or ""):lower()

@@ -69,9 +69,9 @@ end
 -- /dpws tradeskill: with the Poisons window open, show what each profession API reports
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.tradeskill = function()
-	local P = function(msg) print("dpws_tools tradeskill: " .. msg) end
 	local function idOf(link) return link and tonumber(link:match("item:(%d+)")) end
-	xpcall(function()
+	ns.Diagnose(function(Say)
+		local P = function(msg) Say("tradeskill: " .. msg) end
 		P(("frames shown: ProfessionsFrame=%s TradeSkillFrame=%s CraftFrame=%s"):format(
 			tostring(ProfessionsFrame and ProfessionsFrame:IsShown()), tostring(TradeSkillFrame and TradeSkillFrame:IsShown()),
 			tostring(CraftFrame and CraftFrame:IsShown())))
@@ -103,7 +103,7 @@ ns.slashCommands.tradeskill = function()
 		for _ in pairs(Recipes() or {}) do learned = learned + 1 end
 		P(("poison recipes learned so far: %d (my poison item IDs start %d, %d, %d...)"):format(
 			learned, ns.POISON_IDS[1], ns.POISON_IDS[2], ns.POISON_IDS[3]))
-	end, geterrorhandler())
+	end)
 end
 
 -- one line per stocked poison, for /dpws restock

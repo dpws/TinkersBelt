@@ -76,9 +76,9 @@ local function RunQueue()
 	if #queue > 0 then C_Timer.After(0.5, RunQueue) end
 end
 
--- verbose: print every step (for /dpws restock)
+-- verbose: a function receiving every step (for /dpws restock)
 local function Restock(verbose)
-	local function Say(msg) if verbose then print("dpws_tools restock: " .. msg) end end
+	local function Say(msg) if verbose then verbose("restock: " .. msg) end end
 	local r = ns.db.restock
 	-- shopping list = restock items (if on) + poison ingredients for the Poison Stock list
 	local items, n = {}, 0
@@ -144,6 +144,8 @@ end)
 -- /dpws restock: explain what restock sees (open a vendor first to see what it would buy)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.restock = function()
-	if not merchantOpen then print("dpws_tools restock: no vendor open, showing the list only") end
-	xpcall(function() Restock(true) end, geterrorhandler())
+	ns.Diagnose(function(Say)
+		if not merchantOpen then Say("restock: no vendor open, showing the list only") end
+		Restock(Say)
+	end)
 end
