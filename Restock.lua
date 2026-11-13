@@ -66,17 +66,35 @@ local function Goods()
 	return goods
 end
 
-local function Restock()
+-- Purchases go through a queue, 0.5s apart: the server ignores rapid repeated buys (Krowi's vendor addon does the same)
+local queue, merchantOpen = {}, false
+local function RunQueue()
+	if not merchantOpen then wipe(queue) return end
+	local job = table.remove(queue, 1)
+	if not job then return end
+	BuyMerchantItem(job.index, job.n)
+	if #queue > 0 then C_Timer.After(0.5, RunQueue) end
+end
+
+-- verbose: print every step (for /dpws restock)
+local function Restock(verbose)
+	local function Say(msg) if verbose then print("dpws_tools restock: " .. msg) end end
 	local r = ns.db.restock
 	-- shopping list = restock items (if on) + poison ingredients for the Poison Stock list
-	local items = {}
-	if r.enabled then for id, n in pairs(r.items) do items[id] = n end end
+	local items, n = {}, 0
+	if r.enabled then for id, c in pairs(r.items) do items[id] = c end end
 	if ns.PoisonStock then
-		for id, n in pairs(ns.PoisonStock.MaterialTargets()) do items[id] = math.max(items[id] or 0, n) end
+		for id, c in pairs(ns.PoisonStock.MaterialTargets()) do items[id] = math.max(items[id] or 0, c) end
 	end
-	if not next(items) then return end
-	local buys, total, over = ns.RestockPlan(items, Count, Goods(), r.budget)
-	if #buys == 0 then return end
+	for id, c in pairs(items) do
+		n = n + 1
+		Say(("wants %s: target %d, have %d"):format(ItemName(id), c, Count(id)))
+	end
+	if n == 0 then return Say(r.enabled and "shopping list is empty" or "auto restock is off and no poison ingredients needed") end
+	local goods = Goods()
+	Say(("vendor sells %d items (for gold)"):format(#goods))
+	local buys, total, over = ns.RestockPlan(items, Count, goods, r.budget)
+	if #buys == 0 then return Say("nothing to buy here (vendor doesn't sell them, or you have enough)") end
 	if over then
 		print(("dpws_tools: restock skipped, it would cost %s (limit %s)"):format(
 			GetCoinTextureString(total), GetCoinTextureString(r.budget)))
@@ -86,33 +104,45 @@ local function Restock()
 	local parts = {}
 	for _, b in ipairs(buys) do
 		if b.batches then
-			for _ = 1, b.batches do BuyMerchantItem(b.index) end -- one vendor batch each
+			for _ = 1, b.batches do queue[#queue + 1] = { index = b.index } end -- one vendor batch each
 			parts[#parts + 1] = ("%dx %s"):format(b.batches, ItemName(b.id))
 		else
-			local stack = select(8, GetItemInfo(b.id)) or 20
+			local stack = (GetMerchantItemMaxStack and GetMerchantItemMaxStack(b.index)) or 20
 			local left = b.qty
 			while left > 0 do
-				local n = math.min(left, stack)
-				BuyMerchantItem(b.index, n)
-				left = left - n
+				local k = math.min(left, math.max(stack, 1))
+				queue[#queue + 1] = { index = b.index, n = k }
+				left = left - k
 			end
 			parts[#parts + 1] = ("%d %s"):format(b.qty, ItemName(b.id))
 		end
 	end
-	print(("dpws_tools: restocked %s (%s)"):format(table.concat(parts, ", "), GetCoinTextureString(total)))
+	print(("dpws_tools: restocking %s (%s)"):format(table.concat(parts, ", "), GetCoinTextureString(total)))
+	RunQueue()
 end
 
 function ns.AddRestockPreset()
 	local preset = ns.RESTOCK_PRESETS[select(2, UnitClass("player"))]
 	if not preset then return false end
-	for id, n in pairs(preset) do
-		if not ns.db.restock.items[id] then ns.db.restock.items[id] = n end
+	for id, c in pairs(preset) do
+		if not ns.db.restock.items[id] then ns.db.restock.items[id] = c end
 	end
 	return true
 end
 
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("MERCHANT_SHOW")
--- the vendor's list fills in a moment after the window opens
-ev:SetScript("OnEvent", function() C_Timer.After(0.3, function() pcall(Restock) end) end)
+ev:RegisterEvent("MERCHANT_CLOSED")
+ev:SetScript("OnEvent", function(_, event)
+	merchantOpen = event == "MERCHANT_SHOW"
+	if not merchantOpen then wipe(queue) return end
+	-- the vendor's list fills in a moment after the window opens; errors go to BugSack, not swallowed
+	C_Timer.After(0.5, function() if merchantOpen then xpcall(Restock, geterrorhandler()) end end)
+end)
 
+-- /dpws restock: explain what restock sees (open a vendor first to see what it would buy)
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.restock = function()
+	if not merchantOpen then print("dpws_tools restock: no vendor open, showing the list only") end
+	xpcall(function() Restock(true) end, geterrorhandler())
+end
