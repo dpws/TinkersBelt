@@ -91,7 +91,7 @@ local function Refresh()
 	local s = Settings()
 	-- players whose nameplates are still on screen stay fresh
 	if C_NamePlate and C_NamePlate.GetNamePlates then
-		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do SeenUnit(plate.namePlateUnitToken) end
+		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do pcall(SeenUnit, plate.namePlateUnitToken) end
 	end
 	local now = GetTime()
 	local items = ns.NearbySorted(list, now, s.timeout)
@@ -151,9 +151,10 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 	pcall(ev.RegisterEvent, ev, "COMBAT_LOG_EVENT_UNFILTERED") -- may be closed to addons on this client
 	ev:SetScript("OnEvent", function(_, event, arg1)
-		if event == "NAME_PLATE_UNIT_ADDED" then SeenUnit(arg1)
-		elseif event == "PLAYER_TARGET_CHANGED" then SeenUnit("target")
-		elseif event == "UPDATE_MOUSEOVER_UNIT" then SeenUnit("mouseover")
+		-- pcall: unit info can be hidden from addons (secret values) and must not raise errors
+		if event == "NAME_PLATE_UNIT_ADDED" then pcall(SeenUnit, arg1)
+		elseif event == "PLAYER_TARGET_CHANGED" then pcall(SeenUnit, "target")
+		elseif event == "UPDATE_MOUSEOVER_UNIT" then pcall(SeenUnit, "mouseover")
 		else
 			pcall(function()
 				local _, _, _, srcGUID, _, srcFlags, _, dstGUID, _, dstFlags = CombatLogGetCurrentEventInfo()

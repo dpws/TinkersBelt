@@ -59,10 +59,13 @@ local LOG_CAP = 500
 -- the combat log has no level: remember levels of players we see (session only)
 local levels = {}
 local function Seen(unit)
-	if UnitExists(unit) and UnitIsPlayer(unit) then
-		local guid = UnitGUID(unit)
-		if guid then levels[guid] = UnitLevel(unit) end
-	end
+	-- pcall: unit info can be hidden from addons (secret values) and must not raise errors
+	pcall(function()
+		if UnitExists(unit) and UnitIsPlayer(unit) then
+			local guid = UnitGUID(unit)
+			if guid and not (issecretvalue and issecretvalue(guid)) then levels[guid] = UnitLevel(unit) end
+		end
+	end)
 end
 
 local function Record(guid, name, kind)
@@ -188,11 +191,16 @@ ns.slashCommands.debug = function()
 		:format(ns.pvpDebug and "ON" or "OFF", cleuOK and "ok" or "REFUSED", cleuCount))
 end
 
+-- the engine can hand out hidden ("secret") values, e.g. tooltip units in combat: skip those
+local function Secret(v) return issecretvalue and issecretvalue(v) end
+
 local function OnTooltipUnit(tooltip)
 	if tooltip ~= GameTooltip or not ns.adb or not ns.adb.pvpTooltip then return end
 	local _, unit = tooltip:GetUnit()
-	local guid = unit and UnitIsPlayer(unit) and UnitGUID(unit)
-	local e = guid and ns.adb.pvp[guid]
+	if not unit or Secret(unit) then return end
+	local ok, guid = pcall(function() return UnitIsPlayer(unit) and UnitGUID(unit) end)
+	if not ok or not guid or Secret(guid) then return end
+	local e = ns.adb.pvp[guid]
 	if e then tooltip:AddLine("PvP: " .. ns.PvpScoreText(e)) end
 end
 
