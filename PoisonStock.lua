@@ -66,6 +66,46 @@ function S.MaterialTargets()
 	return targets
 end
 
+-- /dpws tradeskill: with the Poisons window open, show what each profession API reports
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.tradeskill = function()
+	local P = function(msg) print("dpws_tools tradeskill: " .. msg) end
+	local function idOf(link) return link and tonumber(link:match("item:(%d+)")) end
+	xpcall(function()
+		P(("frames shown: ProfessionsFrame=%s TradeSkillFrame=%s CraftFrame=%s"):format(
+			tostring(ProfessionsFrame and ProfessionsFrame:IsShown()), tostring(TradeSkillFrame and TradeSkillFrame:IsShown()),
+			tostring(CraftFrame and CraftFrame:IsShown())))
+		if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
+			local ids = C_TradeSkillUI.GetAllRecipeIDs() or {}
+			P(("C_TradeSkillUI: %d recipes"):format(#ids))
+			for k = 1, math.min(3, #ids) do
+				local s = C_TradeSkillUI.GetRecipeSchematic(ids[k], false)
+				P(("  recipe %d -> item %s (%s)"):format(ids[k], tostring(s and s.outputItemID), tostring(s and s.name)))
+			end
+		else
+			P("C_TradeSkillUI: not available")
+		end
+		if GetNumTradeSkills then
+			local n = GetNumTradeSkills()
+			P(("GetNumTradeSkills: %d lines, skill line %s"):format(n, tostring(GetTradeSkillLine and GetTradeSkillLine())))
+			local shown = 0
+			for i = 1, n do
+				local name, kind = GetTradeSkillInfo(i)
+				if kind ~= "header" and shown < 4 then
+					shown = shown + 1
+					P(("  %d: %s -> item %s"):format(i, tostring(name), tostring(idOf(GetTradeSkillItemLink(i)))))
+				end
+			end
+		else
+			P("GetNumTradeSkills: not available")
+		end
+		local learned = 0
+		for _ in pairs(Recipes() or {}) do learned = learned + 1 end
+		P(("poison recipes learned so far: %d (my poison item IDs start %d, %d, %d...)"):format(
+			learned, ns.POISON_IDS[1], ns.POISON_IDS[2], ns.POISON_IDS[3]))
+	end, geterrorhandler())
+end
+
 -- one line per stocked poison, for /dpws restock
 function S.Describe()
 	local lines = {}
