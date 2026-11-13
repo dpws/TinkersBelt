@@ -82,6 +82,7 @@ local function Restock(verbose)
 	local r = ns.db.restock
 	-- shopping list = restock items (if on) + poison ingredients for the Poison Stock list
 	local items, n = {}, 0
+	if verbose and ns.PoisonStock then for _, line in ipairs(ns.PoisonStock.Describe()) do Say(line) end end
 	if r.enabled then for id, c in pairs(r.items) do items[id] = c end end
 	if ns.PoisonStock then
 		for id, c in pairs(ns.PoisonStock.MaterialTargets()) do items[id] = math.max(items[id] or 0, c) end

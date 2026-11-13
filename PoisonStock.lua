@@ -66,8 +66,21 @@ function S.MaterialTargets()
 	return targets
 end
 
+-- one line per stocked poison, for /dpws restock
+function S.Describe()
+	local lines = {}
+	if not Stock() then return lines end
+	for id, target in pairs(Stock()) do
+		local recipe = Recipes() and Recipes()[id]
+		lines[#lines + 1] = ("poison %s: have %d / %d, recipe %s"):format(ItemName(id), Count(id), target,
+			recipe and "known" or "NOT known (open your Poisons window once)")
+	end
+	return lines
+end
+
 -- Learn recipes from the open profession window; remember how to craft each poison this session.
-local handles = {} -- poisonID -> { recipeID } or { index }
+local handles = {} -- poisonID -> { recipeID } or { index } or { craftIndex }
+local craftOpen = false -- set by CRAFT_SHOW / CRAFT_CLOSE (the frame may not be shown yet at CRAFT_SHOW)
 local function itemIdOf(link) return link and tonumber(link:match("item:(%d+)")) end
 
 local function Learn()
@@ -85,6 +98,23 @@ local function Learn()
 				end
 				Recipes()[s.outputItemID] = { reagents = reagents, makes = math.max(1, s.quantityMin or 1) }
 				handles[s.outputItemID] = { recipeID = rid }
+			end
+		end
+	end
+	-- Classic "Craft" window (Poisons and Enchanting use it, not the trade skill window)
+	if GetNumCrafts and craftOpen then
+		for i = 1, GetNumCrafts() do
+			local _, _, kind = GetCraftInfo(i)
+			local id = kind ~= "header" and GetCraftItemLink and itemIdOf(GetCraftItemLink(i))
+			if id and isPoison[id] then
+				local reagents = {}
+				for j = 1, GetCraftNumReagents(i) do
+					local rid = itemIdOf(GetCraftReagentItemLink(i, j))
+					local _, _, qty = GetCraftReagentInfo(i, j)
+					if rid and qty then reagents[rid] = qty end
+				end
+				Recipes()[id] = { reagents = reagents, makes = 1 }
+				handles[id] = { craftIndex = i }
 			end
 		end
 	end
@@ -109,7 +139,13 @@ end
 local function Craft(id, crafts)
 	local h = handles[id]
 	if not h then print("dpws_tools: open your Poisons window first (left-click the craft button)") return end
-	if h.recipeID then C_TradeSkillUI.CraftRecipe(h.recipeID, crafts) else DoTradeSkill(h.index, crafts) end
+	if h.craftIndex then
+		DoCraft(h.craftIndex) -- the Craft window makes one per call: one poison per click
+	elseif h.recipeID then
+		C_TradeSkillUI.CraftRecipe(h.recipeID, crafts)
+	else
+		DoTradeSkill(h.index, crafts)
+	end
 end
 
 -- Small craft button on the poison bar
@@ -183,12 +219,14 @@ table.insert(ns.loginHooks, function()
 	button:Hide()
 
 	local ev = CreateFrame("Frame")
-	for _, e in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_CLOSE", "BAG_UPDATE_DELAYED" }) do
+	for _, e in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_CLOSE",
+		"CRAFT_SHOW", "CRAFT_UPDATE", "CRAFT_CLOSE", "BAG_UPDATE_DELAYED" }) do
 		pcall(ev.RegisterEvent, ev, e)
 	end
 	ev:SetScript("OnEvent", function(_, event)
-		if event == "TRADE_SKILL_CLOSE" then wipe(handles)
-		elseif event ~= "BAG_UPDATE_DELAYED" then pcall(Learn) end
+		if event == "CRAFT_SHOW" then craftOpen = true elseif event == "CRAFT_CLOSE" then craftOpen = false end
+		if event == "TRADE_SKILL_CLOSE" or event == "CRAFT_CLOSE" then wipe(handles)
+		elseif event ~= "BAG_UPDATE_DELAYED" then xpcall(Learn, geterrorhandler()) end
 		UpdateButton()
 	end)
 	UpdateButton()
