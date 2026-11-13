@@ -77,11 +77,16 @@ ns.slashCommands.tradeskill = function()
 			tostring(CraftFrame and CraftFrame:IsShown())))
 		if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
 			local ids = C_TradeSkillUI.GetAllRecipeIDs() or {}
-			P(("C_TradeSkillUI: %d recipes"):format(#ids))
-			for k = 1, math.min(3, #ids) do
-				local s = C_TradeSkillUI.GetRecipeSchematic(ids[k], false)
-				P(("  recipe %d -> item %s (%s)"):format(ids[k], tostring(s and s.outputItemID), tostring(s and s.name)))
+			local learned = 0
+			for _, rid in ipairs(ids) do
+				local info = C_TradeSkillUI.GetRecipeInfo(rid)
+				if info and info.learned then
+					learned = learned + 1
+					local s = C_TradeSkillUI.GetRecipeSchematic(rid, false)
+					P(("  learned: recipe %d -> item %s (%s)"):format(rid, tostring(s and s.outputItemID), tostring(s and s.name)))
+				end
 			end
+			P(("C_TradeSkillUI: %d recipes, %d marked learned by the game"):format(#ids, learned))
 		else
 			P("C_TradeSkillUI: not available")
 		end
