@@ -96,7 +96,7 @@ local function OpenMenu(owner, info)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
 		root:CreateTitle(info.name .. " poison")
 		local any = false
-		for _, id in ipairs(ns.POISON_IDS) do
+		for _, id in ipairs(ns.AllPoisonIds()) do
 			local count = Count(id)
 			if count > 0 then
 				any = true

@@ -8,3 +8,14 @@ ns.POISON_IDS = {
 	5237, 6951, 9186, -- Mind-numbing I-III
 	10918, 10920, 10921, 10922, -- Wound I-IV
 }
+
+-- Known list + every poison learned from the Poisons window (Forever also has Season of Discovery
+-- poisons, e.g. Atrophic Poison 217347). Sorted by item ID.
+function ns.AllPoisonIds()
+	local seen, ids = {}, {}
+	for _, id in ipairs(ns.POISON_IDS) do seen[id] = true end
+	for id in pairs(ns.db and ns.db.poisonRecipes or {}) do seen[id] = true end
+	for id in pairs(seen) do ids[#ids + 1] = id end
+	table.sort(ids)
+	return ids
+end

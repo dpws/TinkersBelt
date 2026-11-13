@@ -460,8 +460,11 @@ local function BuildPoisonStockPage(parent)
 	add:SetWidth(220)
 	add:SetDefaultText("Add poison...")
 	add:SetupMenu(function(_, root)
-		for _, id in ipairs(ns.POISON_IDS) do
-			if not p.stock[id] then
+		-- once recipes are known, offer only poisons this character can craft
+		local known = ns.db.poisonRecipes
+		local onlyKnown = known and next(known) ~= nil
+		for _, id in ipairs(ns.AllPoisonIds()) do
+			if not p.stock[id] and (not onlyKnown or known[id]) then
 				local name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id)
 				local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id)
 				root:CreateButton(("|T%s:16|t %s"):format(icon or 134400, name), function() p.stock[id] = 20; Refresh(); Changed() end)
@@ -497,7 +500,7 @@ local function BuildPoisonStockPage(parent)
 
 	Refresh = function()
 		local learned = 0
-		for _ in pairs(ns.adb.poisonRecipes or {}) do learned = learned + 1 end
+		for _ in pairs(ns.db.poisonRecipes or {}) do learned = learned + 1 end
 		status:SetText(learned > 0 and ("%d poison recipes known. Amount = how many to keep in bags."):format(learned)
 			or "|cffffcc00Open your Poisons window once so the addon learns the recipes (until then nothing is bought).|r")
 		local ids = {}

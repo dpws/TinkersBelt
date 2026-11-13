@@ -54,7 +54,7 @@ local function Count(id) return (C_Item and C_Item.GetItemCount or GetItemCount)
 local function ItemName(id)
 	return (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or (GetItemInfo and GetItemInfo(id)) or ("item " .. id)
 end
-local function Recipes() return ns.adb.poisonRecipes end
+local function Recipes() return ns.db.poisonRecipes end -- per character: only what this rogue has learned
 local function Stock() return ns.db.poisons.stock end
 
 -- the materials restock should buy (itemID -> target count), used by Restock.lua at vendors
@@ -101,7 +101,7 @@ ns.slashCommands.tradeskill = function()
 		end
 		local learned = 0
 		for _ in pairs(Recipes() or {}) do learned = learned + 1 end
-		P(("poison recipes learned so far: %d (my poison item IDs start %d, %d, %d...)"):format(
+		P(("poison recipes known by this character: %d (built-in poison IDs start %d, %d, %d...)"):format(
 			learned, ns.POISON_IDS[1], ns.POISON_IDS[2], ns.POISON_IDS[3]))
 	end)
 end
@@ -128,16 +128,28 @@ local function Learn()
 	for _, id in ipairs(ns.POISON_IDS) do isPoison[id] = true end
 	wipe(handles)
 	if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
-		for _, rid in ipairs(C_TradeSkillUI.GetAllRecipeIDs() or {}) do
+		local all = C_TradeSkillUI.GetAllRecipeIDs() or {}
+		-- the Poisons window = one that makes a known poison; then every recipe in it is a poison
+		-- (Forever also has newer ones like Atrophic Poison)
+		local poisonsWindow = false
+		for _, rid in ipairs(all) do
 			local s = C_TradeSkillUI.GetRecipeSchematic(rid, false)
-			if s and isPoison[s.outputItemID] then
-				local reagents = {}
-				for _, slot in ipairs(s.reagentSlotSchematics or {}) do
-					local r = slot.reagents and slot.reagents[1]
-					if r and r.itemID then reagents[r.itemID] = slot.quantityRequired end
+			if s and isPoison[s.outputItemID] then poisonsWindow = true break end
+		end
+		if poisonsWindow then
+			wipe(Recipes()) -- rebuilt fresh: only what this character has learned now
+			for _, rid in ipairs(all) do
+				local info = C_TradeSkillUI.GetRecipeInfo(rid)
+				local s = info and info.learned and C_TradeSkillUI.GetRecipeSchematic(rid, false) -- the list also has unlearned ones
+				if s and s.outputItemID then
+					local reagents = {}
+					for _, slot in ipairs(s.reagentSlotSchematics or {}) do
+						local r = slot.reagents and slot.reagents[1]
+						if r and r.itemID then reagents[r.itemID] = slot.quantityRequired end
+					end
+					Recipes()[s.outputItemID] = { reagents = reagents, makes = math.max(1, s.quantityMin or 1) }
+					handles[s.outputItemID] = { recipeID = rid }
 				end
-				Recipes()[s.outputItemID] = { reagents = reagents, makes = math.max(1, s.quantityMin or 1) }
-				handles[s.outputItemID] = { recipeID = rid }
 			end
 		end
 	end
@@ -190,7 +202,7 @@ end
 
 -- Small craft button on the poison bar
 local button
-local function NextCraft() return ns.PoisonNextCraft(Stock(), Recipes(), Count, ns.POISON_IDS) end
+local function NextCraft() return ns.PoisonNextCraft(Stock(), Recipes(), Count, ns.AllPoisonIds()) end
 
 local function UpdateButton()
 	if not button then return end
@@ -227,7 +239,8 @@ end
 table.insert(ns.loginHooks, function()
 	if select(2, UnitClass("player")) ~= "ROGUE" then return end
 	ns.db.poisons.stock = ns.db.poisons.stock or {}
-	ns.adb.poisonRecipes = ns.adb.poisonRecipes or {}
+	ns.db.poisonRecipes = ns.db.poisonRecipes or {}
+	ns.adb.poisonRecipes = nil -- old shared list counted unlearned recipes too
 	local bar = ns.Poisons and ns.Poisons.bar
 	if not bar then return end
 	button = CreateFrame("Button", "DpwsPoisonCraftButton", bar, "SecureActionButtonTemplate")
