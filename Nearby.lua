@@ -1,12 +1,5 @@
 local _, ns = ...
 
--- Classic + TBC races (englishRace from GetPlayerInfoByGUID)
-local RACE_FACTION = {
-	Human = "Alliance", Dwarf = "Alliance", NightElf = "Alliance", Gnome = "Alliance", Draenei = "Alliance",
-	Orc = "Horde", Scourge = "Horde", Tauren = "Horde", Troll = "Horde", BloodElf = "Horde",
-}
-function ns.RaceFaction(race) return RACE_FACTION[race] end
-
 -- Mark a player as seen; merges non-nil info. Returns true when new (or back after timing out).
 function ns.NearbySeen(list, guid, info, now, timeout)
 	local e = list[guid]
@@ -65,26 +58,6 @@ local function SeenUnit(unit)
 	Seen(UnitGUID(unit), { name = GetUnitName(unit, true), class = select(2, UnitClass(unit)), level = UnitLevel(unit) })
 end
 
--- combat log fires a lot: cache per player (info table for enemies, false for everyone else)
-local guidCache = {}
-local function SeenGUID(guid, flags)
-	if not guid or not guid:find("^Player%-") then return end
-	local info = guidCache[guid]
-	if info == nil then
-		local _, class, _, race, _, name, realm = GetPlayerInfoByGUID(guid)
-		if not name then return end -- not resolved yet, try again next event
-		local faction = ns.RaceFaction(race)
-		local enemy
-		if faction then
-			enemy = faction ~= myFaction
-		else -- unknown race: fall back to the game's hostility flag
-			enemy = bit.band(flags or 0, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0
-		end
-		info = enemy and { name = (realm and realm ~= "") and (name .. "-" .. realm) or name, class = class } or false
-		guidCache[guid] = info
-	end
-	if info then Seen(guid, info) end
-end
 
 local function Refresh()
 	if not frame then return end
@@ -149,18 +122,12 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 	ev:RegisterEvent("PLAYER_TARGET_CHANGED")
 	ev:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-	pcall(ev.RegisterEvent, ev, "COMBAT_LOG_EVENT_UNFILTERED") -- may be closed to addons on this client
+	-- no combat log: registering for it is a forbidden action on Forever
 	ev:SetScript("OnEvent", function(_, event, arg1)
 		-- pcall: unit info can be hidden from addons (secret values) and must not raise errors
 		if event == "NAME_PLATE_UNIT_ADDED" then pcall(SeenUnit, arg1)
 		elseif event == "PLAYER_TARGET_CHANGED" then pcall(SeenUnit, "target")
 		elseif event == "UPDATE_MOUSEOVER_UNIT" then pcall(SeenUnit, "mouseover")
-		else
-			pcall(function()
-				local _, _, _, srcGUID, _, srcFlags, _, dstGUID, _, dstFlags = CombatLogGetCurrentEventInfo()
-				SeenGUID(srcGUID, srcFlags)
-				SeenGUID(dstGUID, dstFlags)
-			end)
 		end
 	end)
 	C_Timer.NewTicker(1, Refresh)

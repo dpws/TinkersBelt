@@ -25,10 +25,4 @@ local items = ns.NearbySorted(list, 170, 60)
 check("expired dropped", #items == 2 and list.A == nil)
 check("newest first", items[1].name == "B" and items[2].name == "C")
 
--- opposite faction from race
-check("orc is horde", ns.RaceFaction("Orc") == "Horde")
-check("undead (Scourge) is horde", ns.RaceFaction("Scourge") == "Horde")
-check("night elf is alliance", ns.RaceFaction("NightElf") == "Alliance")
-check("unknown race: nil", ns.RaceFaction("Murloc") == nil)
-
 print("nearby: " .. passed .. " passed")

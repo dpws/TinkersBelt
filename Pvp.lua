@@ -43,13 +43,11 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
+-- No combat log here: on Forever registering for it is a forbidden action. Everything comes from
+-- scanning units (target, focus, mouseover, nameplates).
 local KILLER_WINDOW = 10
-local DAMAGE = { SWING_DAMAGE = true, RANGE_DAMAGE = true, SPELL_DAMAGE = true, SPELL_PERIODIC_DAMAGE = true }
 local lastHit
-
-local function IsEnemyPlayer(guid, flags)
-	return guid and guid:find("^Player%-") and bit.band(flags or 0, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0
-end
+local function Secret(v) return issecretvalue and issecretvalue(v) end
 
 -- open world only: no battlegrounds, arenas or dungeons
 local function OpenWorld() return not IsInInstance() end
@@ -86,9 +84,9 @@ end
 
 -- /dpws debug: print what PvP tracking sees
 local function Debug(msg) if ns.pvpDebug then print("|cff88ccffdpws pvp:|r " .. msg) end end
-local cleuCount = 0
+local hiddenCount = 0 -- enemy units whose identity the game hid from us
 
--- the same kill can be seen by the combat log and by the unit scan: count it once
+-- the same kill can be seen through several units (target + nameplate): count it once
 local recentKills = {}
 local function RecordKill(guid, name, how)
 	local now = GetTime()
@@ -103,19 +101,7 @@ local function Attacker(guid, name, how)
 	lastHit = { guid = guid, name = name, time = GetTime() }
 end
 
--- Combat log: may be closed to addons on this client (DBM doesn't use it on Forever), so it is optional
-local function OnCombatLog()
-	cleuCount = cleuCount + 1
-	local _, sub, _, srcGUID, srcName, srcFlags, _, dstGUID, dstName, dstFlags = CombatLogGetCurrentEventInfo()
-	local me = UnitGUID("player")
-	if sub == "PARTY_KILL" and srcGUID == me and IsEnemyPlayer(dstGUID, dstFlags) then
-		RecordKill(dstGUID, dstName, "combat log")
-	elseif DAMAGE[sub] and dstGUID == me and IsEnemyPlayer(srcGUID, srcFlags) then
-		Attacker(srcGUID, srcName, "combat log")
-	end
-end
-
--- Unit scan, works without the combat log: enemy players targeting me are attackers; an enemy
+-- Unit scan: enemy players targeting me are attackers; an enemy
 -- player I fought (targeted me / I targeted them) dying while I'm in combat counts as my kill.
 local myFaction
 local engaged, wasDead = {}, {} -- guid -> last time we fought; guid -> dead at last scan
@@ -125,6 +111,7 @@ local function ScanUnit(unit, now)
 	if not faction or faction == myFaction or faction == "Neutral" then return end
 	local guid, name = UnitGUID(unit), GetUnitName(unit, true)
 	if not guid then return end
+	if Secret(guid) or Secret(name) then hiddenCount = hiddenCount + 1 return end
 	Seen(unit)
 	local dead = UnitIsDeadOrGhost(unit)
 	if not dead and UnitIsUnit(unit .. "target", "player") then
@@ -138,26 +125,20 @@ local function ScanUnit(unit, now)
 	wasDead[guid] = dead
 end
 
-local scanned = {}
 local function Scan()
 	if not ns.adb or not OpenWorld() then return end
 	local now = GetTime()
-	wipe(scanned)
 	local units = { "target", "focus", "mouseover" }
 	if C_NamePlate and C_NamePlate.GetNamePlates then
 		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do units[#units + 1] = plate.namePlateUnitToken end
 	end
+	-- the same player via two units is harmless: attacker is overwritten, kills are deduplicated
 	for _, unit in ipairs(units) do
-		local guid = unit and UnitGUID(unit)
-		if guid and not scanned[guid] then
-			scanned[guid] = true
-			pcall(ScanUnit, unit, now) -- values hidden from addons must not break the scan
-		end
+		if unit then pcall(ScanUnit, unit, now) end -- values hidden from addons must not break the scan
 	end
 end
 
 local f = CreateFrame("Frame")
-local cleuOK = pcall(f.RegisterEvent, f, "COMBAT_LOG_EVENT_UNFILTERED")
 f:RegisterEvent("PLAYER_DEAD")
 f:RegisterEvent("PLAYER_TARGET_CHANGED")
 f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
@@ -173,10 +154,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		Debug(("died; last attacker: %s"):format(lastHit and (lastHit.name .. (" %.1fs ago"):format(GetTime() - lastHit.time)) or "none"))
 		if killer then Record(killer, lastHit.name, "d") end
 		lastHit = nil
-		return
 	end
-	local ok, err = pcall(OnCombatLog)
-	if not ok then Debug("combat log error: " .. tostring(err)) end
 end)
 
 table.insert(ns.loginHooks, function()
@@ -187,8 +165,8 @@ end)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.debug = function()
 	ns.pvpDebug = not ns.pvpDebug
-	print(("dpws_tools: PvP debug %s. Combat log registration: %s, events received so far: %d")
-		:format(ns.pvpDebug and "ON" or "OFF", cleuOK and "ok" or "REFUSED", cleuCount))
+	print(("dpws_tools: PvP debug %s. Enemy units hidden by the game so far: %d")
+		:format(ns.pvpDebug and "ON" or "OFF", hiddenCount))
 end
 
 -- the engine can hand out hidden ("secret") values, e.g. tooltip units in combat: skip those

@@ -85,16 +85,25 @@ function C.Layout()
 	bar:SetShown(any)
 end
 
+local function Secret(v) return issecretvalue and issecretvalue(v) end
+
+-- values can be hidden from addons (secret) in combat: widgets accept them, our math must not touch them
 local function UpdateStatus(s, value, maxValue)
-	s:SetMinMaxValues(0, math.max(maxValue, 1))
-	s:SetValue(value)
-	s.text:SetText(value)
+	pcall(function()
+		if Secret(maxValue) then s:SetMinMaxValues(0, maxValue) else s:SetMinMaxValues(0, math.max(maxValue, 1)) end
+		s:SetValue(value)
+		s.text:SetText(value)
+	end)
 end
+
+-- set by PLAYER_TARGET_CHANGED: target IDs are secret in combat, so we can't compare them
+local targetChanged = true
 
 local function Update()
 	local cp = 0
 	local hostile = UnitExists("target") and UnitCanAttack("player", "target")
 	if hostile then cp = GetComboPoints("player", "target") or 0 end
+	if Secret(cp) then cp = 0 end -- can't read it: show none rather than error
 	for i = 1, max do
 		if i <= cp then
 			if cp >= max then segs[i]:SetColorTexture(1, 0.15, 0.1) else segs[i]:SetColorTexture(1, 0.65, 0.1) end
@@ -105,8 +114,7 @@ local function Update()
 	UpdateStatus(hpBar, UnitHealth("player"), UnitHealthMax("player"))
 	UpdateStatus(enBar, UnitPower("player", Enum.PowerType.Energy), UnitPowerMax("player", Enum.PowerType.Energy))
 	-- switching to a target that already has points is not "gaining" them: no sound
-	local guid = UnitGUID("target")
-	if guid ~= C.lastGuid then last, C.lastGuid = cp, guid end
+	if targetChanged then last, targetChanged = cp, false end
 	if Mode("comboMode") ~= "off" then
 		local amount = ns.ComboSoundFor(last, cp)
 		if amount then ns.PlaySoundKey(ns.db.combo.sounds[amount]) end
@@ -147,6 +155,8 @@ table.insert(ns.loginHooks, function()
 	end)
 	-- the bar itself hides without a target, so polling runs on a separate frame
 	driver = CreateFrame("Frame")
+	driver:RegisterEvent("PLAYER_TARGET_CHANGED")
+	driver:SetScript("OnEvent", function() targetChanged = true end)
 	driver:SetScript("OnUpdate", function(_, dt)
 		elapsed = elapsed + dt
 		if elapsed < 0.05 then return end
