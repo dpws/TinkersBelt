@@ -259,9 +259,12 @@ table.insert(ns.loginHooks, function()
 	icon:SetAllPoints()
 	icon:SetTexture((C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(POISONS_SPELL)) or GetSpellTexture(POISONS_SPELL))
 	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	-- craft only if the window was already open before this click: the click that opens it would
+	-- otherwise start crafting while the window is still opening, which stops the batch after one
+	button:SetScript("PreClick", function(self) self.wasOpen = next(handles) ~= nil end)
 	button:SetScript("PostClick", function(self, mouse)
 		if mouse == "RightButton" then return OpenMenu(self) end
-		if next(handles) then
+		if self.wasOpen then
 			local job = NextCraft()
 			if job then Craft(job.id, job.crafts) end
 		end
