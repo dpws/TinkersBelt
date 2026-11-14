@@ -32,9 +32,16 @@ local function SetPlateHidden(unit, hide)
 	if not unit or not IsFriendlyPlayer(unit) then return end
 	local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
 	if not plate then return end
+	-- with friendly plates on, the game draws the player's name on the plate instead of overhead:
+	-- hide everything (bars, highlights, auras) except that name
 	local ok, err = pcall(function()
 		local f = plate.UnitFrame or plate
-		f:SetAlpha(hide and 0 or 1)
+		local name = f.name or f.Name
+		for _, child in ipairs({ f:GetChildren() }) do child:SetAlpha(hide and 0 or 1) end
+		for _, r in ipairs({ f:GetRegions() }) do
+			if r ~= name then r:SetAlpha(hide and 0 or 1) end
+		end
+		if name then name:SetAlpha(1) end
 	end)
 	if not ok then NoteError(err) return end
 	if hide then
