@@ -3,6 +3,18 @@ DpwsTools = ns -- global for /run debugging
 
 ns.loginHooks = {}
 
+-- unit tokens of all current nameplates. plate.namePlateUnitToken is empty on Forever, so ask the game
+-- for nameplate1..40 directly.
+function ns.NamePlateUnits()
+	local units = {}
+	for i = 1, 40 do
+		local unit = "nameplate" .. i
+		local ok, exists = pcall(UnitExists, unit)
+		if ok and exists then units[#units + 1] = unit end
+	end
+	return units
+end
+
 local queue = {}
 function ns.RunOutOfCombat(fn)
 	if InCombatLockdown() then

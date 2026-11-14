@@ -130,7 +130,7 @@ local function Scan()
 	local now = GetTime()
 	local units = { "target", "focus", "mouseover" }
 	if C_NamePlate and C_NamePlate.GetNamePlates then
-		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do units[#units + 1] = plate.namePlateUnitToken end
+		for _, unit in ipairs(ns.NamePlateUnits()) do units[#units + 1] = unit end
 	end
 	-- the same player via two units is harmless: attacker is overwritten, kills are deduplicated
 	for _, unit in ipairs(units) do

@@ -80,9 +80,7 @@ local function ApplyPlate(unit)
 end
 
 local function ForEachPlate(fn)
-	for _, plate in ipairs(C_NamePlate and C_NamePlate.GetNamePlates() or {}) do
-		if plate.namePlateUnitToken then fn(plate.namePlateUnitToken) end
-	end
+	for _, unit in ipairs(ns.NamePlateUnits()) do fn(unit) end
 end
 
 -- redraw every label now (after a label setting changed)
@@ -135,11 +133,11 @@ local function Info(Say)
 	Say(("allies: enabled=%s ticker=%s combat=%s"):format(tostring(s.enabled), tostring(ticker ~= nil), tostring(InCombatLockdown())))
 	Say(("allies: show level=%s show guild=%s size=%s"):format(tostring(s.level ~= false), tostring(s.guild ~= false), tostring(s.size)))
 	for _, cv in ipairs(CVARS) do Say(("allies: %s=%s (saved original: %s)"):format(cv, tostring(GetCV(cv)), tostring(s.saved and s.saved[cv]))) end
-	local plates = C_NamePlate and C_NamePlate.GetNamePlates() or {}
+	local units = ns.NamePlateUnits()
 	local friendly, shown = 0, 0
-	for _, plate in ipairs(plates) do
-		local unit = plate.namePlateUnitToken
-		if unit and IsFriendlyPlayer(unit) then
+	for _, unit in ipairs(units) do
+		local plate = C_NamePlate.GetNamePlateForUnit(unit)
+		if plate and IsFriendlyPlayer(unit) then
 			friendly = friendly + 1
 			if shown < 4 then
 				shown = shown + 1
@@ -151,7 +149,7 @@ local function Info(Say)
 			end
 		end
 	end
-	Say(("allies: plates=%d friendly players=%d  instance=%s"):format(#plates, friendly, tostring(IsInInstance())))
+	Say(("allies: plates=%d friendly players=%d  instance=%s"):format(#units, friendly, tostring(IsInInstance())))
 	-- raw answers for the first plates: which check fails, and is anything hidden (secret)?
 	local function Raw(fn, ...)
 		local ok, v = pcall(fn, ...)
@@ -159,12 +157,10 @@ local function Info(Say)
 		if Secret(v) then return "SECRET" end
 		return tostring(v)
 	end
-	for i = 1, math.min(4, #plates) do
-		local unit = plates[i].namePlateUnitToken
-		if unit then
-			Say(("allies:   %s name=%s player=%s friend=%s self=%s"):format(unit, Raw(GetUnitName, unit, true),
-				Raw(UnitIsPlayer, unit), Raw(UnitIsFriend, "player", unit), Raw(UnitIsUnit, unit, "player")))
-		end
+	for i = 1, math.min(4, #units) do
+		local unit = units[i]
+		Say(("allies:   %s name=%s player=%s friend=%s self=%s"):format(unit, Raw(GetUnitName, unit, true),
+			Raw(UnitIsPlayer, unit), Raw(UnitIsFriend, "player", unit), Raw(UnitIsUnit, unit, "player")))
 	end
 end
 

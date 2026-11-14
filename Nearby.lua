@@ -64,7 +64,7 @@ local function Refresh()
 	local s = Settings()
 	-- players whose nameplates are still on screen stay fresh
 	if C_NamePlate and C_NamePlate.GetNamePlates then
-		for _, plate in ipairs(C_NamePlate.GetNamePlates()) do pcall(SeenUnit, plate.namePlateUnitToken) end
+		for _, unit in ipairs(ns.NamePlateUnits()) do pcall(SeenUnit, unit) end
 	end
 	local now = GetTime()
 	local items = ns.NearbySorted(list, now, s.timeout)
