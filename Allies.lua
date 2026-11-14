@@ -85,6 +85,9 @@ local function ForEachPlate(fn)
 	end
 end
 
+-- redraw every label now (after a label setting changed)
+function A.Refresh() ForEachPlate(ApplyPlate) end
+
 local ticker
 -- turn the friendly plates on/off to match the setting (CVars can't change in combat)
 function A.Apply()
@@ -121,6 +124,7 @@ table.insert(ns.loginHooks, function() if S().enabled then A.Apply() end end)
 local function Info(Say)
 	local s = S()
 	Say(("allies: enabled=%s ticker=%s combat=%s"):format(tostring(s.enabled), tostring(ticker ~= nil), tostring(InCombatLockdown())))
+	Say(("allies: show level=%s show guild=%s size=%s"):format(tostring(s.level ~= false), tostring(s.guild ~= false), tostring(s.size)))
 	for _, cv in ipairs(CVARS) do Say(("allies: %s=%s (saved original: %s)"):format(cv, tostring(GetCV(cv)), tostring(s.saved and s.saved[cv]))) end
 	local plates = C_NamePlate and C_NamePlate.GetNamePlates() or {}
 	local friendly, shown = 0, 0

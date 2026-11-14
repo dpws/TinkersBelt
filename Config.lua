@@ -399,9 +399,10 @@ local function BuildAlliesPage(parent)
 	local s = ns.adb.allies
 	local P = T.Page(parent)
 	P:Card("Label")
-	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v end)
-	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v end)
-	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v end)
+	local function Redraw() if ns.Allies then ns.Allies.Refresh() end end
+	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
+	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
+	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
 	P:Note("Above friendly players you see only their name in class colour (and guild) instead of the game's nameplate. To do this the addon turns friendly nameplates on and draws them invisible; turning this off restores your own nameplate setting. Also /dpws allies.")
 	P:Finish()
 end
