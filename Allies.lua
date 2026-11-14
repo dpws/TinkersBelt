@@ -41,7 +41,26 @@ local function SetPlateHidden(unit, hide)
 		for _, r in ipairs({ f:GetRegions() }) do
 			if r ~= name then r:SetAlpha(hide and 0 or 1) end
 		end
-		if name then name:SetAlpha(1) end
+		if name then
+			name:SetAlpha(1)
+			-- the name is pinned to the health bar's width and gets cut with "...": free it while hidden
+			if hide then
+				if not name.dpwsPoints then
+					name.dpwsPoints = {}
+					for i = 1, name:GetNumPoints() do name.dpwsPoints[i] = { name:GetPoint(i) } end
+				end
+				local _, rel = name:GetPoint(1)
+				if rel ~= f or name:GetNumPoints() ~= 1 then
+					name:ClearAllPoints()
+					name:SetPoint("CENTER", f, "CENTER", 0, 0)
+				end
+				name:SetWidth(0) -- 0 = as wide as the text
+			elseif name.dpwsPoints then
+				name:ClearAllPoints()
+				for _, p in ipairs(name.dpwsPoints) do name:SetPoint(unpack(p)) end
+				name.dpwsPoints = nil
+			end
+		end
 	end)
 	if not ok then NoteError(err) return end
 	if hide then
