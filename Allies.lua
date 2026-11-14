@@ -1,64 +1,59 @@
 local _, ns = ...
 
--- TEST (/dpws allies): track friendly players via friendly nameplates while making those plates
--- invisible. Forever closes the combat log, so nameplates are the only "nearby" signal; this checks
--- whether an addon may turn friendly plates on and hide them. Session only; toggling off restores.
+-- Friendly Names: the game's friendly player nameplates are turned on (Forever's only signal that a
+-- friendly player is near, the combat log is closed) but drawn invisible; our own label shows the name
+-- in class colour and the guild. Turning it off restores the player's own nameplate setting.
 
 local CVARS = { "nameplateShowFriendlyPlayers", "nameplateShowFriends" }
-local active = false
-local saved = {} -- cvar -> original value
-local hidden, errors = 0, {}
-local seen = {} -- name -> { class, level, at }
+local A = {}
+ns.Allies = A
+A.seen = {} -- name -> { class, level, guild, at }: for features built on top
 
-local function GetCV(name)
-	local v = (C_CVar and C_CVar.GetCVar or GetCVar)(name)
-	return v
-end
-local function SetCV(name, value)
-	return pcall(C_CVar and C_CVar.SetCVar or SetCVar, name, value)
-end
+local function S() return ns.adb.allies end
+local function Secret(v) return issecretvalue and issecretvalue(v) end
+local function GetCV(name) return (C_CVar and C_CVar.GetCVar or GetCVar)(name) end
+local function SetCV(name, value) return pcall(C_CVar and C_CVar.SetCVar or SetCVar, name, value) end
 
 local function IsFriendlyPlayer(unit)
 	local ok, yes = pcall(function() return UnitIsPlayer(unit) and UnitIsFriend("player", unit) and not UnitIsUnit(unit, "player") end)
 	return ok and yes
 end
 
-local function NoteError(msg)
-	if #errors < 5 then errors[#errors + 1] = tostring(msg) end
-end
-
-local function Secret(v) return issecretvalue and issecretvalue(v) end
-
--- our own label on the plate: name in class colour, <Guild> below
 local function Tag(plate)
 	if plate.dpwsTag then return plate.dpwsTag end
-	local T = ns.Theme
 	local tag = CreateFrame("Frame", nil, plate)
 	tag:SetSize(1, 1)
 	tag:SetPoint("CENTER", plate, "CENTER", 0, 4)
-	tag.name = T.Text(tag, "semibold", 13)
-	tag.name:SetFont(T.font.semibold, 13, "OUTLINE")
+	tag.name = tag:CreateFontString(nil, "OVERLAY")
 	tag.name:SetPoint("BOTTOM", tag, "CENTER", 0, 0)
 	tag.name:SetJustifyH("CENTER")
-	tag.info = T.Text(tag, "medium", 10, { 0.80, 0.82, 0.86, 1 })
-	tag.info:SetFont(T.font.medium, 10, "OUTLINE")
+	tag.info = tag:CreateFontString(nil, "OVERLAY")
 	tag.info:SetPoint("TOP", tag.name, "BOTTOM", 0, -1)
 	tag.info:SetJustifyH("CENTER")
+	tag.info:SetTextColor(0.80, 0.82, 0.86)
 	plate.dpwsTag = tag
 	return tag
 end
 
--- friendly player + test on: the game's plate invisible, our label shown. Anything else: game plate
--- visible again (plates are reused, an enemy must never get a hidden plate), no label.
-local function ApplyPlate(unit, on)
+local function StyleTag(tag)
+	local T, size = ns.Theme, S().size or 13
+	if tag.size == size then return end
+	tag.size = size
+	tag.name:SetFont(T.font.semibold, size, "OUTLINE")
+	tag.info:SetFont(T.font.medium, math.max(size - 3, 8), "OUTLINE")
+end
+
+-- friendly player + feature on: game plate invisible, our label shown. Anything else: game plate
+-- visible (plates are reused, an enemy must never get a hidden plate), no label.
+local function ApplyPlate(unit)
 	local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
 	if not plate then return end
 	local f = plate.UnitFrame or plate
-	local friendly = on and IsFriendlyPlayer(unit)
-	local ok, err = pcall(f.SetAlpha, f, friendly and 0 or 1)
-	if not ok then NoteError(err) end
+	local friendly = S().enabled and IsFriendlyPlayer(unit)
+	pcall(f.SetAlpha, f, friendly and 0 or 1)
 	local tag = Tag(plate)
 	if not friendly then tag:Hide() return end
+	StyleTag(tag)
 	local filled = pcall(function()
 		local name = GetUnitName(unit, true)
 		local _, class = UnitClass(unit)
@@ -67,11 +62,10 @@ local function ApplyPlate(unit, on)
 		local color = class and RAID_CLASS_COLORS[class]
 		tag.name:SetText(name)
 		if color then tag.name:SetTextColor(color.r, color.g, color.b) else tag.name:SetTextColor(1, 1, 1) end
-		tag.info:SetText(guild and ("<%s>"):format(guild) or "") -- class is shown by the name colour
-		seen[name] = { class = class, level = UnitLevel(unit), at = GetTime() }
+		tag.info:SetText((guild and S().guild ~= false) and ("<%s>"):format(guild) or "") -- class is the name colour
+		A.seen[name] = { class = class, level = UnitLevel(unit), guild = guild, at = GetTime() }
 	end)
 	tag:SetShown(filled)
-	if filled then hidden = hidden + 1 end
 end
 
 local function ForEachPlate(fn)
@@ -80,58 +74,41 @@ local function ForEachPlate(fn)
 	end
 end
 
-local ev = CreateFrame("Frame")
-ev:SetScript("OnEvent", function(_, event, unit)
-	if event == "NAME_PLATE_UNIT_ADDED" then ApplyPlate(unit, active) end
-end)
--- always listening: a reused plate must be made visible again even after the test is off
-ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 local ticker
-
-local function Start(Say)
-	if InCombatLockdown() then Say("allies: can't change nameplate settings in combat, try again after") return end
-	for _, cv in ipairs(CVARS) do
-		local v = GetCV(cv)
-		if v ~= nil then
-			saved[cv] = v
-			local ok, err = SetCV(cv, "1")
-			Say(("allies: %s was %s, set to 1: %s"):format(cv, tostring(v), ok and "ok" or ("FAILED " .. tostring(err))))
+-- turn the friendly plates on/off to match the setting (CVars can't change in combat)
+function A.Apply()
+	ns.RunOutOfCombat(function()
+		local s = S()
+		if s.enabled then
+			for _, cv in ipairs(CVARS) do
+				local v = GetCV(cv)
+				if v ~= nil then
+					if s.saved == nil then s.saved = {} end
+					if s.saved[cv] == nil then s.saved[cv] = v end -- the player's own setting, remembered once
+					SetCV(cv, "1")
+				end
+			end
+			-- the game may reset plate alpha and guild info arrives late: re-apply twice a second
+			ticker = ticker or C_Timer.NewTicker(0.5, function() ForEachPlate(ApplyPlate) end)
+		else
+			if ticker then ticker:Cancel(); ticker = nil end
+			for cv, v in pairs(s.saved or {}) do SetCV(cv, v) end
+			s.saved = nil
 		end
-	end
-	active, hidden = true, 0
-	wipe(errors)
-	ForEachPlate(function(u) ApplyPlate(u, true) end)
-	-- the game may reset plate alpha: re-apply twice a second
-	ticker = C_Timer.NewTicker(0.5, function() ForEachPlate(function(u) ApplyPlate(u, true) end) end)
-	Say("allies: ON - friendly player plates should be invisible now. Walk near other players, then run /dpws allies again to see the result and turn it off.")
+		ForEachPlate(ApplyPlate)
+	end)
 end
 
-local function Stop(Say)
-	active = false
-	if ticker then ticker:Cancel(); ticker = nil end
-	ForEachPlate(function(u) ApplyPlate(u, false) end)
-	if InCombatLockdown() then
-		Say("allies: in combat - nameplate setting restore skipped, run /dpws allies again after combat")
-	else
-		for cv, v in pairs(saved) do SetCV(cv, v) end
-	end
-	local names = {}
-	for name, e in pairs(seen) do
-		local lvl = (e.level and e.level > 0) and e.level or "??"
-		names[#names + 1] = ("%s (%s %s)"):format(name, lvl, e.class or "?")
-	end
-	table.sort(names)
-	Say(("allies: OFF. Plates hidden: %d. Errors caught: %d"):format(hidden, #errors))
-	for _, e in ipairs(errors) do Say("allies: error: " .. e) end
-	Say(("allies: friendly players found: %d"):format(#names))
-	for _, n in ipairs(names) do Say("allies:   " .. n) end
-	Say("allies: also check BugSack for ADDON_ACTION_FORBIDDEN / BLOCKED reports from dpws_tools.")
-	wipe(seen)
-end
+-- always listening: a reused plate must be made visible again whatever the setting
+local ev = CreateFrame("Frame")
+ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+ev:SetScript("OnEvent", function(_, _, unit) if ns.adb then ApplyPlate(unit) end end)
+
+table.insert(ns.loginHooks, function() if S().enabled then A.Apply() end end)
 
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.allies = function()
-	ns.Diagnose(function(Say)
-		if active then Stop(Say) else Start(Say) end
-	end)
+	S().enabled = not S().enabled
+	A.Apply()
+	print(("dpws_tools: Friendly Names %s"):format(S().enabled and "ON" or "OFF (your nameplate setting is restored)"))
 end

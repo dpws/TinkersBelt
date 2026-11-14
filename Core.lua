@@ -90,6 +90,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		if adb.pvpTooltip == nil then adb.pvpTooltip = true end
 		if adb.pvpAnnounce == nil then adb.pvpAnnounce = true end
 		adb.nearby = adb.nearby or { enabled = true, timeout = 60, alert = "off" }
+		adb.allies = adb.allies or { enabled = false, size = 13, guild = true }
 		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
 		-- one module failing must not stop the others; the error still reaches BugSack

@@ -395,6 +395,16 @@ local function BuildNearbyPage(parent)
 	P:Finish()
 end
 
+local function BuildAlliesPage(parent)
+	local s = ns.adb.allies
+	local P = T.Page(parent)
+	P:Card("Label")
+	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v end)
+	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v end)
+	P:Note("Above friendly players you see only their name in class colour (and guild) instead of the game's nameplate. To do this the addon turns friendly nameplates on and draws them invisible; turning this off restores your own nameplate setting. Also /dpws allies.")
+	P:Finish()
+end
+
 local function BuildProfilesPage(parent)
 	local P = T.Page(parent)
 	P:Card("Save current bars and talents")
@@ -576,6 +586,10 @@ local GROUPS = {
 			desc = "Opposite-faction players seen around you.",
 			toggle = { function() return ns.adb.nearby.enabled end,
 				function(v) ns.adb.nearby.enabled = v; if ns.RefreshNearby then ns.RefreshNearby() end end } },
+		{ name = "Friendly Names", build = BuildAlliesPage, icon = ICON .. "Spell_Holy_PrayerOfHealing02",
+			desc = "Clean name labels above friendly players: class colour and guild, no nameplate.",
+			toggle = { function() return ns.adb.allies.enabled end,
+				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
 			desc = "Save and load action bars and talents, shared by your characters of this class." },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
