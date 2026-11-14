@@ -21,3 +21,4 @@ Nearby.lua
 BagSlots.lua
 Profiles.lua
 Restock.lua
+Mana.lua

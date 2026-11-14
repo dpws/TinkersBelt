@@ -537,6 +537,34 @@ local function BuildPoisonStockPage(parent)
 	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
 end
 
+local function BuildManaPage(parent)
+	local m = ns.db.mana
+	local function Relayout() if ns.Mana then ns.Mana.Layout() end end
+	local refreshers = {}
+	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	label:SetPoint("TOPLEFT", 16, -14)
+	label:SetText("Show")
+	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+	dd:SetPoint("TOPLEFT", 110, -8)
+	dd:SetWidth(170)
+	dd:SetupMenu(function(_, root)
+		for _, mode in ipairs({ { "always", "Always" }, { "combat", "Only in combat" }, { "off", "Disabled" } }) do
+			root:CreateRadio(mode[2], function() return (m.mode or "always") == mode[1] end, function() m.mode = mode[1] end)
+		end
+	end)
+	refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+	refreshers[#refreshers + 1] = Slider(parent, -50, 60, 400, 10, "Width: %d", function() return m.width end,
+		function(v) m.width = v; Relayout() end)
+	refreshers[#refreshers + 1] = Slider(parent, -100, 4, 30, 1, "Height: %d", function() return m.height end,
+		function(v) m.height = v; Relayout() end)
+	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("TOPLEFT", 16, -150)
+	hint:SetWidth(440)
+	hint:SetJustifyH("LEFT")
+	hint:SetText("Orange: the 5 seconds after spending mana (no spirit regen), with a countdown. Blue spark: where the next 2-second mana tick is. Hidden at full mana. Use Unlock panels (top) to move it.")
+	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
+end
+
 local function BuildRestockPage(parent)
 	local r = ns.db.restock
 	local refreshers = {
@@ -740,6 +768,9 @@ local GROUPS = {
 		{ name = "Profiles", build = BuildProfilesPage },
 		{ name = "Auto Restock", build = BuildRestockPage },
 	} },
+	{ name = "Caster", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, SHAMAN = true, PALADIN = true, HUNTER = true }, tools = {
+		{ name = "Mana Ticks", build = BuildManaPage },
+	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
 		{ name = "Poisons", build = BuildPoisonsPage },
@@ -877,7 +908,8 @@ local function CreateWindow()
 		end
 	end
 	for _, group in ipairs(GROUPS) do
-		if (not group.class or group.class == playerClass) and #group.tools > 0 then
+		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
+			and #group.tools > 0 then
 			local i = #groups + 1
 			local tab = TopTab(f.Inset, group.name)
 			if i == 1 then
