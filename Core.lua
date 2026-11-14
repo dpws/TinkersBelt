@@ -24,7 +24,7 @@ function ns.RegisterPanel(frame, name, onMoved)
 	o:SetPoint("TOPLEFT", -6, 6)
 	o:SetPoint("BOTTOMRIGHT", 6, -20)
 	local T = ns.Theme
-	T.Panel(o, { 0.91, 0.71, 0.36, 0.16 }, { 0.91, 0.71, 0.36, 0.7 }) -- gold accent while unlocked
+	T.Panel(o, T.Accent(0.16), T.Accent(0.7)) -- accent tint while unlocked
 	local label = T.Text(o, "semibold", 11, T.gold)
 	label:SetPoint("BOTTOM", 0, 4)
 	label:SetText(name)

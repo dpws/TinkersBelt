@@ -15,7 +15,7 @@ local T = {
 	field = { 0.040, 0.047, 0.058, 1 },
 	border = { 1, 1, 1, 0.10 },
 	hover = { 1, 1, 1, 0.06 },
-	gold = { 1, 0.82, 0.18, 1 },
+	gold = { 0.427, 0.812, 0.769, 1 }, -- the accent colour (#6dcfc4); the key name stayed from the first theme
 	text = { 0.86, 0.88, 0.91, 1 },
 	muted = { 0.55, 0.59, 0.64, 1 },
 	off = { 0.20, 0.22, 0.26, 1 },
@@ -25,6 +25,9 @@ local T = {
 	CIRCLE = CIRCLE,
 }
 ns.Theme = T
+
+-- the accent at a given alpha (tints, borders, gradients)
+function T.Accent(a) return { T.gold[1], T.gold[2], T.gold[3], a or 1 } end
 
 T.font = {
 	regular = MEDIA .. "fonts\\Inter-Regular.ttf",
