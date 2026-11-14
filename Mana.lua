@@ -27,6 +27,7 @@ ns.Mana = M
 local MANA = Enum.PowerType.Mana
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 local lastSpend, lastTick, lastMana
+local lastPowerEvent = 0 -- mana change events stop once mana is full: the fallback when mana is hidden
 local bar, fill, spark, text
 
 local function Mode() return ns.db.mana.mode or "always" end
@@ -48,7 +49,13 @@ end
 local function Update()
 	local now = GetTime()
 	local mana, max = ReadMana()
-	local phase = ns.ManaPhase(now, lastSpend, lastTick, mana and max and mana >= max)
+	local full
+	if mana and max then
+		full = mana >= max
+	else -- value hidden from addons: full = no regen ticks lately and not in the 5 seconds
+		full = now - lastPowerEvent > TICK + 0.5 and not (lastSpend and now - lastSpend < FSR)
+	end
+	local phase = ns.ManaPhase(now, lastSpend, lastTick, full)
 	local mode = Mode()
 	local show = mode ~= "off" and (ns.unlocked or (phase and (mode == "always" or UnitAffectingCombat("player"))))
 	bar:SetShown(show and true or false)
@@ -87,6 +94,18 @@ local function OnPower()
 	lastMana = mana
 end
 
+-- /dpws mana: can the addon read mana, and what does the bar think
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.mana = function()
+	ns.Diagnose(function(Say)
+		local mana, max = ReadMana()
+		Say(("mana: readable=%s value=%s max=%s"):format(tostring(mana ~= nil), tostring(mana), tostring(max)))
+		local now = GetTime()
+		Say(("mana: last mana change %.1fs ago, last spend %s, last tick %s"):format(now - lastPowerEvent,
+			lastSpend and ("%.1fs ago"):format(now - lastSpend) or "never", lastTick and ("%.1fs ago"):format(now - lastTick) or "never"))
+	end)
+end
+
 table.insert(ns.loginHooks, function()
 	if not MANA_CLASSES[select(2, UnitClass("player"))] then return end
 	local m = ns.db.mana
@@ -123,6 +142,7 @@ table.insert(ns.loginHooks, function()
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
 			pcall(OnSpell, arg3) -- arg3 = spellID
 		elseif arg2 == "MANA" then
+			lastPowerEvent = GetTime()
 			OnPower()
 		end
 	end)
