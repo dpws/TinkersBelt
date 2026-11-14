@@ -118,7 +118,16 @@ local ev = CreateFrame("Frame")
 ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 ev:SetScript("OnEvent", function(_, _, unit) if ns.adb then ApplyPlate(unit) end end)
 
-table.insert(ns.loginHooks, function() if S().enabled then A.Apply() end end)
+table.insert(ns.loginHooks, function()
+	local s = S()
+	-- one-time fix: the early test could leave friendly plates on across a /reload, so "on" was remembered
+	-- as the player's own setting; the default (and this player's choice) is off
+	if not s.savedFixed then
+		s.savedFixed = true
+		if s.saved and s.saved.nameplateShowFriendlyPlayers == "1" then s.saved.nameplateShowFriendlyPlayers = "0" end
+	end
+	if s.enabled then A.Apply() end
+end)
 
 -- what Friendly Names sees right now
 local function Info(Say)
@@ -142,7 +151,21 @@ local function Info(Say)
 			end
 		end
 	end
-	Say(("allies: plates=%d friendly players=%d"):format(#plates, friendly))
+	Say(("allies: plates=%d friendly players=%d  instance=%s"):format(#plates, friendly, tostring(IsInInstance())))
+	-- raw answers for the first plates: which check fails, and is anything hidden (secret)?
+	local function Raw(fn, ...)
+		local ok, v = pcall(fn, ...)
+		if not ok then return "ERR" end
+		if Secret(v) then return "SECRET" end
+		return tostring(v)
+	end
+	for i = 1, math.min(4, #plates) do
+		local unit = plates[i].namePlateUnitToken
+		if unit then
+			Say(("allies:   %s name=%s player=%s friend=%s self=%s"):format(unit, Raw(GetUnitName, unit, true),
+				Raw(UnitIsPlayer, unit), Raw(UnitIsFriend, "player", unit), Raw(UnitIsUnit, unit, "player")))
+		end
+	end
 end
 
 ns.slashCommands = ns.slashCommands or {}
