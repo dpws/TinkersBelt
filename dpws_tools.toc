@@ -20,6 +20,7 @@ Combo.lua
 Pvp.lua
 Nearby.lua
 Allies.lua
+AlliesList.lua
 BagSlots.lua
 Profiles.lua
 Restock.lua

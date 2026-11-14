@@ -89,6 +89,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		db.window = db.window or {}
 		db.poisons = db.poisons or { enabled = true, warnMinutes = 5, sound = true }
 		db.combo = db.combo or { width = 200, height = 14, sounds = {} }
+		db.alliesList = db.alliesList or { enabled = false, rows = 10 }
 		db.mana = db.mana or { mode = "always", width = 200, height = 10 }
 		db.restock = db.restock or { enabled = true, budget = 50000, items = {} } -- budget in copper (5g)
 		-- older settings: combo bar switched off with a checkbox

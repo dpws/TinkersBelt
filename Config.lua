@@ -403,6 +403,13 @@ local function BuildAlliesPage(parent)
 	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
 	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
 	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
+	local list = ns.db.alliesList
+	local function RefreshList() if ns.AlliesList then ns.AlliesList.Update() end end
+	P:Card("Nearby allies list")
+	P:Toggle("Show the nearby allies list", function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
+	P:Slider("Rows", 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
+	P:Note("Closest first (exact for group members, otherwise ~10 / 28 / 40 yd or far). Left-click a row to target, right-click to cast your class buff, + to invite. Pauses in combat. Needs Friendly Names on; use Unlock panels to move it.")
+	P:Card("About")
 	P:Note("Above friendly players you see only their name in class colour (and guild) instead of the game's nameplate. To do this the addon turns friendly nameplates on and draws them invisible; turning this off restores your own nameplate setting. Also /dpws allies.")
 	P:Finish()
 end
