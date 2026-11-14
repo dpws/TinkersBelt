@@ -19,6 +19,7 @@ PoisonStock.lua
 Combo.lua
 Pvp.lua
 Nearby.lua
+Allies.lua
 BagSlots.lua
 Profiles.lua
 Restock.lua
