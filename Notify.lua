@@ -27,6 +27,7 @@ function ns.Notify(msg, playSound)
 		print("dpws_tools: " .. msg) -- before login
 	end
 	if playSound then PlaySound(SOUNDKIT.RAID_WARNING) end
+	if ns.SetFooter then ns.SetFooter(msg) end -- config window status line
 end
 
 table.insert(ns.loginHooks, function()

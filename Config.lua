@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local T = ns.Theme
 
 ns.STATE_LABELS = {
 	ROGUE = { [1] = "Stealth" },
@@ -8,6 +9,13 @@ ns.STATE_LABELS = {
 }
 
 local window
+
+local function ItemName(id) return (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id) end
+local function ItemIcon(id) return (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id) end
+local function ItemCount(id) return (C_Item and C_Item.GetItemCount or GetItemCount)(id) end
+
+---------------------------------------------------------------------------
+-- Stealth action bars
 
 -- name of a currently visible bar that owns this page, if any
 local function VisibleOwner(page)
@@ -20,7 +28,7 @@ end
 
 -- green = bar visible now, gray = hidden (good to borrow)
 local function Colored(name, visible)
-	return (visible and "|cff40ff40%s|r" or "|cff909090%s|r"):format(name)
+	return (visible and "|cff4dcc66%s|r" or "|cff8c96a3%s|r"):format(name)
 end
 
 local function BarLabel(bar)
@@ -36,95 +44,52 @@ local function PageLabel(page)
 	return Colored(("Bar 1, page %d"):format(page), false)
 end
 
-local function MakeRow(parent, y, state, bar)
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, y - 6)
-	label:SetText(BarLabel(bar) .. "  >")
-
-	local warn = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-	warn:SetPoint("TOPLEFT", 270, y - 7)
-	warn:SetTextColor(1, 0.5, 0.1)
-
-	local function Get()
-		return ns.db.barSwitch[state] and ns.db.barSwitch[state][bar.index]
-	end
-	local function UpdateWarn()
-		local owner = Get() and VisibleOwner(Get())
-		warn:SetText(owner and ("in use on " .. owner) or "")
-	end
-	local function Set(page)
-		ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
-		ns.db.barSwitch[state][bar.index] = page
-		if not next(ns.db.barSwitch[state]) then ns.db.barSwitch[state] = nil end
-		UpdateWarn()
-		if InCombatLockdown() then print("dpws_tools: change applies after combat") end
-		ns.ApplyBarSwitch()
-	end
-
-	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	dd:SetPoint("TOPLEFT", 90, y)
-	dd:SetWidth(170)
-	dd:SetupMenu(function(_, root)
-		root:CreateRadio("None", function() return Get() == nil end, function() Set(nil) end)
-		for _, page in ipairs(ns.ValidPages(bar.index)) do
-			root:CreateRadio(PageLabel(page), function() return Get() == page end, function() Set(page) end)
-		end
-	end)
-	return function()
-		label:SetText(BarLabel(bar) .. "  >")
-		dd:GenerateMenu()
-		UpdateWarn()
-	end
-end
-
 local function BuildBarSwitchPage(parent)
-	local scroll = CreateFrame("ScrollFrame", nil, parent, "ScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", 4, -4)
-	scroll:SetPoint("BOTTOMRIGHT", -26, 4)
-	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(420, 1)
-	scroll:SetScrollChild(content)
-
-	local refreshers = {}
+	local P = T.Page(parent)
 	local labels = ns.STATE_LABELS[select(2, UnitClass("player"))]
-	local y = -8
 	if not labels then
-		local t = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-		t:SetPoint("TOP", scroll, "TOP", 0, -40)
-		t:SetText("No stance states for this class")
-	else
-		local hint = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-		hint:SetPoint("TOPLEFT", 16, y)
-		hint:SetWidth(400)
-		hint:SetJustifyH("LEFT")
-		hint:SetText("Pick which page each bar shows while in a state. Put spells on that page by dragging them onto the bar while the state is active.")
-		y = y - 36
-		-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
-		if _G.MelloUIActionBar2Button1 then
-			local mello = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-			mello:SetPoint("TOPLEFT", 16, y)
-			mello:SetWidth(400)
-			mello:SetJustifyH("LEFT")
-			mello:SetTextColor(1, 0.3, 0.3)
-			mello:SetText("MelloUI's own action bars are active: bar switching won't affect them.")
-			y = y - 30
-		end
-		for state = 1, 4 do
-			if labels[state] then
-				local h = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-				h:SetPoint("TOPLEFT", 8, y)
-				h:SetText(labels[state])
-				y = y - 26
-				for _, bar in ipairs(ns.BARS) do
-					refreshers[#refreshers + 1] = MakeRow(content, y, state, bar)
-					y = y - 30
-				end
-				y = y - 10
+		P:Note("No stance states for this class.")
+		P:Finish()
+		return
+	end
+	P:Note("Pick which page each bar shows while in a state. Put spells on that page by dragging them onto the bar while the state is active. Green bars are visible now, gray ones are hidden and free to borrow.")
+	-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
+	if _G.MelloUIActionBar2Button1 then
+		P:Note("MelloUI's own action bars are active: bar switching won't affect them.", T.red)
+	end
+	for state = 1, 4 do
+		if labels[state] then
+			P:Card(labels[state])
+			for _, bar in ipairs(ns.BARS) do
+				local function Get() return ns.db.barSwitch[state] and ns.db.barSwitch[state][bar.index] end
+				local d, row = P:Dropdown(BarLabel(bar), function(root)
+					root:CreateRadio("None", function() return Get() == nil end, function()
+						ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
+						ns.db.barSwitch[state][bar.index] = nil
+						if not next(ns.db.barSwitch[state]) then ns.db.barSwitch[state] = nil end
+						ns.ApplyBarSwitch()
+					end)
+					for _, page in ipairs(ns.ValidPages(bar.index)) do
+						root:CreateRadio(PageLabel(page), function() return Get() == page end, function()
+							ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
+							ns.db.barSwitch[state][bar.index] = page
+							if InCombatLockdown() then print("dpws_tools: change applies after combat") end
+							ns.ApplyBarSwitch()
+						end)
+					end
+				end, 240)
+				local label = select(1, row:GetRegions())
+				local warn = T.Text(row, "medium", 11, { 1, 0.6, 0.2, 1 })
+				warn:SetPoint("RIGHT", d, "LEFT", -12, 0)
+				P:Refresher(function()
+					if label and label.SetText then label:SetText(BarLabel(bar)) end
+					local owner = Get() and VisibleOwner(Get())
+					warn:SetText(owner and ("in use on " .. owner) or "")
+				end)
 			end
 		end
 	end
-	content:SetHeight(-y)
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+	P:Finish()
 end
 
 -- on-screen overlays showing the number of each visible bar
@@ -142,10 +107,8 @@ local function SetHighlights(on)
 				-- parented to UIParent, only anchored to the bar: never touches the protected bar itself
 				o = CreateFrame("Frame", nil, UIParent)
 				o:SetFrameStrata("DIALOG")
-				local bg = o:CreateTexture(nil, "BACKGROUND")
-				bg:SetAllPoints()
-				bg:SetColorTexture(0.1, 0.6, 1, 0.35)
-				local text = o:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+				T.Panel(o, { 1, 0.82, 0.18, 0.18 }, { 1, 0.82, 0.18, 0.8 })
+				local text = T.Text(o, "semibold", 26, T.gold)
 				text:SetPoint("CENTER")
 				text:SetText(bar.name:match("%d+"))
 				overlays[bar.name] = o
@@ -159,206 +122,169 @@ local function SetHighlights(on)
 	end
 end
 
-local function Checkbox(parent, y, text, get, set)
-	local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
-	cb:SetPoint("TOPLEFT", 12, y)
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("LEFT", cb, "RIGHT", 4, 0)
-	label:SetText(text)
-	cb:SetScript("OnClick", function(self) set(self:GetChecked()) end)
-	return function() cb:SetChecked(get()) end
-end
-
--- labelled dropdown of ns.SOUNDS (+ None); picking one previews it. Returns a refresher.
-local function SoundDropdown(parent, y, text, get, set)
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, y - 6)
-	label:SetText(text)
-	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	dd:SetPoint("TOPLEFT", 110, y)
-	dd:SetWidth(170)
-	dd:SetupMenu(function(_, root)
-		root:CreateRadio("None", function() return get() == nil end, function() set(nil) end)
-		for _, s in ipairs(ns.SOUNDS) do
-			root:CreateRadio(s.name, function() return get() == s.key end, function()
-				set(s.key)
-				ns.PlaySoundKey(s.key)
-			end)
-		end
-	end)
-	return function() dd:GenerateMenu() end
-end
-
--- plain slider with own textures: no dependency on templates that changed between clients.
--- fmt shows the value (e.g. "Scale: %d%%"); returns a refresher.
-local function Slider(parent, y, min, max, step, fmt, get, set)
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, y)
-	local s = CreateFrame("Slider", nil, parent)
-	s:SetPoint("TOPLEFT", 16, y - 22)
-	s:SetSize(220, 16)
-	s:SetOrientation("HORIZONTAL")
-	s:SetMinMaxValues(min, max)
-	s:SetValueStep(step)
-	s:SetObeyStepOnDrag(true)
-	s:EnableMouse(true)
-	local track = s:CreateTexture(nil, "BACKGROUND")
-	track:SetColorTexture(0, 0, 0, 0.6)
-	track:SetPoint("LEFT")
-	track:SetPoint("RIGHT")
-	track:SetHeight(6)
-	s:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-	local loading = false
-	s:SetScript("OnValueChanged", function(_, v)
-		v = math.floor(v / step + 0.5) * step
-		label:SetText(fmt:format(v))
-		if not loading then set(v) end
-	end)
-	return function()
-		loading = true
-		s:SetValue(get())
-		label:SetText(fmt:format(math.floor(get() + 0.5)))
-		loading = false
-	end
-end
+---------------------------------------------------------------------------
+-- Rogue
 
 local function BuildPoisonsPage(parent)
+	local P = T.Page(parent)
 	if select(2, UnitClass("player")) ~= "ROGUE" then
-		local t = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-		t:SetPoint("TOP", 0, -40)
-		t:SetText("Poison bar is for rogues")
-		return
+		P:Note("The poison bar is for rogues.")
+		return P:Finish()
 	end
 	local p = ns.db.poisons
-	local function Changed() if ns.Poisons then ns.Poisons.Refresh() end end
-	local refreshers = {
-		Checkbox(parent, -12, "Show poison bar", function() return p.enabled end, function(v) p.enabled = v; Changed() end),
-		Checkbox(parent, -44, "Play sound with warnings", function() return p.sound end, function(v) p.sound = v end),
-	}
-
 	local function Rescale() if ns.Poisons then ns.Poisons.ApplyScale() end end
-	refreshers[#refreshers + 1] = Slider(parent, -90, 1, 15, 1, "Warn when less than %d min left",
-		function() return p.warnMinutes end, function(v) p.warnMinutes = v end)
-	refreshers[#refreshers + 1] = Slider(parent, -140, 50, 200, 10, "Weapon icons: %d%%",
-		function() return (p.scale or 1) * 100 end, function(v) p.scale = v / 100; Rescale() end)
-	refreshers[#refreshers + 1] = Slider(parent, -190, 50, 200, 10, "Poison icon: %d%%",
-		function() return (p.poisonScale or 1) * 100 end, function(v) p.poisonScale = v / 100; Rescale() end)
+	P:Card("Reminders")
+	P:Toggle("Play sound with warnings", function() return p.sound end, function(v) p.sound = v end)
+	P:Slider("Warn when less than", 1, 15, 1, "min", function() return p.warnMinutes end, function(v) p.warnMinutes = v end)
+	P:Card("Size")
+	P:Slider("Weapon icons", 50, 200, 10, "%", function() return (p.scale or 1) * 100 end,
+		function(v) p.scale = v / 100; Rescale() end)
+	P:Slider("Poison icon", 50, 200, 10, "%", function() return (p.poisonScale or 1) * 100 end,
+		function(v) p.poisonScale = v / 100; Rescale() end)
+	P:Note("On the bar: left-click applies the chosen poison, right-click chooses it. Use Unlock panels to move the bar.")
+	P:Finish()
+end
 
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -230)
-	hint:SetWidth(400)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("On the bar: left-click applies the chosen poison, right-click chooses it. Use Unlock panels (top) to move the bar.")
+local function BuildPoisonStockPage(parent)
+	local p = ns.db.poisons
+	p.stock = p.stock or {}
+	local function Changed() if ns.PoisonStock then ns.PoisonStock.Update() end end
+	local P = T.Page(parent)
+	local status = P:Note(" ")
+	local Refresh
 
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+	P:Card("Poisons to keep in bags")
+	local rows, MAX_ROWS = {}, 9
+	local add
+	P:Custom(38, function(row)
+		add = T.NewDropdown(row, 260)
+		add:SetPoint("LEFT")
+		add:SetDefaultText("Add poison...")
+		add:SetupMenu(function(_, root)
+			-- once recipes are known, offer only poisons this character can craft
+			local known = ns.db.poisonRecipes
+			local onlyKnown = known and next(known) ~= nil
+			for _, id in ipairs(ns.AllPoisonIds()) do
+				if not p.stock[id] and (not onlyKnown or known[id]) then
+					root:CreateButton(("|T%s:16|t %s"):format(ItemIcon(id) or 134400, ItemName(id)),
+						function() p.stock[id] = 20; Refresh(); Changed() end)
+				end
+			end
+		end)
+	end)
+	for i = 1, MAX_ROWS do
+		P:Custom(30, function(row)
+			local r = {}
+			r.icon = row:CreateTexture(nil, "ARTWORK")
+			r.icon:SetSize(20, 20)
+			r.icon:SetPoint("LEFT", 2, 0)
+			r.name = T.Text(row, "medium", 13)
+			r.name:SetPoint("LEFT", r.icon, "RIGHT", 10, 0)
+			r.name:SetWidth(260)
+			r.name:SetWordWrap(false)
+			r.remove = T.NewButton(row, "Remove", 76, 24)
+			r.remove:SetPoint("RIGHT")
+			r.count = T.NewInput(row, 56, true)
+			r.count:SetPoint("RIGHT", r.remove, "LEFT", -10, 0)
+			r.have = T.Text(row, "regular", 12, T.muted)
+			r.have:SetPoint("RIGHT", r.count, "LEFT", -12, 0)
+			r.frame = row
+			rows[i] = r
+		end)
+	end
+
+	Refresh = function()
+		local learned = 0
+		for _ in pairs(ns.db.poisonRecipes or {}) do learned = learned + 1 end
+		status:SetText(learned > 0 and ("%d poison recipes known. Amount = how many to keep in bags."):format(learned)
+			or "|cffffcc00Open your Poisons window once so the addon learns the recipes (until then nothing is bought).|r")
+		local ids = {}
+		for id in pairs(p.stock) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for i, r in ipairs(rows) do
+			local id = ids[i]
+			r.frame:SetShown(id ~= nil)
+			if id then
+				r.icon:SetTexture(ItemIcon(id))
+				r.name:SetText(ItemName(id))
+				r.have:SetText(("have %d"):format(ItemCount(id)))
+				r.count:SetText(p.stock[id])
+				local function Save()
+					local n = tonumber(r.count:GetText())
+					if n and n > 0 and p.stock[id] then p.stock[id] = n; Changed() end
+					r.count:ClearFocus()
+				end
+				r.count:SetScript("OnEnterPressed", Save)
+				r.count:SetScript("OnEditFocusLost", Save)
+				r.remove:SetScript("OnClick", function() p.stock[id] = nil; Refresh(); Changed() end)
+			end
+		end
+		add:GenerateMenu()
+	end
+	P:Refresher(Refresh)
+	P:EndCard()
+	P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
+	P:Finish()
 end
 
 local function BuildComboPage(parent)
 	local c = ns.db.combo
 	local function Relayout() if ns.Combo then ns.Combo.Layout() end end
-	local refreshers = {}
-	-- one mode dropdown per bar: Always / Only in combat / Disabled
-	for i, row in ipairs({ { "Health", "healthMode" }, { "Energy", "energyMode" }, { "Combo points", "comboMode" } }) do
-		local y = -8 - (i - 1) * 30
-		local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-		label:SetPoint("TOPLEFT", 16, y - 6)
-		label:SetText(row[1])
-		local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-		dd:SetPoint("TOPLEFT", 120, y)
-		dd:SetWidth(170)
-		dd:SetupMenu(function(_, root)
-			for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do
-				root:CreateRadio(m.name, function() return (c[row[2]] or "combat") == m.key end,
-					function() c[row[2]] = m.key; Relayout() end)
-			end
-		end)
-		refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
+	local MODES = {}
+	for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do MODES[#MODES + 1] = { m.key, m.name } end
+	local P = T.Page(parent)
+	P:Card("Bars")
+	for _, row in ipairs({ { "Health", "healthMode" }, { "Energy", "energyMode" }, { "Combo points", "comboMode" } }) do
+		P:Choice(row[1], MODES, function() return c[row[2]] or "combat" end, function(v) c[row[2]] = v; Relayout() end, 240)
 	end
-	refreshers[#refreshers + 1] = Slider(parent, -110, 60, 400, 10, "Width: %d", function() return c.width end, function(v) c.width = v; Relayout() end)
-	refreshers[#refreshers + 1] = Slider(parent, -160, 6, 40, 1, "Height: %d", function() return c.height end, function(v) c.height = v; Relayout() end)
-
-	local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	h:SetPoint("TOPLEFT", 12, -210)
-	h:SetText("Combo point sounds")
+	P:Card("Size")
+	P:Slider("Width", 60, 400, 10, "px", function() return c.width end, function(v) c.width = v; Relayout() end)
+	P:Slider("Height", 6, 40, 1, "px", function() return c.height end, function(v) c.height = v; Relayout() end)
+	P:Card("Combo point sounds")
 	for n = 1, 5 do
-		local y = -238 - (n - 1) * 30
-		refreshers[#refreshers + 1] = SoundDropdown(parent, y, n == 1 and "1 point" or (n .. " points"),
-			function() return c.sounds[n] end, function(key) c.sounds[n] = key end)
+		P:Sound(n == 1 and "1 point" or (n .. " points"), function() return c.sounds[n] end, function(key) c.sounds[n] = key end)
 	end
-
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -395)
-	hint:SetWidth(400)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("A sound plays when your combo points rise to that amount. Use Unlock panels (top) to move the bar.")
-
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+	P:Note("A sound plays when your combo points rise to that amount. Use Unlock panels to move the bars.")
+	P:Finish()
 end
 
-local function BuildPvpSettingsPage(parent)
-	local a = ns.adb
-	local refreshers = {
-		Checkbox(parent, -12, "Show PvP score on player tooltips", function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end),
-		Checkbox(parent, -44, "Announce kills and deaths (name, level, class, score)", function() return a.pvpAnnounce end, function(v) a.pvpAnnounce = v end),
-		SoundDropdown(parent, -90, "Kill sound", function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end),
-		SoundDropdown(parent, -120, "Death sound", function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end),
-	}
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -160)
-	hint:SetWidth(400)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("Open world only (not battlegrounds, arenas or dungeons). A death counts for the last enemy player who hit you within 10 seconds. Announcements use the Notifications panel (Unlock panels to move it).")
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+---------------------------------------------------------------------------
+-- Caster
+
+local function BuildManaPage(parent)
+	local m = ns.db.mana
+	local function Relayout() if ns.Mana then ns.Mana.Layout() end end
+	local P = T.Page(parent)
+	P:Card("Display")
+	P:Choice("Show", { { "always", "Always" }, { "combat", "Only in combat" }, { "off", "Disabled" } },
+		function() return m.mode or "always" end, function(v) m.mode = v end, 240)
+	P:Card("Size")
+	P:Slider("Width", 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
+	P:Slider("Height", 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
+	P:Note("Orange: the 5 seconds after spending mana (no spirit regen), with a countdown. Blue spark: where the next 2-second mana tick is. Hidden at full mana. Use Unlock panels to move it.")
+	P:Finish()
 end
 
-local function BuildNearbyPage(parent)
-	local s = ns.adb.nearby
-	local function Changed() if ns.RefreshNearby then ns.RefreshNearby() end end
-	local refreshers = {
-		Checkbox(parent, -12, "Show nearby enemies (opposite faction)", function() return s.enabled end, function(v) s.enabled = v; Changed() end),
-		Slider(parent, -50, 15, 300, 15, "Remove after not seen for %d sec", function() return s.timeout end, function(v) s.timeout = v end),
-	}
-
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, -106)
-	label:SetText("Alert")
-	local ALERTS = { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } }
-	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	dd:SetPoint("TOPLEFT", 110, -100)
-	dd:SetWidth(200)
-	dd:SetupMenu(function(_, root)
-		for _, a in ipairs(ALERTS) do
-			root:CreateRadio(a[2], function() return s.alert == a[1] end, function() s.alert = a[1] end)
-		end
-	end)
-	refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
-	refreshers[#refreshers + 1] = SoundDropdown(parent, -130, "Alert sound", function() return s.sound end, function(key) s.sound = key end)
-
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -172)
-	hint:SetWidth(400)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("Players are found by their nameplates (turn on enemy nameplates for best results) and by what they do in the combat log. Stealthed players are not seen until they act. Open world only. Use Unlock panels (top) to move the list.")
-
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
-end
+---------------------------------------------------------------------------
+-- General
 
 local function BuildPvpPage(parent)
 	local a = ns.adb
-	local refreshers = {}
-	local stats = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	stats:SetPoint("TOPLEFT", 16, -16)
+	local P = T.Page(parent)
+	local stats, reset
+	P:Card("Score")
+	P:Custom(36, function(row)
+		stats = T.Text(row, "medium", 13)
+		stats:SetPoint("LEFT", 2, 0)
+		reset = T.NewButton(row, "Reset all scores", 170, 26)
+		reset:SetPoint("RIGHT")
+	end)
 	local function ShowStats()
 		local players, k, d = 0, 0, 0
 		for _, e in pairs(a.pvp) do players, k, d = players + 1, k + e.k, e.d + d end
-		stats:SetText(("%d players tracked. Total: %s"):format(players, ns.PvpScoreText({ k = k, d = d })))
+		stats:SetText(("%d players tracked.  Total %s"):format(players, ns.PvpScoreText({ k = k, d = d })))
 	end
-	refreshers[#refreshers + 1] = ShowStats
-
 	-- two clicks to reset: no popup dialog
-	local reset = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	reset:SetPoint("TOPLEFT", 16, -40)
-	reset:SetSize(180, 26)
 	local armed = false
 	local function ResetText() reset:SetText(armed and "Click again to reset" or "Reset all scores") end
 	reset:SetScript("OnClick", function()
@@ -372,44 +298,47 @@ local function BuildPvpPage(parent)
 		end
 		ResetText()
 	end)
-	refreshers[#refreshers + 1] = function() armed = false; ResetText() end
+	P:Refresher(ShowStats)
+	P:Refresher(function() armed = false; ResetText() end)
 
-	-- history: 15 per page, newest first
-	local PER_PAGE, ROW = 15, 17
-	local COLS = { { "When", 0 }, { "", 80 }, { "Name", 130 }, { "Class", 270 }, { "Lvl", 360 } }
-	local top = -82
-	for _, col in ipairs(COLS) do
-		local h = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-		h:SetPoint("TOPLEFT", 16 + col[2], top)
-		h:SetText(col[1])
-	end
-	local rows = {}
-	for i = 1, PER_PAGE do
+	-- history: newest first
+	P:Card("Latest kills and deaths")
+	local PER_PAGE = 13
+	local COLS = { { "When", 0 }, { "", 100 }, { "Name", 170 }, { "Class", 380 }, { "Lvl", 500 } }
+	local function Cells(row, font, color)
 		local cells = {}
 		for c, col in ipairs(COLS) do
-			local fs = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-			fs:SetPoint("TOPLEFT", 16 + col[2], top - 4 - i * ROW)
-			fs:SetWidth((COLS[c + 1] and COLS[c + 1][2] or 400) - col[2] - 4)
-			fs:SetJustifyH("LEFT")
+			local fs = T.Text(row, font, 12, color)
+			fs:SetPoint("LEFT", 2 + col[2], 0)
+			fs:SetWidth((COLS[c + 1] and COLS[c + 1][2] or 560) - col[2] - 6)
 			fs:SetWordWrap(false)
 			cells[c] = fs
 		end
-		rows[i] = cells
+		return cells
 	end
-
-	local page = 1
-	local pagerY = top - 12 - (PER_PAGE + 1) * ROW
-	local pageText = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	pageText:SetPoint("TOPLEFT", 150, pagerY - 6)
-	local prev = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	prev:SetPoint("TOPLEFT", 16, pagerY)
-	prev:SetSize(100, 22)
-	prev:SetText("< Newer")
-	local nextB = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	nextB:SetPoint("TOPLEFT", 270, pagerY)
-	nextB:SetSize(100, 22)
-	nextB:SetText("Older >")
-
+	P:Custom(22, function(row)
+		for c, fs in ipairs(Cells(row, "semibold", T.muted)) do fs:SetText(COLS[c][1]) end
+	end)
+	local rows = {}
+	for i = 1, PER_PAGE do
+		P:Custom(22, function(row)
+			if i % 2 == 0 then
+				local alt = row:CreateTexture(nil, "BACKGROUND")
+				alt:SetAllPoints()
+				alt:SetColorTexture(1, 1, 1, 0.025)
+			end
+			rows[i] = Cells(row, "regular")
+		end)
+	end
+	local page, prev, nextB, pageText = 1
+	P:Custom(36, function(row)
+		prev = T.NewButton(row, "< Newer", 100, 24)
+		prev:SetPoint("LEFT")
+		pageText = T.Text(row, "medium", 12, T.muted)
+		pageText:SetPoint("LEFT", prev, "RIGHT", 16, 0)
+		nextB = T.NewButton(row, "Older >", 100, 24)
+		nextB:SetPoint("LEFT", pageText, "RIGHT", 16, 0)
+	end)
 	local function ShowPage()
 		local items, pages, p = ns.PvpPage(a.pvpLog, page, PER_PAGE)
 		page = p
@@ -419,7 +348,7 @@ local function BuildPvpPage(parent)
 				local color = e.class and RAID_CLASS_COLORS[e.class]
 				local className = e.class and (LOCALIZED_CLASS_NAMES_MALE[e.class] or e.class) or "?"
 				cells[1]:SetText(date("%m-%d %H:%M", e.t))
-				cells[2]:SetText(e.kind == "k" and "|cff40ff40Killed|r" or "|cffff4040Died|r")
+				cells[2]:SetText(e.kind == "k" and "|cff4dcc66Killed|r" or "|cfff25a4dDied|r")
 				cells[3]:SetText(e.name or "?")
 				cells[4]:SetText(color and ("|c%s%s|r"):format(color.colorStr, className) or className)
 				cells[5]:SetText((e.level and e.level > 0) and e.level or "??")
@@ -434,312 +363,100 @@ local function BuildPvpPage(parent)
 	end
 	prev:SetScript("OnClick", function() page = page - 1; ShowPage() end)
 	nextB:SetScript("OnClick", function() page = page + 1; ShowPage() end)
-	refreshers[#refreshers + 1] = function() page = 1; ShowPage() end
+	P:Refresher(function() page = 1; ShowPage() end)
 	-- live update while the page is open
 	ns.OnPvpLogChanged = function() if parent:IsVisible() then ShowStats(); ShowPage() end end
-
-	parent:SetScript("OnShow", function() for _, r in ipairs(refreshers) do r() end end)
+	P:Finish()
 end
 
-local function BuildPoisonStockPage(parent)
-	local p = ns.db.poisons
-	p.stock = p.stock or {}
-	local function Changed() if ns.PoisonStock then ns.PoisonStock.Update() end end
-	local Refresh
-	local refreshers = {
-		Checkbox(parent, -12, "Buy ingredients at vendors to keep this stock", function() return p.buyMats ~= false end,
-			function(v) p.buyMats = v end),
-	}
-	local status = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	status:SetPoint("TOPLEFT", 16, -46)
-	status:SetWidth(440)
-	status:SetJustifyH("LEFT")
-
-	local add = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	add:SetPoint("TOPLEFT", 16, -70)
-	add:SetWidth(220)
-	add:SetDefaultText("Add poison...")
-	add:SetupMenu(function(_, root)
-		-- once recipes are known, offer only poisons this character can craft
-		local known = ns.db.poisonRecipes
-		local onlyKnown = known and next(known) ~= nil
-		for _, id in ipairs(ns.AllPoisonIds()) do
-			if not p.stock[id] and (not onlyKnown or known[id]) then
-				local name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id)
-				local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id)
-				root:CreateButton(("|T%s:16|t %s"):format(icon or 134400, name), function() p.stock[id] = 20; Refresh(); Changed() end)
-			end
-		end
-	end)
-
-	local rows, MAX_ROWS = {}, 10
-	for i = 1, MAX_ROWS do
-		local y = -106 - (i - 1) * 24
-		local row = {}
-		row.icon = parent:CreateTexture(nil, "ARTWORK")
-		row.icon:SetSize(18, 18)
-		row.icon:SetPoint("TOPLEFT", 16, y)
-		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-		row.name:SetPoint("TOPLEFT", 40, y - 2)
-		row.name:SetWidth(200)
-		row.name:SetJustifyH("LEFT")
-		row.name:SetWordWrap(false)
-		row.have = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		row.have:SetPoint("TOPLEFT", 244, y - 3)
-		row.count = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-		row.count:SetPoint("TOPLEFT", 296, y + 1)
-		row.count:SetSize(44, 20)
-		row.count:SetAutoFocus(false)
-		row.count:SetNumeric(true)
-		row.remove = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-		row.remove:SetPoint("TOPLEFT", 348, y + 1)
-		row.remove:SetSize(70, 20)
-		row.remove:SetText("Remove")
-		rows[i] = row
-	end
-
-	Refresh = function()
-		local learned = 0
-		for _ in pairs(ns.db.poisonRecipes or {}) do learned = learned + 1 end
-		status:SetText(learned > 0 and ("%d poison recipes known. Amount = how many to keep in bags."):format(learned)
-			or "|cffffcc00Open your Poisons window once so the addon learns the recipes (until then nothing is bought).|r")
-		local ids = {}
-		for id in pairs(p.stock) do ids[#ids + 1] = id end
-		table.sort(ids)
-		for i, row in ipairs(rows) do
-			local id = ids[i]
-			for _, w in pairs(row) do w:SetShown(id ~= nil) end
-			if id then
-				row.icon:SetTexture((C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id))
-				row.name:SetText((C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id))
-				row.have:SetText(("have %d"):format((C_Item and C_Item.GetItemCount or GetItemCount)(id)))
-				row.count:SetText(p.stock[id])
-				local function Save()
-					local n = tonumber(row.count:GetText())
-					if n and n > 0 and p.stock[id] then p.stock[id] = n; Changed() end
-					row.count:ClearFocus()
-				end
-				row.count:SetScript("OnEnterPressed", Save)
-				row.count:SetScript("OnEditFocusLost", Save)
-				row.remove:SetScript("OnClick", function() p.stock[id] = nil; Refresh(); Changed() end)
-			end
-		end
-		add:GenerateMenu()
-	end
-	refreshers[#refreshers + 1] = Refresh
-
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -106 - MAX_ROWS * 24 - 8)
-	hint:SetWidth(440)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click to pick a poison. Ingredients use the Auto Restock spending limit.")
-
-	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
+local function BuildPvpSettingsPage(parent)
+	local a = ns.adb
+	local P = T.Page(parent)
+	P:Card("Tooltip and announcements")
+	P:Toggle("Show PvP score on player tooltips", function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end)
+	P:Toggle("Announce kills and deaths (name, level, class, score)", function() return a.pvpAnnounce end, function(v) a.pvpAnnounce = v end)
+	P:Card("Sounds")
+	P:Sound("Kill sound", function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end)
+	P:Sound("Death sound", function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end)
+	P:Note("Open world only (not battlegrounds, arenas or dungeons). A death counts for the last enemy player who targeted you within 10 seconds. Announcements use the Notifications panel.")
+	P:Finish()
 end
 
-local function BuildManaPage(parent)
-	local m = ns.db.mana
-	local function Relayout() if ns.Mana then ns.Mana.Layout() end end
-	local refreshers = {}
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", 16, -14)
-	label:SetText("Show")
-	local dd = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-	dd:SetPoint("TOPLEFT", 110, -8)
-	dd:SetWidth(170)
-	dd:SetupMenu(function(_, root)
-		for _, mode in ipairs({ { "always", "Always" }, { "combat", "Only in combat" }, { "off", "Disabled" } }) do
-			root:CreateRadio(mode[2], function() return (m.mode or "always") == mode[1] end, function() m.mode = mode[1] end)
-		end
-	end)
-	refreshers[#refreshers + 1] = function() dd:GenerateMenu() end
-	refreshers[#refreshers + 1] = Slider(parent, -50, 60, 400, 10, "Width: %d", function() return m.width end,
-		function(v) m.width = v; Relayout() end)
-	refreshers[#refreshers + 1] = Slider(parent, -100, 4, 30, 1, "Height: %d", function() return m.height end,
-		function(v) m.height = v; Relayout() end)
-	local hint = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", 16, -150)
-	hint:SetWidth(440)
-	hint:SetJustifyH("LEFT")
-	hint:SetText("Orange: the 5 seconds after spending mana (no spirit regen), with a countdown. Blue spark: where the next 2-second mana tick is. Hidden at full mana. Use Unlock panels (top) to move it.")
-	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
-end
-
-local function BuildRestockPage(parent)
-	local r = ns.db.restock
-	local refreshers = {
-		Checkbox(parent, -12, "Buy missing items when I open a vendor", function() return r.enabled end, function(v) r.enabled = v end),
-		Slider(parent, -50, 1, 50, 1, "Spend at most %d gold per vendor visit",
-			function() return math.floor(r.budget / 10000) end, function(v) r.budget = v * 10000 end),
-	}
-	local rows, Refresh = {}, nil
-
-	local preset = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	preset:SetPoint("TOPLEFT", 16, -100)
-	preset:SetSize(200, 22)
-	local className = UnitClass("player")
-	preset:SetText("Add " .. className .. " preset")
-	preset:SetScript("OnClick", function()
-		if not ns.AddRestockPreset() then print("dpws_tools: no preset for your class, add items yourself") end
-		Refresh()
-	end)
-
-	local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	label:SetPoint("TOPLEFT", 16, -132)
-	label:SetText("Add item: Shift-click an item link into the box, or type an item ID")
-	local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-	input:SetPoint("TOPLEFT", 22, -148)
-	input:SetSize(220, 22)
-	input:SetAutoFocus(false)
-	local add = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	add:SetPoint("LEFT", input, "RIGHT", 8, 0)
-	add:SetSize(60, 22)
-	add:SetText("Add")
-	local function DoAdd()
-		local text = input:GetText() or ""
-		local id = tonumber(text:match("item:(%d+)") or text:match("^%s*(%d+)%s*$"))
-		if id then r.items[id] = r.items[id] or 20 end
-		input:SetText("")
-		input:ClearFocus()
-		Refresh()
-	end
-	add:SetScript("OnClick", DoAdd)
-	input:SetScript("OnEnterPressed", DoAdd)
-	input:SetScript("OnEscapePressed", input.ClearFocus)
-	-- Shift-click on an item puts its link into our box while it has focus
-	local function InsertLink(link)
-		if input:HasFocus() and link then input:Insert(link) end
-	end
-	if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
-	if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
-
-	local MAX_ROWS = 10
-	for i = 1, MAX_ROWS do
-		local y = -184 - (i - 1) * 24
-		local row = {}
-		row.icon = parent:CreateTexture(nil, "ARTWORK")
-		row.icon:SetSize(18, 18)
-		row.icon:SetPoint("TOPLEFT", 16, y)
-		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-		row.name:SetPoint("TOPLEFT", 40, y - 2)
-		row.name:SetWidth(220)
-		row.name:SetJustifyH("LEFT")
-		row.name:SetWordWrap(false)
-		row.count = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-		row.count:SetPoint("TOPLEFT", 276, y + 1)
-		row.count:SetSize(50, 20)
-		row.count:SetAutoFocus(false)
-		row.count:SetNumeric(true)
-		row.remove = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-		row.remove:SetPoint("TOPLEFT", 336, y + 1)
-		row.remove:SetSize(70, 20)
-		row.remove:SetText("Remove")
-		rows[i] = row
-	end
-	local more = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	more:SetPoint("TOPLEFT", 16, -184 - MAX_ROWS * 24)
-
-	Refresh = function()
-		local ids = {}
-		for id in pairs(r.items) do ids[#ids + 1] = id end
-		table.sort(ids)
-		for i, row in ipairs(rows) do
-			local id = ids[i]
-			for _, w in pairs(row) do w:SetShown(id ~= nil) end
-			if id then
-				row.icon:SetTexture((C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(id)) or GetItemIcon(id))
-				row.name:SetText((C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or ("item " .. id))
-				row.count:SetText(r.items[id])
-				local function Save()
-					local n = tonumber(row.count:GetText())
-					if n and n > 0 then r.items[id] = n end
-					row.count:ClearFocus()
-				end
-				row.count:SetScript("OnEnterPressed", Save)
-				row.count:SetScript("OnEditFocusLost", Save)
-				row.remove:SetScript("OnClick", function() r.items[id] = nil; Refresh() end)
-			end
-		end
-		more:SetText(#ids > MAX_ROWS and ("+%d more (remove some to see them)"):format(#ids - MAX_ROWS) or
-			(#ids == 0 and "No items yet: add your class preset or your own items" or ""))
-	end
-	refreshers[#refreshers + 1] = Refresh
-	parent:SetScript("OnShow", function() for _, f in ipairs(refreshers) do f() end end)
+local function BuildNearbyPage(parent)
+	local s = ns.adb.nearby
+	local P = T.Page(parent)
+	P:Card("List")
+	P:Slider("Remove after not seen for", 15, 300, 15, "sec", function() return s.timeout end, function(v) s.timeout = v end)
+	P:Card("Alert")
+	P:Choice("Alert", { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } },
+		function() return s.alert end, function(v) s.alert = v end, 260)
+	P:Sound("Alert sound", function() return s.sound end, function(key) s.sound = key end)
+	P:Note("Players are found by their nameplates (turn on enemy nameplates with Ctrl+V), your target and mouseover. Stealthed players are not seen until they show up. Open world only. Use Unlock panels to move the list.")
+	P:Finish()
 end
 
 local function BuildProfilesPage(parent)
-	local MAX_ROWS = 12
-	local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-	title:SetPoint("TOPLEFT", 16, -12)
-	title:SetText("Save current action bars and talents as:")
-	local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-	input:SetPoint("TOPLEFT", 22, -32)
-	input:SetSize(200, 22)
-	input:SetAutoFocus(false)
-	input:SetMaxLetters(32)
-	local save = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	save:SetPoint("LEFT", input, "RIGHT", 8, 0)
-	save:SetSize(80, 22)
-	save:SetText("Save")
-	local function DoSave()
-		local name = strtrim(input:GetText() or "")
-		if name == "" then return end
-		ns.Profiles.Save(name)
-		input:SetText("")
-		input:ClearFocus()
-		print(("dpws_tools: saved profile '%s'"):format(name))
-	end
-	save:SetScript("OnClick", DoSave)
-	input:SetScript("OnEnterPressed", DoSave)
-	input:SetScript("OnEscapePressed", input.ClearFocus)
+	local P = T.Page(parent)
+	P:Card("Save current bars and talents")
+	P:Custom(38, function(row)
+		local input = T.NewInput(row, 260)
+		input:SetPoint("LEFT")
+		input:SetMaxLetters(32)
+		local save = T.NewButton(row, "Save", 90, 26, "accent")
+		save:SetPoint("LEFT", input, "RIGHT", 10, 0)
+		local function DoSave()
+			local name = strtrim(input:GetText() or "")
+			if name == "" then return end
+			ns.Profiles.Save(name)
+			input:SetText("")
+			input:ClearFocus()
+			print(("dpws_tools: saved profile '%s'"):format(name))
+		end
+		save:SetScript("OnClick", DoSave)
+		input:SetScript("OnEnterPressed", DoSave)
+	end)
+	P:Note("Shared by all your characters of this class. Loading bars first saves your current bars as '(backup)'.")
 
-	local note = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	note:SetPoint("TOPLEFT", 16, -62)
-	note:SetWidth(440)
-	note:SetJustifyH("LEFT")
-	note:SetText("Shared by all your characters of this class. Loading bars first saves your current bars as '(backup)'.")
-
-	local function SmallButton(text, x, y)
-		local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-		b:SetPoint("TOPLEFT", x, y)
-		b:SetSize(58, 20)
-		b:SetText(text)
-		return b
-	end
-	local rows = {}
+	P:Card("Saved profiles")
+	local rows, MAX_ROWS = {}, 8
 	for i = 1, MAX_ROWS do
-		local y = -96 - (i - 1) * 26
-		local row = {}
-		row.name = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-		row.name:SetPoint("TOPLEFT", 16, y - 2)
-		row.name:SetWidth(170)
-		row.name:SetJustifyH("LEFT")
-		row.name:SetWordWrap(false)
-		row.info = parent:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-		row.info:SetPoint("TOPLEFT", 16, y - 14)
-		row.bars = SmallButton("Bars", 190, y)
-		row.talents = SmallButton("Talents", 250, y)
-		row.both = SmallButton("Both", 310, y)
-		row.delete = SmallButton("Delete", 380, y)
-		rows[i] = row
+		P:Custom(40, function(row)
+			local r = { frame = row }
+			r.name = T.Text(row, "semibold", 13)
+			r.name:SetPoint("TOPLEFT", 2, -4)
+			r.name:SetWidth(220)
+			r.name:SetWordWrap(false)
+			r.info = T.Text(row, "regular", 11, T.muted)
+			r.info:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -3)
+			r.delete = T.NewButton(row, "Delete", 70, 24)
+			r.delete:SetPoint("RIGHT")
+			r.both = T.NewButton(row, "Both", 64, 24)
+			r.both:SetPoint("RIGHT", r.delete, "LEFT", -8, 0)
+			r.talents = T.NewButton(row, "Talents", 70, 24)
+			r.talents:SetPoint("RIGHT", r.both, "LEFT", -8, 0)
+			r.bars = T.NewButton(row, "Bars", 64, 24)
+			r.bars:SetPoint("RIGHT", r.talents, "LEFT", -8, 0)
+			rows[i] = r
+		end)
 	end
+	local empty = P:Note("")
 
 	local armedDelete
 	local function Refresh()
 		local names = ns.Profiles.List()
-		for i, row in ipairs(rows) do
+		for i, r in ipairs(rows) do
 			local name = names[i]
-			for _, w in pairs(row) do w:SetShown(name ~= nil) end
+			r.frame:SetShown(name ~= nil)
 			if name then
 				local p = ns.Profiles.Get(name)
-				row.name:SetText(name)
-				row.info:SetText(("by %s, %s"):format(p.by or "?", date("%Y-%m-%d %H:%M", p.at or 0)))
-				row.bars:SetScript("OnClick", function() ns.Profiles.LoadBars(name) end)
-				row.talents:SetScript("OnClick", function() ns.Profiles.LoadTalents(name) end)
-				row.both:SetScript("OnClick", function() ns.Profiles.LoadBoth(name) end)
+				r.name:SetText(name)
+				r.info:SetText(("by %s, %s"):format(p.by or "?", date("%Y-%m-%d %H:%M", p.at or 0)))
+				r.bars:SetScript("OnClick", function() ns.Profiles.LoadBars(name) end)
+				r.talents:SetScript("OnClick", function() ns.Profiles.LoadTalents(name) end)
+				r.both:SetScript("OnClick", function() ns.Profiles.LoadBoth(name) end)
 				-- two clicks to delete: no popup dialog
-				row.delete:SetText(armedDelete == name and "Sure?" or "Delete")
-				row.delete:SetScript("OnClick", function()
+				r.delete:SetText(armedDelete == name and "Sure?" or "Delete")
+				r.delete:SetScript("OnClick", function()
 					if armedDelete == name then
 						armedDelete = nil
 						ns.Profiles.Delete(name)
@@ -750,54 +467,178 @@ local function BuildProfilesPage(parent)
 				end)
 			end
 		end
-		if #names == 0 then
-			rows[1].name:SetText("No profiles yet")
-			rows[1].name:Show()
-		end
+		empty:SetText(#names == 0 and "No profiles yet." or (#names > MAX_ROWS and ("+%d more"):format(#names - MAX_ROWS) or ""))
 	end
 	ns.OnProfilesChanged = function() if parent:IsVisible() then Refresh() end end
-	parent:SetScript("OnShow", function() armedDelete = nil; Refresh() end)
+	P:Refresher(function() armedDelete = nil; Refresh() end)
+	P:Finish()
 end
 
--- Sidebar sections (General + class sections), each with tools. Class sections show only on those classes.
+local function BuildRestockPage(parent)
+	local r = ns.db.restock
+	local P = T.Page(parent)
+	P:Card("Budget")
+	P:Slider("Spend at most per vendor visit", 1, 50, 1, "g", function() return math.floor(r.budget / 10000) end,
+		function(v) r.budget = v * 10000 end)
+
+	P:Card("Shopping list")
+	local rows, Refresh, MAX_ROWS = {}, nil, 8
+	P:Custom(38, function(row)
+		local input = T.NewInput(row, 240)
+		input:SetPoint("LEFT")
+		local add = T.NewButton(row, "Add", 64, 26)
+		add:SetPoint("LEFT", input, "RIGHT", 8, 0)
+		local preset = T.NewButton(row, "Add " .. UnitClass("player") .. " preset", 170, 26, "accent")
+		preset:SetPoint("RIGHT")
+		preset:SetScript("OnClick", function()
+			if not ns.AddRestockPreset() then print("dpws_tools: no preset for your class, add items yourself") end
+			Refresh()
+		end)
+		local function DoAdd()
+			local text = input:GetText() or ""
+			local id = tonumber(text:match("item:(%d+)") or text:match("^%s*(%d+)%s*$"))
+			if id then r.items[id] = r.items[id] or 20 end
+			input:SetText("")
+			input:ClearFocus()
+			Refresh()
+		end
+		add:SetScript("OnClick", DoAdd)
+		input:SetScript("OnEnterPressed", DoAdd)
+		-- Shift-click on an item puts its link into our box while it has focus
+		local function InsertLink(link)
+			if input:HasFocus() and link then input:Insert(link) end
+		end
+		if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
+		if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
+	end)
+	for i = 1, MAX_ROWS do
+		P:Custom(30, function(row)
+			local x = { frame = row }
+			x.icon = row:CreateTexture(nil, "ARTWORK")
+			x.icon:SetSize(20, 20)
+			x.icon:SetPoint("LEFT", 2, 0)
+			x.name = T.Text(row, "medium", 13)
+			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
+			x.name:SetWidth(300)
+			x.name:SetWordWrap(false)
+			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove:SetPoint("RIGHT")
+			x.count = T.NewInput(row, 60, true)
+			x.count:SetPoint("RIGHT", x.remove, "LEFT", -10, 0)
+			rows[i] = x
+		end)
+	end
+	local more = P:Note("")
+	P:EndCard()
+	P:Note("Shift-click an item link into the box, or type an item ID. Poison ingredients for your Poison Stock are added automatically.")
+
+	Refresh = function()
+		local ids = {}
+		for id in pairs(r.items) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for i, x in ipairs(rows) do
+			local id = ids[i]
+			x.frame:SetShown(id ~= nil)
+			if id then
+				x.icon:SetTexture(ItemIcon(id))
+				x.name:SetText(ItemName(id))
+				x.count:SetText(r.items[id])
+				local function Save()
+					local n = tonumber(x.count:GetText())
+					if n and n > 0 then r.items[id] = n end
+					x.count:ClearFocus()
+				end
+				x.count:SetScript("OnEnterPressed", Save)
+				x.count:SetScript("OnEditFocusLost", Save)
+				x.remove:SetScript("OnClick", function() r.items[id] = nil; Refresh() end)
+			end
+		end
+		more:SetText(#ids > MAX_ROWS and ("+%d more (remove some to see them)"):format(#ids - MAX_ROWS) or
+			(#ids == 0 and "No items yet: add your class preset or your own items." or ""))
+	end
+	P:Refresher(Refresh)
+	P:Finish()
+end
+
+---------------------------------------------------------------------------
+-- Window
+
+-- Sidebar sections (General + class sections). toggle = header Enable switch; status = sidebar dot.
 local ICON = "Interface\\Icons\\"
 local GROUPS = {
 	{ name = "General", tools = {
-		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield", desc = "Your score against each enemy player and the latest kills and deaths." },
-		{ name = "PvP Settings", build = BuildPvpSettingsPage, icon = ICON .. "INV_BannerPVP_01", desc = "Tooltip score, announcements and sounds for open-world PvP." },
-		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye", desc = "Opposite-faction players seen around you." },
-		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09", desc = "Save and load action bars and talents, shared by your characters of this class." },
-		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10", desc = "Buy reagents and supplies automatically at vendors." },
+		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield",
+			desc = "Your score against each enemy player and the latest kills and deaths." },
+		{ name = "PvP Settings", build = BuildPvpSettingsPage, icon = ICON .. "INV_BannerPVP_01",
+			desc = "Tooltip score, announcements and sounds for open-world PvP.",
+			status = function() return ns.adb.pvpTooltip or ns.adb.pvpAnnounce end },
+		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye",
+			desc = "Opposite-faction players seen around you.",
+			toggle = { function() return ns.adb.nearby.enabled end,
+				function(v) ns.adb.nearby.enabled = v; if ns.RefreshNearby then ns.RefreshNearby() end end } },
+		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
+			desc = "Save and load action bars and talents, shared by your characters of this class." },
+		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
+			desc = "Buy reagents and supplies automatically at vendors.",
+			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },
 	} },
 	{ name = "Caster", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, SHAMAN = true, PALADIN = true, HUNTER = true }, tools = {
-		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76", desc = "The five second rule and the next mana tick." },
+		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
+			desc = "The five second rule and the next mana tick.",
+			status = function() return ns.db.mana.mode ~= "off" end },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
-		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth", desc = "Which bars switch page while in Stealth." },
-		{ name = "Poisons", build = BuildPoisonsPage, icon = ICON .. "Ability_Poisons", desc = "Weapon poison bar, timers and reminders." },
-		{ name = "Poison Stock", build = BuildPoisonStockPage, icon = ICON .. "Trade_BrewPoison", desc = "Poisons to keep in bags: ingredients bought and crafting suggested." },
-		{ name = "Combat Bars", build = BuildComboPage, icon = ICON .. "Ability_Rogue_Eviscerate", desc = "Health, energy and combo point bars." },
+		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
+			desc = "Which bars switch page while in Stealth.",
+			status = function() return next(ns.db.barSwitch) ~= nil end },
+		{ name = "Poisons", build = BuildPoisonsPage, icon = ICON .. "Ability_Poisons",
+			desc = "Weapon poison bar, timers and reminders.",
+			toggle = { function() return ns.db.poisons.enabled end,
+				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
+		{ name = "Poison Stock", build = BuildPoisonStockPage, icon = ICON .. "Trade_BrewPoison",
+			desc = "Poisons to keep in bags: ingredients bought and crafting suggested.",
+			toggle = { function() return ns.db.poisons.buyMats ~= false end, function(v) ns.db.poisons.buyMats = v end },
+			toggleText = "Buy ingredients" },
+		{ name = "Combat Bars", build = BuildComboPage, icon = ICON .. "Ability_Rogue_Eviscerate",
+			desc = "Health, energy and combo point bars.",
+			status = function()
+				local c = ns.db.combo
+				return (c.healthMode or "combat") ~= "off" or (c.energyMode or "combat") ~= "off" or (c.comboMode or "combat") ~= "off"
+			end },
 	} },
 }
 
 local toolSelectors = {} -- tool name -> function showing that tool
-local T = ns.Theme
-local SIDEBAR, HEADER = 200, 64
+local SIDEBAR, HEADER, FOOTER = 210, 104, 30
+
+local function CloseBox(parent, onClick)
+	local close = CreateFrame("Button", nil, parent)
+	close:SetSize(30, 30)
+	T.Box(close, T.control, T.border, 6)
+	local x = T.Text(close, "semibold", 14, T.muted)
+	x:SetPoint("CENTER", 0, 0)
+	x:SetJustifyH("CENTER")
+	x:SetText("X")
+	close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
+	close:SetScript("OnLeave", function() x:SetTextColor(unpack(T.muted)) end)
+	close:SetScript("OnClick", onClick)
+	return close
+end
 
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent)
-	f:SetSize(900, 640)
+	f:SetSize(980, 740)
 	f:SetFrameStrata("HIGH")
 	f:SetToplevel(true)
 	f:SetClampedToScreen(true)
 	f:SetMovable(true)
 	f:EnableMouse(true)
-	T.Panel(f, T.window)
+	T.Box(f, T.window, { 1, 1, 1, 0.07 }, 12)
 	local pos = ns.db.window
 	f:SetPoint(pos.point or "CENTER", UIParent, pos.point or "CENTER", pos.x or 0, pos.y or 0)
 	tinsert(UISpecialFrames, f:GetName()) -- Esc closes it
 
-	-- header: logo, title, close; dragging it moves the window
+	-- header banner: logo, title, tagline, accent line; dragging it moves the window
 	local header = CreateFrame("Frame", nil, f)
 	header:SetPoint("TOPLEFT")
 	header:SetPoint("TOPRIGHT")
@@ -811,123 +652,210 @@ local function CreateWindow()
 		ns.db.window = { point = point, x = x, y = y }
 	end)
 	local logo = header:CreateTexture(nil, "ARTWORK")
-	logo:SetSize(36, 36)
-	logo:SetPoint("LEFT", 16, 0)
+	logo:SetSize(64, 64)
+	logo:SetPoint("LEFT", 26, -2)
 	logo:SetTexture("Interface\\AddOns\\dpws_tools\\media\\icon")
-	local title = T.Text(header, "semibold", 18, { 1, 1, 1, 1 })
-	title:SetPoint("TOPLEFT", logo, "TOPRIGHT", 10, -2)
+	local kicker = T.Text(header, "semibold", 10, T.muted)
+	kicker:SetPoint("TOPLEFT", logo, "TOPRIGHT", 16, -2)
+	kicker:SetText(("WOW FOREVER   -   %s"):format((UnitClass("player") or ""):upper()))
+	local title = T.Text(header, "semibold", 30, T.gold)
+	title:SetPoint("TOPLEFT", kicker, "BOTTOMLEFT", -1, -4)
 	title:SetText("dpws tools")
-	local version = T.Text(header, "regular", 11, T.muted)
-	version:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
+	local tagline = T.Text(header, "medium", 13, T.text)
+	tagline:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 1, -4)
+	tagline:SetText("Small tools for everyday play.")
+	local accent = header:CreateTexture(nil, "ARTWORK")
+	accent:SetTexture(T.WHITE)
+	accent:SetHeight(2)
+	accent:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 0, -10)
+	accent:SetWidth(520)
+	if accent.SetGradient and CreateColor then
+		accent:SetGradient("HORIZONTAL", CreateColor(1, 0.82, 0.18, 0.9), CreateColor(1, 0.82, 0.18, 0))
+	else
+		accent:SetVertexColor(1, 0.82, 0.18, 0.6)
+	end
+	local close = CloseBox(header, function() f:Hide() end)
+	close:SetPoint("TOPRIGHT", -18, -18)
+	local version = T.Text(header, "regular", 12, T.muted)
+	version:SetPoint("RIGHT", close, "LEFT", -12, 0)
 	version:SetText("v" .. ((C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("dpws_tools", "Version") or "?"))
-	local close = CreateFrame("Button", nil, header)
-	close:SetSize(28, 28)
-	close:SetPoint("TOPRIGHT", -10, -10)
-	local x = T.Text(close, "semibold", 16, T.muted)
-	x:SetPoint("CENTER")
-	x:SetText("X")
-	close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
-	close:SetScript("OnLeave", function() x:SetTextColor(unpack(T.muted)) end)
-	close:SetScript("OnClick", function() f:Hide() end)
 	local rule = f:CreateTexture(nil, "ARTWORK")
 	rule:SetColorTexture(1, 1, 1, 0.07)
 	rule:SetPoint("TOPLEFT", 0, -HEADER)
 	rule:SetPoint("TOPRIGHT", 0, -HEADER)
 	rule:SetHeight(1)
 
-	-- sidebar: section labels and nav items
-	local side = CreateFrame("Frame", nil, f)
-	side:SetPoint("TOPLEFT", 1, -HEADER - 1)
-	side:SetPoint("BOTTOMLEFT", 1, 1)
-	side:SetWidth(SIDEBAR)
-	T.Panel(side, T.sidebar, false)
+	-- footer status line (last notification)
+	local footerRule = f:CreateTexture(nil, "ARTWORK")
+	footerRule:SetColorTexture(1, 1, 1, 0.07)
+	footerRule:SetPoint("BOTTOMLEFT", 0, FOOTER)
+	footerRule:SetPoint("BOTTOMRIGHT", 0, FOOTER)
+	footerRule:SetHeight(1)
+	local footer = T.Text(f, "medium", 12, T.text)
+	footer:SetPoint("BOTTOM", 0, 9)
+	footer:SetJustifyH("CENTER")
+	footer:SetText("Ready")
+	ns.SetFooter = function(text) footer:SetText(text) end
 
-	-- content: page title, description, then the page
+	-- sidebar: section labels, nav items with status dots, shared actions at the bottom
+	local side = CreateFrame("Frame", nil, f)
+	side:SetPoint("TOPLEFT", 0, -HEADER - 1)
+	side:SetPoint("BOTTOMLEFT", 0, FOOTER + 1)
+	side:SetWidth(SIDEBAR)
+	local sideRule = side:CreateTexture(nil, "ARTWORK")
+	sideRule:SetColorTexture(1, 1, 1, 0.07)
+	sideRule:SetPoint("TOPRIGHT")
+	sideRule:SetPoint("BOTTOMRIGHT")
+	sideRule:SetWidth(1)
+
+	-- content: page header (icon, title, description, Enable switch), then the page
 	local content = CreateFrame("Frame", nil, f)
-	content:SetPoint("TOPLEFT", SIDEBAR + 24, -HEADER - 16)
-	content:SetPoint("BOTTOMRIGHT", -24, 16)
-	local pageTitle = T.Text(content, "semibold", 18, { 1, 1, 1, 1 })
-	pageTitle:SetPoint("TOPLEFT")
+	content:SetPoint("TOPLEFT", SIDEBAR + 28, -HEADER - 22)
+	content:SetPoint("BOTTOMRIGHT", -28, FOOTER + 18)
+	local pageIcon = content:CreateTexture(nil, "ARTWORK")
+	pageIcon:SetSize(22, 22)
+	pageIcon:SetPoint("TOPLEFT", 0, 0)
+	pageIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	local pageTitle = T.Text(content, "semibold", 20, { 1, 1, 1, 1 })
+	pageTitle:SetPoint("LEFT", pageIcon, "RIGHT", 12, 0)
 	local pageDesc = T.Text(content, "regular", 12, T.muted)
-	pageDesc:SetPoint("TOPLEFT", pageTitle, "BOTTOMLEFT", 0, -6)
-	pageDesc:SetPoint("RIGHT")
-	pageDesc:SetJustifyH("LEFT")
+	pageDesc:SetPoint("TOPLEFT", pageIcon, "BOTTOMLEFT", 34, -8)
+	local headToggle = T.NewToggle(content)
+	headToggle:SetPoint("TOPRIGHT", 0, -2)
+	local headLabel = T.Text(content, "medium", 13, T.text)
+	headLabel:SetPoint("RIGHT", headToggle, "LEFT", -10, 0)
+	local headRule = content:CreateTexture(nil, "ARTWORK")
+	headRule:SetColorTexture(1, 1, 1, 0.07)
+	headRule:SetPoint("TOPLEFT", 0, -58)
+	headRule:SetPoint("TOPRIGHT", 0, -58)
+	headRule:SetHeight(1)
 
 	local playerClass = select(2, UnitClass("player"))
-	local navs = {}
+	local navs, current = {}, nil
+	local function UpdateDots()
+		for _, n in ipairs(navs) do
+			local s = n.tool.status or (n.tool.toggle and n.tool.toggle[1])
+			if s then
+				local on = s()
+				n.dot:Show()
+				n.dot:SetVertexColor(unpack(on and T.green or { 0.45, 0.48, 0.53, 0.6 }))
+				n.dotHole:SetShown(not on)
+			else
+				n.dot:Hide()
+				n.dotHole:Hide()
+			end
+		end
+	end
 	local function Select(nav)
+		current = nav
 		for _, n in ipairs(navs) do
 			local on = n == nav
 			n.page:SetShown(on)
 			n.active:SetShown(on)
 			n.bar:SetShown(on)
 			n.label:SetTextColor(unpack(on and { 1, 1, 1, 1 } or { 0.68, 0.71, 0.76, 1 }))
+			n.icon:SetDesaturated(not on)
+			n.icon:SetAlpha(on and 1 or 0.7)
 		end
-		pageTitle:SetText(nav.tool.name)
-		pageDesc:SetText(nav.tool.desc or "")
+		local tool = nav.tool
+		pageIcon:SetTexture(tool.icon)
+		pageTitle:SetText(tool.name)
+		pageDesc:SetText(tool.desc or "")
+		headToggle:SetShown(tool.toggle ~= nil)
+		headLabel:SetShown(tool.toggle ~= nil)
+		if tool.toggle then
+			headLabel:SetText(tool.toggleText or "Enable " .. tool.name:lower())
+			headToggle:SetChecked(tool.toggle[1]())
+		end
+		UpdateDots()
 	end
-	local y = -14
+	headToggle:SetScript("OnClick", function(self)
+		self:SetChecked(not self:GetChecked())
+		if current and current.tool.toggle then current.tool.toggle[2](self:GetChecked()) end
+		UpdateDots()
+	end)
+
+	local y = -18
 	for _, group in ipairs(GROUPS) do
 		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
 			and #group.tools > 0 then
-			local label = T.Text(side, "semibold", 11, T.gold)
-			label:SetPoint("TOPLEFT", 18, y)
+			local label = T.Text(side, "semibold", 10, T.muted)
+			label:SetPoint("TOPLEFT", 26, y)
 			label:SetText(group.name:upper())
 			y = y - 22
 			for _, tool in ipairs(group.tools) do
 				local nav = CreateFrame("Button", nil, side)
-				nav:SetPoint("TOPLEFT", 8, y)
-				nav:SetSize(SIDEBAR - 16, 30)
+				nav:SetPoint("TOPLEFT", 12, y)
+				nav:SetSize(SIDEBAR - 24, 36)
 				nav.tool = tool
-				nav.active = nav:CreateTexture(nil, "BACKGROUND")
-				nav.active:SetAllPoints()
-				nav.active:SetColorTexture(unpack(T.control))
+				nav.active = T.Rounded(nav, { 1, 0.82, 0.18, 0.10 }, 6, "BACKGROUND", 0)
 				nav.bar = nav:CreateTexture(nil, "ARTWORK")
-				nav.bar:SetPoint("TOPLEFT")
-				nav.bar:SetPoint("BOTTOMLEFT")
+				nav.bar:SetPoint("TOPLEFT", 0, -7)
+				nav.bar:SetPoint("BOTTOMLEFT", 0, 7)
 				nav.bar:SetWidth(3)
 				nav.bar:SetColorTexture(unpack(T.gold))
 				local hl = nav:CreateTexture(nil, "HIGHLIGHT")
-				hl:SetAllPoints()
-				hl:SetColorTexture(unpack(T.hover))
-				local icon = nav:CreateTexture(nil, "ARTWORK")
-				icon:SetSize(18, 18)
-				icon:SetPoint("LEFT", 12, 0)
-				icon:SetTexture(tool.icon or 134400)
-				icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-				nav.label = T.Text(nav, "medium", 13, T.text)
-				nav.label:SetPoint("LEFT", icon, "RIGHT", 10, 0)
+				hl:SetPoint("TOPLEFT", 2, -2)
+				hl:SetPoint("BOTTOMRIGHT", -2, 2)
+				hl:SetColorTexture(1, 1, 1, 0.04)
+				nav.icon = nav:CreateTexture(nil, "ARTWORK")
+				nav.icon:SetSize(18, 18)
+				nav.icon:SetPoint("LEFT", 14, 0)
+				nav.icon:SetTexture(tool.icon or 134400)
+				nav.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+				nav.label = T.Text(nav, "medium", 14, T.text)
+				nav.label:SetPoint("LEFT", nav.icon, "RIGHT", 12, 0)
 				nav.label:SetText(tool.name)
+				nav.dot = nav:CreateTexture(nil, "OVERLAY")
+				nav.dot:SetTexture(T.CIRCLE)
+				nav.dot:SetSize(7, 7)
+				nav.dot:SetPoint("RIGHT", -12, 0)
+				nav.dotHole = nav:CreateTexture(nil, "OVERLAY", nil, 1) -- hollow dot when off
+				nav.dotHole:SetTexture(T.CIRCLE)
+				nav.dotHole:SetSize(4, 4)
+				nav.dotHole:SetPoint("CENTER", nav.dot)
+				nav.dotHole:SetVertexColor(unpack(T.window))
+				-- every page scrolls; the scrollbar only shows when the page is taller than the area
+				local W, H = 980 - SIDEBAR - 56, 740 - HEADER - FOOTER - 40 - 74
 				nav.page = CreateFrame("Frame", nil, content)
-				nav.page:SetPoint("TOPLEFT", 0, -54)
+				nav.page:SetPoint("TOPLEFT", 0, -74)
 				nav.page:SetPoint("BOTTOMRIGHT")
-				tool.build(nav.page)
-				T.Skin(nav.page)
+				local scroll = CreateFrame("ScrollFrame", nil, nav.page, "ScrollFrameTemplate")
+				scroll:SetPoint("TOPLEFT")
+				scroll:SetPoint("BOTTOMRIGHT")
+				local inner = CreateFrame("Frame", nil, scroll)
+				inner:SetSize(W - 18, H)
+				scroll:SetScrollChild(inner)
+				tool.build(inner)
+				local used = inner.dpwsPage and -inner.dpwsPage.y or H
+				inner:SetHeight(math.max(used + 8, 1))
+				if scroll.ScrollBar then scroll.ScrollBar:SetShown(used > H) end
 				nav:SetScript("OnClick", function() Select(nav) end)
 				navs[#navs + 1] = nav
 				toolSelectors[tool.name] = function() Select(nav) end
-				y = y - 32
+				y = y - 38
 			end
-			y = y - 10
+			y = y - 14
 		end
 	end
 	if navs[1] then
 		Select(navs[1])
 	else
 		pageTitle:SetText("No tools for your class yet")
+		headToggle:Hide()
 	end
 
-	-- shared actions at the bottom of the sidebar
-	local hl = T.NewButton(side, "Highlight bars", SIDEBAR - 32, 26)
-	hl:SetPoint("BOTTOMLEFT", 16, 50)
-	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
-	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 32, 26)
-	lock:SetPoint("BOTTOMLEFT", 16, 16)
+	local hlb = T.NewButton(side, "Highlight bars", SIDEBAR - 40, 28)
+	hlb:SetPoint("BOTTOMLEFT", 20, 56)
+	hlb:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
+	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
+	lock:SetPoint("BOTTOMLEFT", 20, 18)
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked); LockText() end)
 	lock:SetScript("OnShow", LockText)
 	LockText()
 
+	f:SetScript("OnShow", UpdateDots)
 	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
 	f:Hide()
 	return f
