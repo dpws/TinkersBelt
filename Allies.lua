@@ -60,7 +60,18 @@ local function ApplyPlate(unit)
 		local guild = GetGuildInfo(unit)
 		if Secret(name) or Secret(class) or Secret(guild) then error("hidden") end
 		local color = class and RAID_CLASS_COLORS[class]
-		tag.name:SetText(name)
+		local text = name
+		if S().level ~= false then
+			-- level in front, coloured by difficulty like quest levels (?? = skull)
+			local level = UnitLevel(unit)
+			if not Secret(level) and level then
+				local lvl = level > 0 and tostring(level) or "??"
+				local diff = level > 0 and GetQuestDifficultyColor and GetQuestDifficultyColor(level) or { r = 1, g = 0.1, b = 0.1 }
+				local function hex(v) return math.floor(v * 255 + 0.5) end
+				text = ("|cff%02x%02x%02x%s|r %s"):format(hex(diff.r), hex(diff.g), hex(diff.b), lvl, name)
+			end
+		end
+		tag.name:SetText(text)
 		if color then tag.name:SetTextColor(color.r, color.g, color.b) else tag.name:SetTextColor(1, 1, 1) end
 		tag.info:SetText((guild and S().guild ~= false) and ("<%s>"):format(guild) or "") -- class is the name colour
 		A.seen[name] = { class = class, level = UnitLevel(unit), guild = guild, at = GetTime() }
