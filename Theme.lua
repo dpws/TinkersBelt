@@ -19,6 +19,7 @@ local T = {
 	text = { 0.86, 0.88, 0.91, 1 },
 	muted = { 0.55, 0.59, 0.64, 1 },
 	off = { 0.20, 0.22, 0.26, 1 },
+	switchOn = { 0.090, 0.247, 0.235, 1 }, -- #173f3c
 	green = { 0.30, 0.80, 0.40, 1 },
 	red = { 0.95, 0.35, 0.30, 1 },
 	WHITE = WHITE,
@@ -187,12 +188,13 @@ function T.NewToggle(parent, onChange)
 	knob:SetTexture(CIRCLE)
 	knob:SetSize(16, 16)
 	local checked = false
+	-- on: dark teal track (#173f3c) with the bright accent knob; off: gray track, dim knob
 	function c:SetChecked(on)
 		checked = on and true or false
-		track:SetColor(checked and T.gold or T.off)
+		track:SetColor(checked and T.switchOn or T.off)
 		knob:ClearAllPoints()
 		knob:SetPoint(checked and "RIGHT" or "LEFT", checked and -2 or 2, 0)
-		knob:SetVertexColor(1, 1, 1, 1)
+		knob:SetVertexColor(unpack(checked and T.gold or { 0.55, 0.59, 0.64, 1 }))
 	end
 	function c:GetChecked() return checked end
 	c:SetScript("OnClick", function(self)
