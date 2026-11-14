@@ -94,10 +94,9 @@ table.insert(ns.loginHooks, function()
 	frame:SetSize(260, 20 + MAX_ROWS * 16)
 	frame:SetMovable(true)
 	frame:SetClampedToScreen(true)
-	local bg = frame:CreateTexture(nil, "BACKGROUND")
-	bg:SetAllPoints()
-	bg:SetColorTexture(0, 0, 0, 0.4)
+	ns.Theme.Panel(frame, { 0.047, 0.054, 0.066, 0.85 })
 	header = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	header:SetTextColor(unpack(ns.Theme.gold))
 	header:SetPoint("TOPLEFT", 6, -4)
 	rows = {}
 	for i = 1, MAX_ROWS do

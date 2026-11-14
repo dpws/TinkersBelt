@@ -40,7 +40,7 @@ table.insert(ns.loginHooks, function()
 	frame:SetFading(true)
 	frame:SetTimeVisible(4)
 	frame:SetFadeDuration(1)
-	frame:SetFontObject(GameFontNormalHuge)
+	frame:SetFont(ns.Theme.font.semibold, 24, "OUTLINE")
 	local pos = ns.db.notify.pos
 	if pos then
 		frame:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)

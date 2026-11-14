@@ -759,180 +759,174 @@ local function BuildProfilesPage(parent)
 	parent:SetScript("OnShow", function() armedDelete = nil; Refresh() end)
 end
 
--- top tabs (General + class tabs), each with vertical tool tabs. Class tabs show only on that class.
+-- Sidebar sections (General + class sections), each with tools. Class sections show only on those classes.
+local ICON = "Interface\\Icons\\"
 local GROUPS = {
 	{ name = "General", tools = {
-		{ name = "PvP Kills", build = BuildPvpPage },
-		{ name = "PvP Settings", build = BuildPvpSettingsPage },
-		{ name = "Nearby Enemies", build = BuildNearbyPage },
-		{ name = "Profiles", build = BuildProfilesPage },
-		{ name = "Auto Restock", build = BuildRestockPage },
+		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield", desc = "Your score against each enemy player and the latest kills and deaths." },
+		{ name = "PvP Settings", build = BuildPvpSettingsPage, icon = ICON .. "INV_BannerPVP_01", desc = "Tooltip score, announcements and sounds for open-world PvP." },
+		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye", desc = "Opposite-faction players seen around you." },
+		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09", desc = "Save and load action bars and talents, shared by your characters of this class." },
+		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10", desc = "Buy reagents and supplies automatically at vendors." },
 	} },
 	{ name = "Caster", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, SHAMAN = true, PALADIN = true, HUNTER = true }, tools = {
-		{ name = "Mana Ticks", build = BuildManaPage },
+		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76", desc = "The five second rule and the next mana tick." },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
-		{ name = "Stealth Action Bars", build = BuildBarSwitchPage },
-		{ name = "Poisons", build = BuildPoisonsPage },
-		{ name = "Poison Stock", build = BuildPoisonStockPage },
-		{ name = "Combat Bars", build = BuildComboPage },
+		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth", desc = "Which bars switch page while in Stealth." },
+		{ name = "Poisons", build = BuildPoisonsPage, icon = ICON .. "Ability_Poisons", desc = "Weapon poison bar, timers and reminders." },
+		{ name = "Poison Stock", build = BuildPoisonStockPage, icon = ICON .. "Trade_BrewPoison", desc = "Poisons to keep in bags: ingredients bought and crafting suggested." },
+		{ name = "Combat Bars", build = BuildComboPage, icon = ICON .. "Ability_Rogue_Eviscerate", desc = "Health, energy and combo point bars." },
 	} },
 }
 
--- Questie/AceGUI-style top tab: 3-slice active/inactive textures from the options frame
-local function TopTab(parent, text)
-	local tab = CreateFrame("Button", nil, parent)
-	tab:SetHeight(24)
-	local function Slices(file, layerPoint)
-		local l, m, r = tab:CreateTexture(nil, "BORDER"), tab:CreateTexture(nil, "BORDER"), tab:CreateTexture(nil, "BORDER")
-		for _, t in ipairs({ l, m, r }) do t:SetTexture(file); t:SetHeight(24) end
-		l:SetWidth(20); r:SetWidth(20)
-		l:SetPoint(layerPoint, 0, layerPoint == "BOTTOMLEFT" and -3 or 0)
-		r:SetPoint("TOP", l, "TOP"); r:SetPoint("RIGHT", tab, "RIGHT")
-		m:SetPoint("TOPLEFT", l, "TOPRIGHT"); m:SetPoint("BOTTOMRIGHT", r, "BOTTOMLEFT")
-		l:SetTexCoord(0, 0.15625, 0, 1); m:SetTexCoord(0.15625, 0.84375, 0, 1); r:SetTexCoord(0.84375, 1, 0, 1)
-		return { l, m, r }
-	end
-	local active = Slices("Interface\\OptionsFrame\\UI-OptionsFrame-ActiveTab", "BOTTOMLEFT")
-	local inactive = Slices("Interface\\OptionsFrame\\UI-OptionsFrame-InActiveTab", "TOPLEFT")
-	local fs = tab:CreateFontString(nil, "OVERLAY")
-	tab:SetFontString(fs)
-	tab:SetNormalFontObject(GameFontNormalSmall)
-	tab:SetHighlightFontObject(GameFontHighlightSmall)
-	tab:SetDisabledFontObject(GameFontHighlightSmall)
-	tab:SetText(text)
-	tab:SetWidth(fs:GetStringWidth() + 40)
-	tab:SetHighlightTexture("Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight", "ADD")
-	tab:GetHighlightTexture():ClearAllPoints()
-	tab:GetHighlightTexture():SetPoint("LEFT", 10, -4)
-	tab:GetHighlightTexture():SetPoint("RIGHT", -10, -4)
-	function tab:SetSelected(on)
-		for _, t in ipairs(active) do t:SetShown(on) end
-		for _, t in ipairs(inactive) do t:SetShown(not on) end
-		fs:ClearAllPoints()
-		fs:SetPoint("CENTER", 0, on and -2 or -3)
-		self:SetEnabled(not on)
-	end
-	return tab
-end
-
--- left: vertical tool tabs, right: the selected tool's page
-local function BuildGroup(parent, tools)
-	local tabs = {}
-	local function Select(index)
-		for i, t in ipairs(tabs) do
-			t.page:SetShown(i == index)
-			if i == index then t:LockHighlight() else t:UnlockHighlight() end
-		end
-	end
-	for i, tool in ipairs(tools) do
-		local tab = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-		tab:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 30)
-		tab:SetSize(150, 26)
-		tab:SetText(tool.name)
-		tab:SetScript("OnClick", function() Select(i) end)
-		tab.page = CreateFrame("Frame", nil, parent)
-		tab.page:SetPoint("TOPLEFT", 166, -4)
-		tab.page:SetPoint("BOTTOMRIGHT", -4, 4)
-		tool.build(tab.page)
-		tabs[i] = tab
-	end
-	Select(1)
-	return Select
-end
-
 local toolSelectors = {} -- tool name -> function showing that tool
+local T = ns.Theme
+local SIDEBAR, HEADER = 200, 64
 
 local function CreateWindow()
-	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent, "ButtonFrameTemplate")
-	ButtonFrameTemplate_HidePortrait(f)
-	f:SetTitle("dpws tools")
-	f:SetSize(660, 620)
+	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent)
+	f:SetSize(900, 640)
 	f:SetFrameStrata("HIGH")
 	f:SetToplevel(true)
 	f:SetClampedToScreen(true)
 	f:SetMovable(true)
 	f:EnableMouse(true)
-	f:RegisterForDrag("LeftButton")
-	f:SetScript("OnDragStart", f.StartMoving)
-	f:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-		local point, _, _, x, y = self:GetPoint()
-		ns.db.window = { point = point, x = x, y = y }
-	end)
+	T.Panel(f, T.window)
 	local pos = ns.db.window
 	f:SetPoint(pos.point or "CENTER", UIParent, pos.point or "CENTER", pos.x or 0, pos.y or 0)
 	tinsert(UISpecialFrames, f:GetName()) -- Esc closes it
 
-	-- toolbar strip on top, shared by all tabs
-	local TOOLBAR = 40
-	local hl = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-	hl:SetPoint("TOPLEFT", 8, -8)
-	hl:SetSize(130, 26)
-	hl:SetText("Highlight bars")
-	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
+	-- header: logo, title, close; dragging it moves the window
+	local header = CreateFrame("Frame", nil, f)
+	header:SetPoint("TOPLEFT")
+	header:SetPoint("TOPRIGHT")
+	header:SetHeight(HEADER)
+	header:EnableMouse(true)
+	header:RegisterForDrag("LeftButton")
+	header:SetScript("OnDragStart", function() f:StartMoving() end)
+	header:SetScript("OnDragStop", function()
+		f:StopMovingOrSizing()
+		local point, _, _, x, y = f:GetPoint()
+		ns.db.window = { point = point, x = x, y = y }
+	end)
+	local logo = header:CreateTexture(nil, "ARTWORK")
+	logo:SetSize(36, 36)
+	logo:SetPoint("LEFT", 16, 0)
+	logo:SetTexture("Interface\\AddOns\\dpws_tools\\media\\icon")
+	local title = T.Text(header, "semibold", 18, { 1, 1, 1, 1 })
+	title:SetPoint("TOPLEFT", logo, "TOPRIGHT", 10, -2)
+	title:SetText("dpws tools")
+	local version = T.Text(header, "regular", 11, T.muted)
+	version:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
+	version:SetText("v" .. ((C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("dpws_tools", "Version") or "?"))
+	local close = CreateFrame("Button", nil, header)
+	close:SetSize(28, 28)
+	close:SetPoint("TOPRIGHT", -10, -10)
+	local x = T.Text(close, "semibold", 16, T.muted)
+	x:SetPoint("CENTER")
+	x:SetText("X")
+	close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
+	close:SetScript("OnLeave", function() x:SetTextColor(unpack(T.muted)) end)
+	close:SetScript("OnClick", function() f:Hide() end)
+	local rule = f:CreateTexture(nil, "ARTWORK")
+	rule:SetColorTexture(1, 1, 1, 0.07)
+	rule:SetPoint("TOPLEFT", 0, -HEADER)
+	rule:SetPoint("TOPRIGHT", 0, -HEADER)
+	rule:SetHeight(1)
 
-	local lock = CreateFrame("Button", nil, f.Inset, "UIPanelButtonTemplate")
-	lock:SetPoint("LEFT", hl, "RIGHT", 8, 0)
-	lock:SetSize(130, 26)
+	-- sidebar: section labels and nav items
+	local side = CreateFrame("Frame", nil, f)
+	side:SetPoint("TOPLEFT", 1, -HEADER - 1)
+	side:SetPoint("BOTTOMLEFT", 1, 1)
+	side:SetWidth(SIDEBAR)
+	T.Panel(side, T.sidebar, false)
+
+	-- content: page title, description, then the page
+	local content = CreateFrame("Frame", nil, f)
+	content:SetPoint("TOPLEFT", SIDEBAR + 24, -HEADER - 16)
+	content:SetPoint("BOTTOMRIGHT", -24, 16)
+	local pageTitle = T.Text(content, "semibold", 18, { 1, 1, 1, 1 })
+	pageTitle:SetPoint("TOPLEFT")
+	local pageDesc = T.Text(content, "regular", 12, T.muted)
+	pageDesc:SetPoint("TOPLEFT", pageTitle, "BOTTOMLEFT", 0, -6)
+	pageDesc:SetPoint("RIGHT")
+	pageDesc:SetJustifyH("LEFT")
+
+	local playerClass = select(2, UnitClass("player"))
+	local navs = {}
+	local function Select(nav)
+		for _, n in ipairs(navs) do
+			local on = n == nav
+			n.page:SetShown(on)
+			n.active:SetShown(on)
+			n.bar:SetShown(on)
+			n.label:SetTextColor(unpack(on and { 1, 1, 1, 1 } or { 0.68, 0.71, 0.76, 1 }))
+		end
+		pageTitle:SetText(nav.tool.name)
+		pageDesc:SetText(nav.tool.desc or "")
+	end
+	local y = -14
+	for _, group in ipairs(GROUPS) do
+		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
+			and #group.tools > 0 then
+			local label = T.Text(side, "semibold", 11, T.gold)
+			label:SetPoint("TOPLEFT", 18, y)
+			label:SetText(group.name:upper())
+			y = y - 22
+			for _, tool in ipairs(group.tools) do
+				local nav = CreateFrame("Button", nil, side)
+				nav:SetPoint("TOPLEFT", 8, y)
+				nav:SetSize(SIDEBAR - 16, 30)
+				nav.tool = tool
+				nav.active = nav:CreateTexture(nil, "BACKGROUND")
+				nav.active:SetAllPoints()
+				nav.active:SetColorTexture(unpack(T.control))
+				nav.bar = nav:CreateTexture(nil, "ARTWORK")
+				nav.bar:SetPoint("TOPLEFT")
+				nav.bar:SetPoint("BOTTOMLEFT")
+				nav.bar:SetWidth(3)
+				nav.bar:SetColorTexture(unpack(T.gold))
+				local hl = nav:CreateTexture(nil, "HIGHLIGHT")
+				hl:SetAllPoints()
+				hl:SetColorTexture(unpack(T.hover))
+				local icon = nav:CreateTexture(nil, "ARTWORK")
+				icon:SetSize(18, 18)
+				icon:SetPoint("LEFT", 12, 0)
+				icon:SetTexture(tool.icon or 134400)
+				icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+				nav.label = T.Text(nav, "medium", 13, T.text)
+				nav.label:SetPoint("LEFT", icon, "RIGHT", 10, 0)
+				nav.label:SetText(tool.name)
+				nav.page = CreateFrame("Frame", nil, content)
+				nav.page:SetPoint("TOPLEFT", 0, -54)
+				nav.page:SetPoint("BOTTOMRIGHT")
+				tool.build(nav.page)
+				T.Skin(nav.page)
+				nav:SetScript("OnClick", function() Select(nav) end)
+				navs[#navs + 1] = nav
+				toolSelectors[tool.name] = function() Select(nav) end
+				y = y - 32
+			end
+			y = y - 10
+		end
+	end
+	if navs[1] then
+		Select(navs[1])
+	else
+		pageTitle:SetText("No tools for your class yet")
+	end
+
+	-- shared actions at the bottom of the sidebar
+	local hl = T.NewButton(side, "Highlight bars", SIDEBAR - 32, 26)
+	hl:SetPoint("BOTTOMLEFT", 16, 50)
+	hl:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
+	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 32, 26)
+	lock:SetPoint("BOTTOMLEFT", 16, 16)
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked); LockText() end)
 	lock:SetScript("OnShow", LockText)
 	LockText()
-
-	local line = f.Inset:CreateTexture(nil, "ARTWORK")
-	line:SetColorTexture(1, 1, 1, 0.15)
-	line:SetPoint("TOPLEFT", 4, -TOOLBAR)
-	line:SetPoint("TOPRIGHT", -4, -TOOLBAR)
-	line:SetHeight(1)
-
-	-- bordered content box under the top tabs (AceGUI pane look)
-	local box = CreateFrame("Frame", nil, f.Inset, "BackdropTemplate")
-	box:SetPoint("TOPLEFT", 6, -TOOLBAR - 30)
-	box:SetPoint("BOTTOMRIGHT", -6, 6)
-	box:SetBackdrop({
-		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 16,
-		insets = { left = 3, right = 3, top = 5, bottom = 3 },
-	})
-	box:SetBackdropColor(0.1, 0.1, 0.1, 0.5)
-	box:SetBackdropBorderColor(0.4, 0.4, 0.4)
-
-	local playerClass = select(2, UnitClass("player"))
-	local groups = {}
-	local function SelectGroup(index)
-		for i, g in ipairs(groups) do
-			g.tab:SetSelected(i == index)
-			g.content:SetShown(i == index)
-		end
-	end
-	for _, group in ipairs(GROUPS) do
-		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
-			and #group.tools > 0 then
-			local i = #groups + 1
-			local tab = TopTab(f.Inset, group.name)
-			if i == 1 then
-				tab:SetPoint("BOTTOMLEFT", box, "TOPLEFT", 6, -3)
-			else
-				tab:SetPoint("LEFT", groups[i - 1].tab, "RIGHT", -10, 0)
-			end
-			tab:SetScript("OnClick", function() SelectGroup(i) end)
-			local content = CreateFrame("Frame", nil, box)
-			content:SetAllPoints()
-			local selectTool = BuildGroup(content, group.tools)
-			groups[i] = { tab = tab, content = content }
-			for t, tool in ipairs(group.tools) do
-				toolSelectors[tool.name] = function() SelectGroup(i); selectTool(t) end
-			end
-		end
-	end
-	SelectGroup(1)
-	if #groups == 0 then
-		local t = box:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-		t:SetPoint("CENTER")
-		t:SetText("No tools for your class yet")
-	end
 
 	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
 	f:Hide()

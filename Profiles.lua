@@ -275,6 +275,7 @@ local function Attach()
 	-- own top-level frame (the window's inner panels were drawn over a child button); follows the window
 	local b = CreateFrame("Button", "DpwsProfilesTalentButton", UIParent, "UIPanelButtonTemplate")
 	b:SetSize(120, 22)
+	ns.Theme.Button(b)
 	b:SetFrameStrata("DIALOG")
 	b:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -1)
 	b:SetText("dpws Profiles")
