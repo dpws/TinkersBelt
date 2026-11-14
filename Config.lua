@@ -590,7 +590,8 @@ local GROUPS = {
 		{ name = "Friendly Names", build = BuildAlliesPage, icon = ICON .. "Spell_Holy_PrayerOfHealing02",
 			desc = "Clean name labels above friendly players: class colour and guild, no nameplate.",
 			toggle = { function() return ns.adb.allies.enabled end,
-				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
+				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end,
+				reload = "Friendly Names changes the game's nameplate setting; plates already on screen update after a reload" } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
 			desc = "Save and load action bars and talents, shared by your characters of this class." },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
@@ -711,6 +712,16 @@ local function CreateWindow()
 	footer:SetJustifyH("CENTER")
 	footer:SetText("Ready")
 	ns.SetFooter = function(text) footer:SetText(text) end
+	-- settings that only take full effect after a reload: footer warning + Reload button
+	local reloadBtn = T.NewButton(f, "Reload UI", 100, 22, "accent")
+	reloadBtn:SetPoint("BOTTOMRIGHT", -14, 4)
+	reloadBtn:SetScript("OnClick", function() (C_UI and C_UI.Reload or ReloadUI)() end)
+	reloadBtn:Hide()
+	ns.RequestReload = function(reason)
+		footer:SetText("|cffffcc00Reload needed:|r " .. reason)
+		reloadBtn:Show()
+		print("dpws_tools: reload needed - " .. reason .. " (Reload UI button in /dpws, or /reload)")
+	end
 
 	-- sidebar: section labels, nav items with status dots, shared actions at the bottom
 	local side = CreateFrame("Frame", nil, f)
@@ -786,7 +797,10 @@ local function CreateWindow()
 	end
 	headToggle:SetScript("OnClick", function(self)
 		self:SetChecked(not self:GetChecked())
-		if current and current.tool.toggle then current.tool.toggle[2](self:GetChecked()) end
+		if current and current.tool.toggle then
+			current.tool.toggle[2](self:GetChecked())
+			if current.tool.toggle.reload and ns.RequestReload then ns.RequestReload(current.tool.toggle.reload) end
+		end
 		UpdateDots()
 	end)
 
