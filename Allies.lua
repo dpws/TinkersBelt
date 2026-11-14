@@ -27,51 +27,51 @@ local function NoteError(msg)
 	if #errors < 5 then errors[#errors + 1] = tostring(msg) end
 end
 
--- make one plate invisible (or visible again)
-local function SetPlateHidden(unit, hide)
-	if not unit or not IsFriendlyPlayer(unit) then return end
-	local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
+local function Secret(v) return issecretvalue and issecretvalue(v) end
+
+-- our own label on the plate: name in class colour, then <Guild>  Class
+local function Tag(plate)
+	if plate.dpwsTag then return plate.dpwsTag end
+	local T = ns.Theme
+	local tag = CreateFrame("Frame", nil, plate)
+	tag:SetSize(1, 1)
+	tag:SetPoint("CENTER", plate, "CENTER", 0, 4)
+	tag.name = T.Text(tag, "semibold", 13)
+	tag.name:SetFont(T.font.semibold, 13, "OUTLINE")
+	tag.name:SetPoint("BOTTOM", tag, "CENTER", 0, 0)
+	tag.name:SetJustifyH("CENTER")
+	tag.info = T.Text(tag, "medium", 10, { 0.80, 0.82, 0.86, 1 })
+	tag.info:SetFont(T.font.medium, 10, "OUTLINE")
+	tag.info:SetPoint("TOP", tag.name, "BOTTOM", 0, -1)
+	tag.info:SetJustifyH("CENTER")
+	plate.dpwsTag = tag
+	return tag
+end
+
+-- friendly player + test on: the game's plate invisible, our label shown. Anything else: game plate
+-- visible again (plates are reused, an enemy must never get a hidden plate), no label.
+local function ApplyPlate(unit, on)
+	local plate = unit and C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
 	if not plate then return end
-	-- with friendly plates on, the game draws the player's name on the plate instead of overhead:
-	-- hide everything (bars, highlights, auras) except that name
-	local ok, err = pcall(function()
-		local f = plate.UnitFrame or plate
-		local name = f.name or f.Name
-		for _, child in ipairs({ f:GetChildren() }) do child:SetAlpha(hide and 0 or 1) end
-		for _, r in ipairs({ f:GetRegions() }) do
-			if r ~= name then r:SetAlpha(hide and 0 or 1) end
-		end
-		if name then
-			name:SetAlpha(1)
-			-- the name is pinned to the health bar's width and gets cut with "...": free it while hidden
-			if hide then
-				if not name.dpwsPoints then
-					name.dpwsPoints = {}
-					for i = 1, name:GetNumPoints() do name.dpwsPoints[i] = { name:GetPoint(i) } end
-				end
-				local _, rel = name:GetPoint(1)
-				if rel ~= f or name:GetNumPoints() ~= 1 then
-					name:ClearAllPoints()
-					name:SetPoint("CENTER", f, "CENTER", 0, 0)
-				end
-				name:SetWidth(0) -- 0 = as wide as the text
-			elseif name.dpwsPoints then
-				name:ClearAllPoints()
-				for _, p in ipairs(name.dpwsPoints) do name:SetPoint(unpack(p)) end
-				name.dpwsPoints = nil
-			end
-		end
+	local f = plate.UnitFrame or plate
+	local friendly = on and IsFriendlyPlayer(unit)
+	local ok, err = pcall(f.SetAlpha, f, friendly and 0 or 1)
+	if not ok then NoteError(err) end
+	local tag = Tag(plate)
+	if not friendly then tag:Hide() return end
+	local filled = pcall(function()
+		local name = GetUnitName(unit, true)
+		local className, class = UnitClass(unit)
+		local guild = GetGuildInfo(unit)
+		if Secret(name) or Secret(class) or Secret(guild) then error("hidden") end
+		local color = class and RAID_CLASS_COLORS[class]
+		tag.name:SetText(name)
+		if color then tag.name:SetTextColor(color.r, color.g, color.b) else tag.name:SetTextColor(1, 1, 1) end
+		tag.info:SetText(guild and ("<%s>  %s"):format(guild, className or "") or (className or ""))
+		seen[name] = { class = class, level = UnitLevel(unit), at = GetTime() }
 	end)
-	if not ok then NoteError(err) return end
-	if hide then
-		hidden = hidden + 1
-		pcall(function()
-			local name = GetUnitName(unit, true)
-			if name and not (issecretvalue and issecretvalue(name)) then
-				seen[name] = { class = select(2, UnitClass(unit)), level = UnitLevel(unit), at = GetTime() }
-			end
-		end)
-	end
+	tag:SetShown(filled)
+	if filled then hidden = hidden + 1 end
 end
 
 local function ForEachPlate(fn)
@@ -82,8 +82,10 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, unit)
-	if event == "NAME_PLATE_UNIT_ADDED" then SetPlateHidden(unit, true) end
+	if event == "NAME_PLATE_UNIT_ADDED" then ApplyPlate(unit, active) end
 end)
+-- always listening: a reused plate must be made visible again even after the test is off
+ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 local ticker
 
 local function Start(Say)
@@ -98,18 +100,16 @@ local function Start(Say)
 	end
 	active, hidden = true, 0
 	wipe(errors)
-	ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-	ForEachPlate(function(u) SetPlateHidden(u, true) end)
+	ForEachPlate(function(u) ApplyPlate(u, true) end)
 	-- the game may reset plate alpha: re-apply twice a second
-	ticker = C_Timer.NewTicker(0.5, function() ForEachPlate(function(u) SetPlateHidden(u, true) end) end)
+	ticker = C_Timer.NewTicker(0.5, function() ForEachPlate(function(u) ApplyPlate(u, true) end) end)
 	Say("allies: ON - friendly player plates should be invisible now. Walk near other players, then run /dpws allies again to see the result and turn it off.")
 end
 
 local function Stop(Say)
 	active = false
 	if ticker then ticker:Cancel(); ticker = nil end
-	ev:UnregisterEvent("NAME_PLATE_UNIT_ADDED")
-	ForEachPlate(function(u) SetPlateHidden(u, false) end)
+	ForEachPlate(function(u) ApplyPlate(u, false) end)
 	if InCombatLockdown() then
 		Say("allies: in combat - nameplate setting restore skipped, run /dpws allies again after combat")
 	else
