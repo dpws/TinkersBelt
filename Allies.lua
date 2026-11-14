@@ -29,7 +29,7 @@ end
 
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 
--- our own label on the plate: name in class colour, then <Guild>  Class
+-- our own label on the plate: name in class colour, <Guild> below
 local function Tag(plate)
 	if plate.dpwsTag then return plate.dpwsTag end
 	local T = ns.Theme
@@ -67,7 +67,7 @@ local function ApplyPlate(unit, on)
 		local color = class and RAID_CLASS_COLORS[class]
 		tag.name:SetText(name)
 		if color then tag.name:SetTextColor(color.r, color.g, color.b) else tag.name:SetTextColor(1, 1, 1) end
-		tag.info:SetText(guild and ("<%s>  %s"):format(guild, className or "") or (className or ""))
+		tag.info:SetText(guild and ("<%s>"):format(guild) or "") -- class is shown by the name colour
 		seen[name] = { class = class, level = UnitLevel(unit), at = GetTime() }
 	end)
 	tag:SetShown(filled)
