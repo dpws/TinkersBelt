@@ -106,9 +106,34 @@ ev:SetScript("OnEvent", function(_, _, unit) if ns.adb then ApplyPlate(unit) end
 
 table.insert(ns.loginHooks, function() if S().enabled then A.Apply() end end)
 
+-- what Friendly Names sees right now
+local function Info(Say)
+	local s = S()
+	Say(("allies: enabled=%s ticker=%s combat=%s"):format(tostring(s.enabled), tostring(ticker ~= nil), tostring(InCombatLockdown())))
+	for _, cv in ipairs(CVARS) do Say(("allies: %s=%s (saved original: %s)"):format(cv, tostring(GetCV(cv)), tostring(s.saved and s.saved[cv]))) end
+	local plates = C_NamePlate and C_NamePlate.GetNamePlates() or {}
+	local friendly, shown = 0, 0
+	for _, plate in ipairs(plates) do
+		local unit = plate.namePlateUnitToken
+		if unit and IsFriendlyPlayer(unit) then
+			friendly = friendly + 1
+			if shown < 4 then
+				shown = shown + 1
+				local f = plate.UnitFrame or plate
+				local ok, alpha = pcall(f.GetAlpha, f)
+				local tag = plate.dpwsTag
+				Say(("allies:   %s: unitframe=%s alpha=%s label=%s '%s'"):format(unit, tostring(plate.UnitFrame ~= nil),
+					ok and tostring(alpha) or "?", tostring(tag and tag:IsShown()), tag and tag.name:GetText() or ""))
+			end
+		end
+	end
+	Say(("allies: plates=%d friendly players=%d"):format(#plates, friendly))
+end
+
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.allies = function()
 	S().enabled = not S().enabled
 	A.Apply()
 	print(("dpws_tools: Friendly Names %s"):format(S().enabled and "ON" or "OFF (your nameplate setting is restored)"))
 end
+ns.slashCommands["allies info"] = function() ns.Diagnose(Info) end
