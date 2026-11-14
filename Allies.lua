@@ -61,7 +61,7 @@ local function ApplyPlate(unit, on)
 	if not friendly then tag:Hide() return end
 	local filled = pcall(function()
 		local name = GetUnitName(unit, true)
-		local className, class = UnitClass(unit)
+		local _, class = UnitClass(unit)
 		local guild = GetGuildInfo(unit)
 		if Secret(name) or Secret(class) or Secret(guild) then error("hidden") end
 		local color = class and RAID_CLASS_COLORS[class]
