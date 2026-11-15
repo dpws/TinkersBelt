@@ -159,6 +159,21 @@ local function Auras(unit)
 	return { all = map, mine = mine }
 end
 local function Pick(e, auras) return e.def.mine and auras.mine or auras.all end
+-- a group member's name (key for the blessing you give them)
+local function Who(unit)
+	local n = GetUnitName(unit, true)
+	if n and not Secret(n) then return n end
+end
+-- the blessing remembered for unit, unless another paladin's copy of it is on them now
+local function Chosen(unit, auras)
+	local who = Who(unit)
+	local n = who and S().lastOn[who]
+	local single = n and B.byCast[n]
+	if not single then return nil end
+	if auras and ns.BuffStatus(auras.all, single.names, GetTime(), 0) ~= "missing"
+		and ns.BuffStatus(auras.mine, single.names, GetTime(), 0) == "missing" then return nil end
+	return n
+end
 
 local function GroupUnits()
 	local units = { "player" }
@@ -256,8 +271,24 @@ local function StripButton(strip, i)
 	local b = CreateFrame("Button", nil, strip, "SecureActionButtonTemplate")
 	b:RegisterForClicks("AnyUp")
 	b:SetAttribute("useOnKeyDown", false)
-	b:SetAttribute("type", "spell")
+	b:SetAttribute("type1", "spell") -- left only: right-click picks this member's blessing
 	b:SetAttribute("unit", strip.unit)
+	b:HookScript("OnClick", function(self, button)
+		local e = self.entry
+		if button ~= "RightButton" or not (e and e.def.group) or InCombatLockdown() then return end
+		local who, group = Who(strip.unit), B.byKey[e.def.group]
+		if not (who and group) then return end
+		MenuUtil.CreateContextMenu(self, function(_, root)
+			root:CreateTitle(who)
+			for _, n in ipairs(group.known) do
+				root:CreateRadio(n, function() return S().lastOn[who] == n end, function()
+					S().lastOn[who] = n
+					B.Update()
+				end)
+			end
+			root:CreateButton("Show all", function() S().lastOn[who] = nil; B.Update() end)
+		end)
+	end)
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetAllPoints()
 	b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -274,6 +305,7 @@ local function StripButton(strip, i)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self.spell or "")
 		GameTooltip:AddLine("Click: cast on " .. (GetUnitName(strip.unit, true) or strip.unit), 1, 1, 1)
+		if self.entry and self.entry.def.group then GameTooltip:AddLine("Right-click: choose their blessing", 1, 1, 1) end
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
@@ -292,9 +324,9 @@ local function GetStrip(unit)
 end
 
 -- dim = buff is on (blessings: a different one of yours is on), red border = missing, minutes = running out;
--- your blessing that is on them stays bright
+-- (a blessing you chose for a member stays visible, dim while up)
 local function Paint(b, status, left)
-	local dim = status == "ok" or status == "other"
+	local dim = status == "ok" or status == "other" or status == "active"
 	b.icon:SetDesaturated(dim)
 	b.icon:SetAlpha(dim and 0.35 or 1)
 	b.border:SetShown(status == "missing")
@@ -318,6 +350,7 @@ local function UpdateStrips(auraCache, combat)
 		end
 		if strip:IsShown() then
 			local auras = auraCache[unit] or Auras(unit)
+			local chosen = Chosen(unit, auras)
 			local x = 0
 			for k, e in ipairs(B.entries) do
 				local b = strip.buttons[k] -- one button per buff, kept in place
@@ -333,11 +366,13 @@ local function UpdateStrips(auraCache, combat)
 				end
 				-- a blessing of yours is up on them: no blessing buttons until it runs low
 				local hide = status == "active" or status == "other" or status == "taken" -- taken: another paladin's copy is on them
+				-- the blessing you give this member: only its button, always there (dim while up) to right-click
+				if e.def.group and chosen then hide = e.known[1] ~= chosen end
 				if not combat then -- (buttons can't be created, shown or hidden in combat)
 					if wanted and not hide then
 						b = b or StripButton(strip, k)
 						strip.buttons[k] = b
-						b.spell = CastName(e)
+						b.spell, b.entry = CastName(e), e
 						b:SetAttribute("spell", b.spell)
 						b:SetSize(size, size)
 						b:ClearAllPoints()
@@ -384,6 +419,17 @@ local function Update()
 			end
 		end
 	end
+	-- and which blessing you give each member (the last one of yours seen on them)
+	for _, u in ipairs(units) do
+		local auras, who = auraCache[u], Who(u)
+		if auras and who then
+			for _, e in ipairs(B.entries) do
+				if e.def.group and ns.BuffStatus(auras.mine, e.names, GetTime(), 0) ~= "missing" then
+					s.lastOn[who] = e.known[1]
+				end
+			end
+		end
+	end
 
 	-- who needs what
 	local needs, selfMissing = {}, {}
@@ -398,7 +444,7 @@ local function Update()
 						local cast = spell
 						if e.def.mine and e.def.remember then
 							-- blessings: skip ones another paladin already put on them (yours would duplicate it)
-							cast = ns.BuffPickFree(e.known, S().last[e.def.key], function(n)
+							cast = ns.BuffPickFree(e.known, Chosen(u, auras) or S().last[e.def.key], function(n)
 								local single = B.byCast[n]
 								return single and ns.BuffStatus(auras.all, single.names, GetTime(), 0) ~= "missing"
 									and ns.BuffStatus(auras.mine, single.names, GetTime(), 0) == "missing"
