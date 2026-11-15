@@ -385,8 +385,7 @@ end
 -- keep the last error for /dpws buffs (it still reaches BugSack)
 local function SafeUpdate()
 	xpcall(Update, function(err)
-		B.lastError = tostring(err) .. "
-" .. (debugstack and debugstack(2, 6, 0) or "")
+		B.lastError = tostring(err) .. "\n" .. (debugstack and debugstack(2, 6, 0) or "")
 		geterrorhandler()(err)
 	end)
 end
