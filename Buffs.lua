@@ -382,7 +382,15 @@ local function Update()
 	panel:SetWidth(math.max(#needs, 1) * (SIZE + 4))
 	panel:SetShown(#needs > 0 or ns.unlocked)
 end
-B.Update = Update
+-- keep the last error for /dpws buffs (it still reaches BugSack)
+local function SafeUpdate()
+	xpcall(Update, function(err)
+		B.lastError = tostring(err) .. "
+" .. (debugstack and debugstack(2, 6, 0) or "")
+		geterrorhandler()(err)
+	end)
+end
+B.Update = SafeUpdate
 
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands["buffs"] = function()
@@ -392,6 +400,7 @@ ns.slashCommands["buffs"] = function()
 			tostring(s.enabled), tostring(s.strips), tostring(IsInGroup()), tostring(IsInRaid()), tostring(InCombatLockdown())))
 		local names = {}
 		for _, e in ipairs(B.entries) do names[#names + 1] = e.def.key .. "=" .. table.concat(e.known, "/") end
+		Say("version: fixed font, last error: " .. (B.lastError or "none"))
 		Say("buffs known: " .. (#names > 0 and table.concat(names, ", ") or "NONE"))
 		for _, unit in ipairs(STRIP_UNITS) do
 			if UnitExists(unit) then
@@ -445,6 +454,6 @@ table.insert(ns.loginHooks, function()
 			ns.Notify("Entering combat without " .. table.concat(B.selfMissing, ", "), s.sound)
 		end
 	end)
-	C_Timer.NewTicker(1, Update)
+	C_Timer.NewTicker(1, SafeUpdate)
 	Update()
 end)
