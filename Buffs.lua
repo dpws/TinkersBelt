@@ -127,6 +127,11 @@ local function LoadSpells()
 		end
 		if #known > 0 then list[#list + 1] = { def = def, known = known, names = names } end
 	end
+	-- your own extra buffs (Buffs page): reminded on you only
+	for id in pairs(S().custom) do
+		local n = SpellName(id)
+		if n then list[#list + 1] = { def = { key = "custom" .. id, self = true, custom = true }, known = { n }, names = { n } } end
+	end
 	B.entries = list
 	B.byKey, B.byCast = {}, {}
 	for _, e in ipairs(list) do
@@ -509,6 +514,7 @@ local function SafeUpdate()
 	end)
 end
 B.Update = SafeUpdate
+function B.Reload() ns.RunOutOfCombat(function() LoadSpells(); SafeUpdate() end) end
 
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands["buffs"] = function()
@@ -567,7 +573,7 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 	ev:SetScript("OnEvent", function(_, event)
 		if event == "SPELLS_CHANGED" then
-			ns.RunOutOfCombat(function() LoadSpells(); Update() end)
+			B.Reload()
 		elseif s.enabled and B.selfMissing and #B.selfMissing > 0 then
 			ns.Notify("Entering combat without " .. table.concat(B.selfMissing, ", "), s.sound)
 		end

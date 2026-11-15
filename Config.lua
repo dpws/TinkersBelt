@@ -404,7 +404,7 @@ local function BuildBuffsPage(parent)
 	P:Toggle("Sound when a buff drops off you", function() return s.sound end, function(v) s.sound = v end)
 	local any = false
 	for _, e in ipairs(ns.Buffs and ns.Buffs.entries or {}) do
-		if e.def.reminder ~= false then
+		if e.def.reminder ~= false and not e.def.custom then
 			any = true
 			local key = e.def.key
 			P:Toggle("Remind: " .. table.concat(e.known, " / ") .. (e.def.self and "  (you)" or "  (you and group)"),
@@ -413,6 +413,72 @@ local function BuildBuffsPage(parent)
 		end
 	end
 	if not any then P:Note("You don't know any buffs this tracks yet.") end
+
+	P:Card("My extra buffs")
+	local rows, RefreshList, MAX_ROWS = {}, nil, 6
+	local function SpellId(text)
+		local id = tonumber(text:match("spell:(%d+)") or text:match("^%s*(%d+)%s*$"))
+		if id then return id end
+		local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(strtrim(text))
+		return info and info.spellID
+	end
+	P:Custom(38, function(row)
+		local input = T.NewInput(row, 260)
+		input:SetPoint("LEFT")
+		local add = T.NewButton(row, "Add", 64, 26)
+		add:SetPoint("LEFT", input, "RIGHT", 8, 0)
+		local function DoAdd()
+			local id = SpellId(input:GetText() or "")
+			if id then s.custom[id] = true else ns.Notify("No spell found: " .. (input:GetText() or "")) end
+			input:SetText("")
+			input:ClearFocus()
+			if ns.Buffs then ns.Buffs.Reload() end
+			RefreshList()
+		end
+		add:SetScript("OnClick", DoAdd)
+		input:SetScript("OnEnterPressed", DoAdd)
+		-- Shift-click a spell in your spellbook puts its link into our box while it has focus
+		local function InsertLink(link)
+			if input:HasFocus() and link then input:Insert(link) end
+		end
+		if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
+		if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
+	end)
+	for i = 1, MAX_ROWS do
+		P:Custom(30, function(row)
+			local x = { frame = row }
+			x.icon = row:CreateTexture(nil, "ARTWORK")
+			x.icon:SetSize(20, 20)
+			x.icon:SetPoint("LEFT", 2, 0)
+			x.name = T.Text(row, "medium", 13)
+			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
+			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove:SetPoint("RIGHT")
+			rows[i] = x
+		end)
+	end
+	P:Note("Any buff you cast on yourself (an aura, Righteous Fury, a shield...): type its name or Shift-click it in your spellbook. Reminded when it's missing; click the reminder to cast it.")
+	RefreshList = function()
+		local ids = {}
+		for id in pairs(s.custom) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for i, x in ipairs(rows) do
+			local id = ids[i]
+			x.frame:SetShown(id ~= nil)
+			if id then
+				local info = C_Spell.GetSpellInfo(id)
+				x.icon:SetTexture(info and info.iconID)
+				x.name:SetText(info and info.name or ("spell " .. id))
+				x.remove:SetScript("OnClick", function()
+					s.custom[id] = nil
+					if ns.Buffs then ns.Buffs.Reload() end
+					RefreshList()
+				end)
+			end
+		end
+	end
+	P:Refresher(RefreshList)
+
 	P:Card("Party frames")
 	P:Toggle("Buff buttons beside party frames", function() return s.strips end, function(v) s.strips = v; Refresh() end)
 	P:Slider("Button size", 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
