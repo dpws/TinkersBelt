@@ -1,0 +1,412 @@
+local _, ns = ...
+
+-- "ok" / "low" (under warnSec left) / "missing"; auras = { [name] = expirationTime, 0 = no duration }
+function ns.BuffStatus(auras, names, now, warnSec)
+	local best
+	for _, n in ipairs(names) do
+		local exp = auras[n]
+		if exp then
+			if exp == 0 then return "ok" end
+			if not best or exp > best then best = exp end
+		end
+	end
+	if not best then return "missing" end
+	local left = best - now
+	if left < warnSec then return "low", left end
+	return "ok", left
+end
+
+-- the spell to cast: the one you used last (e.g. Mage Armor over Ice Armor) if you know it, else the first known
+function ns.BuffPickCast(known, remembered)
+	for _, n in ipairs(known) do
+		if n == remembered then return n end
+	end
+	return known[1]
+end
+
+-- Per class: cast = spell ids to cast (rank 1; first known is the default), also = ids that count as present
+-- (group versions), self = only on yourself, remember = recast the one you last had, reminder = false: not in
+-- the reminder (only on the party frame buttons), strip = false: not on the party frame buttons.
+local BLESSINGS = {
+	{ "might", 19740, 25782 }, { "wisdom", 19742, 25894 }, { "kings", 20217, 25898 },
+	{ "salvation", 1038, 25895 }, { "light", 19977, 25890 }, { "sanctuary", 20911, 25899 },
+}
+local paladin = { { key = "blessing", cast = {}, also = {}, remember = true, strip = false } }
+for _, b in ipairs(BLESSINGS) do
+	table.insert(paladin[1].cast, b[2])
+	table.insert(paladin[1].also, b[3])
+	paladin[#paladin + 1] = { key = b[1], cast = { b[2] }, also = { b[3] }, reminder = false }
+end
+ns.BUFF_SPELLS = {
+	MAGE = {
+		{ key = "int", cast = { 1459 }, also = { 23028 } },
+		{ key = "armor", cast = { 7302, 168, 6117 }, self = true, remember = true },
+	},
+	PRIEST = {
+		{ key = "fort", cast = { 1243 }, also = { 21562 } },
+		{ key = "spirit", cast = { 14752 }, also = { 27681 } },
+		{ key = "shadow", cast = { 976 }, also = { 27683 }, off = true },
+		{ key = "innerfire", cast = { 588 }, self = true },
+	},
+	DRUID = {
+		{ key = "mark", cast = { 1126 }, also = { 21849 } },
+		{ key = "thorns", cast = { 467 }, off = true },
+		{ key = "omen", cast = { 16864 }, self = true },
+	},
+	PALADIN = paladin,
+	WARLOCK = { { key = "armor", cast = { 706, 687 }, self = true } },
+	SHAMAN = { { key = "shield", cast = { 324 }, self = true } },
+	HUNTER = {
+		{ key = "aspect", cast = { 13165, 13163, 20043 }, also = { 5118, 13159, 13161 }, self = true, remember = true },
+		{ key = "trueshot", cast = { 19506 }, self = true },
+	},
+}
+
+if not CreateFrame then return end -- offline test stops here
+
+-- Buff Reminder: buttons for your buffs that are missing (or about to run out) on you or your group;
+-- click = cast on the next one who needs it. Plus buff buttons beside each party frame.
+-- Clickable buttons can't change in combat, so both update out of combat only (icons still dim in combat).
+
+local T = ns.Theme
+local B = { entries = {} }
+ns.Buffs = B
+local function S() return ns.db.buffs end
+local function Secret(v) return issecretvalue and issecretvalue(v) end
+local function SpellName(id)
+	return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id))
+end
+local function SpellIcon(spell)
+	return (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(spell)) or (GetSpellTexture and GetSpellTexture(spell))
+end
+local function Known(id)
+	return (IsPlayerSpell and IsPlayerSpell(id)) or (IsSpellKnown and IsSpellKnown(id))
+end
+
+-- this character's buffs: { def, known = {names}, names = {names that count} }
+local function LoadSpells()
+	local list = {}
+	for _, def in ipairs(ns.BUFF_SPELLS[select(2, UnitClass("player"))] or {}) do
+		local known, names = {}, {}
+		for _, id in ipairs(def.cast) do
+			local n = SpellName(id)
+			if n then
+				names[#names + 1] = n
+				if Known(id) then known[#known + 1] = n end
+			end
+		end
+		for _, id in ipairs(def.also or {}) do
+			local n = SpellName(id)
+			if n then names[#names + 1] = n end
+		end
+		if #known > 0 then list[#list + 1] = { def = def, known = known, names = names } end
+	end
+	B.entries = list
+end
+
+local function CastName(e) return ns.BuffPickCast(e.known, S().last[e.def.key]) end
+local function Reminded(e)
+	local off = S().off[e.def.key]
+	if off == nil then off = e.def.off end
+	return e.def.reminder ~= false and not off
+end
+
+-- { [name] = expirationTime } or nil when the game hides this unit's auras (combat)
+local function Auras(unit)
+	local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+	if not get then return nil end
+	local map = {}
+	for i = 1, 40 do
+		local ok, a = pcall(get, unit, i, "HELPFUL")
+		if not ok then return nil end
+		if not a then break end
+		if Secret(a.name) or Secret(a.expirationTime) then return nil end
+		map[a.name] = a.expirationTime or 0
+	end
+	return map
+end
+
+local function GroupUnits()
+	local units = { "player" }
+	if IsInRaid() then
+		for i = 1, GetNumGroupMembers() do
+			local u = "raid" .. i
+			if UnitExists(u) and not UnitIsUnit(u, "player") then units[#units + 1] = u end
+		end
+	else
+		for i = 1, 4 do
+			if UnitExists("party" .. i) then units[#units + 1] = "party" .. i end
+		end
+	end
+	return units
+end
+
+local function Reachable(unit, spell)
+	if unit == "player" then return true end
+	if not UnitIsConnected(unit) or UnitIsDeadOrGhost(unit) or not UnitIsVisible(unit) then return false end
+	local ok, r = pcall(C_Spell.IsSpellInRange, spell, unit)
+	return ok and (r == true or r == 1)
+end
+
+---------------------------------------------------------------------------
+-- reminder panel
+
+local panel, buttons = nil, {}
+local SIZE = 36
+local wasMissing = {} -- self buffs missing at the last scan (for the "dropped" warning)
+
+local function ReminderButton(i)
+	local b = CreateFrame("Button", "DpwsBuffReminder" .. i, panel, "SecureActionButtonTemplate")
+	b:SetSize(SIZE, SIZE)
+	b:RegisterForClicks("AnyUp")
+	b:SetAttribute("useOnKeyDown", false)
+	b:SetAttribute("type", "spell")
+	b.icon = b:CreateTexture(nil, "ARTWORK")
+	b.icon:SetAllPoints()
+	b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	b.count = T.Text(b, "bold", 14, { 1, 1, 1, 1 })
+	b.count:SetPoint("BOTTOMRIGHT", -2, 2)
+	b.count:SetShadowColor(0, 0, 0, 1)
+	b.count:SetShadowOffset(1, -1)
+	b:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(self.spell or "")
+		for _, u in ipairs(self.needy or {}) do
+			local _, class = UnitClass(u)
+			local c = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
+			GameTooltip:AddLine(GetUnitName(u, true) or u, c.r, c.g, c.b)
+		end
+		GameTooltip:AddLine("Click: buff the first one", 0.6, 0.65, 0.7)
+		GameTooltip:Show()
+	end)
+	b:SetScript("OnLeave", GameTooltip_Hide)
+	return b
+end
+
+---------------------------------------------------------------------------
+-- buttons beside party frames
+
+-- the unit frame shown for unit: DandersFrames, Blizzard compact party frames, Blizzard party/player frames
+local function FindFrame(unit)
+	local function Match(f, u)
+		return f and u and f:IsVisible() and not Secret(u) and UnitExists(u) and UnitIsUnit(u, unit)
+	end
+	local header = _G.DandersPartyHeader
+	if header and header:IsVisible() then
+		for _, child in ipairs({ header:GetChildren() }) do
+			if Match(child, child:GetAttribute("unit")) then return child end
+		end
+	end
+	for i = 1, 5 do
+		local f = _G["CompactPartyFrameMember" .. i]
+		if f and Match(f, f.unit) then return f end
+	end
+	if PartyFrame then
+		for i = 1, 4 do
+			local f = PartyFrame["MemberFrame" .. i]
+			if f and Match(f, f.unit) then return f end
+		end
+	end
+	if unit == "player" and PlayerFrame and PlayerFrame:IsVisible() then return PlayerFrame end
+end
+
+local STRIP_UNITS = { "player", "party1", "party2", "party3", "party4" }
+local strips = {}
+
+local function StripButton(strip, i)
+	local b = CreateFrame("Button", nil, strip, "SecureActionButtonTemplate")
+	b:RegisterForClicks("AnyUp")
+	b:SetAttribute("useOnKeyDown", false)
+	b:SetAttribute("type", "spell")
+	b:SetAttribute("unit", strip.unit)
+	b.icon = b:CreateTexture(nil, "ARTWORK")
+	b.icon:SetAllPoints()
+	b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	b.border = b:CreateTexture(nil, "BACKGROUND")
+	b.border:SetPoint("TOPLEFT", -1, 1)
+	b.border:SetPoint("BOTTOMRIGHT", 1, -1)
+	b.border:SetColorTexture(1, 0.25, 0.2, 1)
+	b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	b.time = T.Text(b, "bold", 10, { 1, 0.85, 0.3, 1 })
+	b.time:SetPoint("BOTTOM", 0, 1)
+	b.time:SetShadowColor(0, 0, 0, 1)
+	b.time:SetShadowOffset(1, -1)
+	b:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(self.spell or "")
+		GameTooltip:AddLine("Click: cast on " .. (GetUnitName(strip.unit, true) or strip.unit), 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	b:SetScript("OnLeave", GameTooltip_Hide)
+	return b
+end
+
+local function GetStrip(unit)
+	if strips[unit] then return strips[unit] end
+	local s = CreateFrame("Frame", nil, UIParent)
+	s:SetFrameStrata("HIGH")
+	s:SetSize(1, 1)
+	s.unit = unit
+	s.buttons = {}
+	strips[unit] = s
+	return s
+end
+
+-- dim = buff is on, red border = missing, minutes = running out
+local function Paint(b, status, left)
+	b.icon:SetDesaturated(status == "ok")
+	b.icon:SetAlpha(status == "ok" and 0.35 or 1)
+	b.border:SetShown(status == "missing")
+	b.time:SetText(status == "low" and left and ("%dm"):format(math.ceil(left / 60)) or "")
+end
+
+local function UpdateStrips(auraCache, combat)
+	local s = S()
+	local show = s.enabled and s.strips and IsInGroup() and not IsInRaid()
+	local warn = (s.warn or 3) * 60
+	local size = s.size or 18
+	for _, unit in ipairs(STRIP_UNITS) do
+		local strip = GetStrip(unit)
+		local frame = show and UnitExists(unit) and FindFrame(unit)
+		if not combat then
+			strip:SetShown(frame and true or false)
+			if frame then
+				strip:ClearAllPoints()
+				strip:SetPoint("LEFT", frame, "RIGHT", 4, 0)
+			end
+		end
+		if strip:IsShown() then
+			local auras = auraCache[unit] or Auras(unit)
+			local n = 0
+			for _, e in ipairs(B.entries) do
+				-- (new buttons only out of combat: setting them up is blocked in combat)
+				if e.def.strip ~= false and (unit == "player" or not e.def.self) and not (combat and not strip.buttons[n + 1]) then
+					n = n + 1
+					local b = strip.buttons[n] or StripButton(strip, n)
+					strip.buttons[n] = b
+					if not combat then
+						b.spell = CastName(e)
+						b:SetAttribute("spell", b.spell)
+						b:SetSize(size, size)
+						b:ClearAllPoints()
+						b:SetPoint("LEFT", strip, "LEFT", (n - 1) * (size + 2), 0)
+						b:Show()
+					end
+					b.icon:SetTexture(SpellIcon(b.spell or CastName(e)))
+					if auras then Paint(b, ns.BuffStatus(auras, e.names, GetTime(), warn)) end
+				end
+			end
+			if not combat then
+				for i = n + 1, #strip.buttons do strip.buttons[i]:Hide() end
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------------
+
+local function Update()
+	if not panel then return end
+	local s = S()
+	local combat = InCombatLockdown()
+	local warn = (s.warn or 3) * 60
+	local auraCache = {}
+	local units = GroupUnits()
+	for _, u in ipairs(units) do auraCache[u] = Auras(u) end
+
+	-- remember which armor/aspect/blessing you use
+	local mine = auraCache.player
+	if mine then
+		for _, e in ipairs(B.entries) do
+			if e.def.remember then
+				for _, n in ipairs(e.known) do
+					if mine[n] then s.last[e.def.key] = n end
+				end
+			end
+		end
+	end
+
+	-- who needs what
+	local needs, selfMissing = {}, {}
+	if s.enabled then
+		for _, e in ipairs(B.entries) do
+			if Reminded(e) then
+				local spell, list = CastName(e), {}
+				for _, u in ipairs(units) do
+					local auras = auraCache[u]
+					if auras and (u == "player" or not e.def.self) then
+						local st = ns.BuffStatus(auras, e.names, GetTime(), warn)
+						if st ~= "ok" and Reachable(u, spell) then list[#list + 1] = u end
+						if u == "player" and st == "missing" then selfMissing[#selfMissing + 1] = spell end
+					end
+				end
+				if #list > 0 then needs[#needs + 1] = { spell = spell, units = list } end
+			end
+		end
+		if mine then
+			-- a buff that just dropped off you
+			for _, spell in ipairs(selfMissing) do
+				if wasMissing[spell] == false then ns.Notify(spell .. " is gone", s.sound) end
+			end
+			local now = {}
+			for _, e in ipairs(B.entries) do
+				if Reminded(e) then now[CastName(e)] = false end
+			end
+			for _, spell in ipairs(selfMissing) do now[spell] = true end
+			wasMissing = now
+		end
+	end
+	B.selfMissing = selfMissing
+
+	UpdateStrips(auraCache, combat)
+	if combat then return end -- clickable buttons are frozen in combat
+
+	for i, need in ipairs(needs) do
+		local b = buttons[i] or ReminderButton(i)
+		buttons[i] = b
+		b.spell, b.needy = need.spell, need.units
+		b:SetAttribute("spell", need.spell)
+		b:SetAttribute("unit", need.units[1])
+		b.icon:SetTexture(SpellIcon(need.spell))
+		b.count:SetText(#need.units > 1 and #need.units or "")
+		b:ClearAllPoints()
+		b:SetPoint("LEFT", panel, "LEFT", (i - 1) * (SIZE + 4), 0)
+		b:Show()
+	end
+	for i = #needs + 1, #buttons do buttons[i]:Hide() end
+	panel:SetWidth(math.max(#needs, 1) * (SIZE + 4))
+	panel:SetShown(#needs > 0 or ns.unlocked)
+end
+B.Update = Update
+
+table.insert(ns.loginHooks, function()
+	local s = S()
+	panel = CreateFrame("Frame", "DpwsBuffReminder", UIParent)
+	panel:SetSize(SIZE, SIZE)
+	panel:SetMovable(true)
+	panel:SetClampedToScreen(true)
+	if s.pos then
+		panel:SetPoint(s.pos.point, UIParent, s.pos.relPoint, s.pos.x, s.pos.y)
+	else
+		panel:SetPoint("CENTER", UIParent, "CENTER", 0, -140)
+	end
+	ns.RegisterPanel(panel, "Buff Reminder", function(self)
+		local point, _, relPoint, px, py = self:GetPoint()
+		s.pos = { point = point, relPoint = relPoint, x = px, y = py }
+	end)
+	panel:Hide()
+	LoadSpells()
+	local ev = CreateFrame("Frame")
+	ev:RegisterEvent("SPELLS_CHANGED")
+	ev:RegisterEvent("PLAYER_REGEN_DISABLED")
+	ev:SetScript("OnEvent", function(_, event)
+		if event == "SPELLS_CHANGED" then
+			ns.RunOutOfCombat(function() LoadSpells(); Update() end)
+		elseif s.enabled and B.selfMissing and #B.selfMissing > 0 then
+			ns.Notify("Entering combat without " .. table.concat(B.selfMissing, ", "), s.sound)
+		end
+	end)
+	C_Timer.NewTicker(1, Update)
+	Update()
+end)

@@ -395,6 +395,33 @@ local function BuildNearbyPage(parent)
 	P:Finish()
 end
 
+local function BuildBuffsPage(parent)
+	local s = ns.db.buffs
+	local function Refresh() if ns.Buffs then ns.Buffs.Update() end end
+	local P = T.Page(parent)
+	P:Card("Reminder")
+	P:Slider("Warn when less than", 1, 10, 1, "min", function() return s.warn or 3 end, function(v) s.warn = v; Refresh() end)
+	P:Toggle("Sound when a buff drops off you", function() return s.sound end, function(v) s.sound = v end)
+	local any = false
+	for _, e in ipairs(ns.Buffs and ns.Buffs.entries or {}) do
+		if e.def.reminder ~= false then
+			any = true
+			local key = e.def.key
+			P:Toggle("Remind: " .. table.concat(e.known, " / ") .. (e.def.self and "  (you)" or "  (you and group)"),
+				function() local off = s.off[key]; if off == nil then off = e.def.off end; return not off end,
+				function(v) s.off[key] = not v; Refresh() end)
+		end
+	end
+	if not any then P:Note("You don't know any buffs this tracks yet.") end
+	P:Card("Party frames")
+	P:Toggle("Buff buttons beside party frames", function() return s.strips end, function(v) s.strips = v; Refresh() end)
+	P:Slider("Button size", 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
+	P:Note("One button per buff you can cast, right of each party member's frame (DandersFrames or Blizzard). Dim = they have it, red border = missing, minutes = running out. Click to cast on that member. In a party only, not in raids.")
+	P:Card("About")
+	P:Note("The reminder shows a button for each of your buffs missing (or running out) on you or a group member in range; click casts it on the first one, hover lists everyone. Hidden when everyone is buffed; use Unlock panels to move it. Buttons can't change in combat, so it updates after combat.")
+	P:Finish()
+end
+
 local function BuildAlliesPage(parent)
 	local s = ns.adb.allies
 	local P = T.Page(parent)
@@ -609,6 +636,10 @@ local GROUPS = {
 		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
 			desc = "The five second rule and the next mana tick.",
 			status = function() return ns.db.mana.mode ~= "off" end },
+		{ name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
+			desc = "Never forget a buff: on you, your group, and beside party frames.",
+			toggle = { function() return ns.db.buffs.enabled end,
+				function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
