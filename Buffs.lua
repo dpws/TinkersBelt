@@ -192,10 +192,14 @@ local function FindFrame(unit)
 	local function Match(f, u)
 		return f and u and f:IsVisible() and not Secret(u) and UnitExists(u) and UnitIsUnit(u, unit)
 	end
-	local header = _G.DandersPartyHeader
-	if header and header:IsVisible() then
-		for _, child in ipairs({ header:GetChildren() }) do
-			if Match(child, child:GetAttribute("unit")) then return child end
+	local headers = { "DandersPartyHeader", "DandersFlatRaidHeader" }
+	for g = 1, 8 do headers[#headers + 1] = "DandersRaidGroup" .. g .. "Header" end
+	for _, name in ipairs(headers) do
+		local header = _G[name]
+		if header and header:IsVisible() then
+			for _, child in ipairs({ header:GetChildren() }) do
+				if child.GetAttribute and Match(child, child:GetAttribute("unit")) then return child end
+			end
 		end
 	end
 	for i = 1, 5 do
@@ -379,6 +383,40 @@ local function Update()
 	panel:SetShown(#needs > 0 or ns.unlocked)
 end
 B.Update = Update
+
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands["buffs"] = function()
+	ns.Diagnose(function(Say)
+		local s = S()
+		Say(("class=%s enabled=%s strips=%s inGroup=%s inRaid=%s combat=%s"):format(select(2, UnitClass("player")),
+			tostring(s.enabled), tostring(s.strips), tostring(IsInGroup()), tostring(IsInRaid()), tostring(InCombatLockdown())))
+		local names = {}
+		for _, e in ipairs(B.entries) do names[#names + 1] = e.def.key .. "=" .. table.concat(e.known, "/") end
+		Say("buffs known: " .. (#names > 0 and table.concat(names, ", ") or "NONE"))
+		for _, unit in ipairs(STRIP_UNITS) do
+			if UnitExists(unit) then
+				local f = FindFrame(unit)
+				local strip = strips[unit]
+				local shown = 0
+				for _, b in ipairs(strip and strip.buttons or {}) do if b:IsShown() then shown = shown + 1 end end
+				Say(("%s %s: frame=%s strip=%s buttons=%d auras=%s"):format(unit, GetUnitName(unit, true) or "?",
+					f and (f:GetName() or "unnamed") or "NOT FOUND", tostring(strip and strip:IsVisible()), shown,
+					Auras(unit) and "ok" or "hidden"))
+			end
+		end
+		for _, name in ipairs({ "DandersPartyHeader", "DandersFlatRaidHeader", "CompactPartyFrame", "PartyFrame" }) do
+			local h = _G[name]
+			if h then
+				local kids = {}
+				for _, c in ipairs({ h:GetChildren() }) do
+					local u = c.GetAttribute and c:GetAttribute("unit")
+					if u then kids[#kids + 1] = (c:GetName() or "?") .. "=" .. tostring(u) .. (c:IsVisible() and "" or "(hidden)") end
+				end
+				Say(("%s shown=%s units: %s"):format(name, tostring(h:IsVisible()), table.concat(kids, " ")))
+			end
+		end
+	end)
+end
 
 table.insert(ns.loginHooks, function()
 	local s = S()
