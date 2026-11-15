@@ -282,6 +282,73 @@ end
 local STRIP_UNITS = { "player", "party1", "party2", "party3", "party4" }
 local strips = {}
 
+-- right-click a blessing button: a row of blessing icons to pick this member's blessing (last = "show all")
+local picker
+function B.ShowPicker(owner, who, spells)
+	local SZ = 28
+	if not picker then
+		picker = CreateFrame("Frame", "DpwsBlessingPicker", UIParent)
+		picker:SetFrameStrata("DIALOG")
+		picker:EnableMouse(true)
+		T.Box(picker, T.window, T.border, 6)
+		picker.title = T.Text(picker, "semibold", 11, T.gold)
+		picker.title:SetPoint("TOPLEFT", 8, -6)
+		picker.icons = {}
+		tinsert(UISpecialFrames, "DpwsBlessingPicker") -- Esc closes
+		-- closes once the mouse has been away from it for a moment
+		picker:SetScript("OnUpdate", function(self, dt)
+			if self:IsMouseOver() or (self.owner and self.owner:IsMouseOver()) then
+				self.away = 0
+			else
+				self.away = (self.away or 0) + dt
+				if self.away > 0.8 then self:Hide() end
+			end
+		end)
+	end
+	picker.owner, picker.away = owner, 0
+	picker.title:SetText(who)
+	local list = {}
+	for _, n in ipairs(spells) do list[#list + 1] = n end
+	list[#list + 1] = false -- show all
+	for i, n in ipairs(list) do
+		local b = picker.icons[i]
+		if not b then
+			b = CreateFrame("Button", nil, picker)
+			b:SetSize(SZ, SZ)
+			b.icon = b:CreateTexture(nil, "ARTWORK")
+			b.icon:SetAllPoints()
+			b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+			b.sel = b:CreateTexture(nil, "BACKGROUND")
+			b.sel:SetPoint("TOPLEFT", -2, 2)
+			b.sel:SetPoint("BOTTOMRIGHT", 2, -2)
+			b.sel:SetColorTexture(unpack(T.gold))
+			b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+			b:SetScript("OnEnter", function(self)
+				GameTooltip:SetOwner(self, "ANCHOR_TOP")
+				GameTooltip:AddLine(self.spell or "Show all blessings")
+				GameTooltip:Show()
+			end)
+			b:SetScript("OnLeave", GameTooltip_Hide)
+			picker.icons[i] = b
+		end
+		b.spell = n or nil
+		b.icon:SetTexture(n and SpellIcon(n) or "Interface\\Icons\\INV_Misc_QuestionMark")
+		b.sel:SetShown(S().lastOn[who] == b.spell)
+		b:SetPoint("TOPLEFT", 8 + (i - 1) * (SZ + 6), -22)
+		b:SetScript("OnClick", function()
+			S().lastOn[who] = b.spell
+			picker:Hide()
+			B.Update()
+		end)
+		b:Show()
+	end
+	for i = #list + 1, #picker.icons do picker.icons[i]:Hide() end
+	picker:SetSize(16 + #list * (SZ + 6) - 6, SZ + 30)
+	picker:ClearAllPoints()
+	picker:SetPoint("BOTTOMLEFT", owner, "TOPLEFT", -4, 4)
+	picker:Show()
+end
+
 local function StripButton(strip, i)
 	local b = CreateFrame("Button", nil, strip, "SecureActionButtonTemplate")
 	b:RegisterForClicks("AnyUp")
@@ -293,16 +360,7 @@ local function StripButton(strip, i)
 		if button ~= "RightButton" or not (e and e.def.group) or InCombatLockdown() then return end
 		local who, group = Who(strip.unit), B.byKey[e.def.group]
 		if not (who and group) then return end
-		MenuUtil.CreateContextMenu(self, function(_, root)
-			root:CreateTitle(who)
-			for _, n in ipairs(group.known) do
-				root:CreateRadio(n, function() return S().lastOn[who] == n end, function()
-					S().lastOn[who] = n
-					B.Update()
-				end)
-			end
-			root:CreateButton("Show all", function() S().lastOn[who] = nil; B.Update() end)
-		end)
+		B.ShowPicker(self, who, group.known)
 	end)
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetAllPoints()
