@@ -26,4 +26,12 @@ local pal = ns.BUFF_SPELLS.PALADIN
 check("paladin any-blessing entry", pal[1].key == "blessing" and #pal[1].cast == 6 and pal[1].strip == false)
 check("paladin single blessings", #pal == 7 and pal[2].reminder == false)
 
+-- blessings: only one of yours per target
+local all = { "Might", "Wisdom", "Kings" }
+check("blessing active", ns.ExclusiveStatus({ Might = 1000 }, { "Might" }, all, 100, 180) == "active")
+check("other blessing of mine", ns.ExclusiveStatus({ Might = 1000 }, { "Wisdom" }, all, 100, 180) == "other")
+check("none of mine", ns.ExclusiveStatus({}, { "Wisdom" }, all, 100, 180) == "missing")
+check("mine running out", ns.ExclusiveStatus({ Might = 200 }, { "Might" }, all, 100, 180) == "low")
+check("paladin counts only own casts", ns.BUFF_SPELLS.PALADIN[1].mine and ns.BUFF_SPELLS.PALADIN[2].group == "blessing")
+
 print("buffs: " .. passed .. " passed")

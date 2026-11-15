@@ -16,6 +16,16 @@ function ns.BuffStatus(auras, names, now, warnSec)
 	return "ok", left
 end
 
+-- one-of-a-kind buffs (a paladin's blessings: only one of yours per target): "active" = this one of yours is on
+-- them, "low" = it's running out, "other" = a different one of yours is on them, "missing" = none of yours
+function ns.ExclusiveStatus(mine, names, allNames, now, warnSec)
+	local st, left = ns.BuffStatus(mine, names, now, warnSec)
+	if st == "ok" then return "active", left end
+	if st == "low" then return "low", left end
+	if ns.BuffStatus(mine, allNames, now, warnSec) ~= "missing" then return "other" end
+	return "missing"
+end
+
 -- the spell to cast: the one you used last (e.g. Mage Armor over Ice Armor) if you know it, else the first known
 function ns.BuffPickCast(known, remembered)
 	for _, n in ipairs(known) do
@@ -31,11 +41,13 @@ local BLESSINGS = {
 	{ "might", 19740, 25782 }, { "wisdom", 19742, 25894 }, { "kings", 20217, 25898 },
 	{ "salvation", 1038, 25895 }, { "light", 19977, 25890 }, { "sanctuary", 20911, 25899 },
 }
-local paladin = { { key = "blessing", cast = {}, also = {}, remember = true, strip = false } }
+-- mine = only your own casts count (another paladin's Might doesn't stop you adding your Wisdom);
+-- group = one-of-a-kind with that entry's spells
+local paladin = { { key = "blessing", cast = {}, also = {}, remember = true, strip = false, mine = true } }
 for _, b in ipairs(BLESSINGS) do
 	table.insert(paladin[1].cast, b[2])
 	table.insert(paladin[1].also, b[3])
-	paladin[#paladin + 1] = { key = b[1], cast = { b[2] }, also = { b[3] }, reminder = false }
+	paladin[#paladin + 1] = { key = b[1], cast = { b[2] }, also = { b[3] }, reminder = false, mine = true, group = "blessing" }
 end
 ns.BUFF_SPELLS = {
 	MAGE = {
@@ -102,6 +114,8 @@ local function LoadSpells()
 		if #known > 0 then list[#list + 1] = { def = def, known = known, names = names } end
 	end
 	B.entries = list
+	B.byKey = {}
+	for _, e in ipairs(list) do B.byKey[e.def.key] = e end
 end
 
 local function CastName(e) return ns.BuffPickCast(e.known, S().last[e.def.key]) end
@@ -111,20 +125,23 @@ local function Reminded(e)
 	return e.def.reminder ~= false and not off
 end
 
--- { [name] = expirationTime } or nil when the game hides this unit's auras (combat)
+-- { all = { [name] = expirationTime }, mine = (only those you cast) } or nil when the game hides them (combat)
 local function Auras(unit)
 	local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
 	if not get then return nil end
-	local map = {}
+	local map, mine = {}, {}
 	for i = 1, 40 do
 		local ok, a = pcall(get, unit, i, "HELPFUL")
 		if not ok then return nil end
 		if not a then break end
 		if Secret(a.name) or Secret(a.expirationTime) then return nil end
 		map[a.name] = a.expirationTime or 0
+		local src = a.sourceUnit
+		if src and not Secret(src) and UnitIsUnit(src, "player") then mine[a.name] = a.expirationTime or 0 end
 	end
-	return map
+	return { all = map, mine = mine }
 end
+local function Pick(e, auras) return e.def.mine and auras.mine or auras.all end
 
 local function GroupUnits()
 	local units = { "player" }
@@ -257,10 +274,12 @@ local function GetStrip(unit)
 	return s
 end
 
--- dim = buff is on, red border = missing, minutes = running out
+-- dim = buff is on (blessings: a different one of yours is on), red border = missing, minutes = running out;
+-- your blessing that is on them stays bright
 local function Paint(b, status, left)
-	b.icon:SetDesaturated(status == "ok")
-	b.icon:SetAlpha(status == "ok" and 0.35 or 1)
+	local dim = status == "ok" or status == "other"
+	b.icon:SetDesaturated(dim)
+	b.icon:SetAlpha(dim and 0.35 or 1)
 	b.border:SetShown(status == "missing")
 	b.time:SetText(status == "low" and left and ("%dm"):format(math.ceil(left / 60)) or "")
 end
@@ -298,7 +317,12 @@ local function UpdateStrips(auraCache, combat)
 						b:Show()
 					end
 					b.icon:SetTexture(SpellIcon(b.spell or CastName(e)))
-					if auras then Paint(b, ns.BuffStatus(auras, e.names, GetTime(), warn)) end
+					local group = e.def.group and B.byKey[e.def.group]
+					if auras and group then
+						Paint(b, ns.ExclusiveStatus(auras.mine, e.names, group.names, GetTime(), warn))
+					elseif auras then
+						Paint(b, ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn))
+					end
 				end
 			end
 			if not combat then
@@ -325,7 +349,7 @@ local function Update()
 		for _, e in ipairs(B.entries) do
 			if e.def.remember then
 				for _, n in ipairs(e.known) do
-					if mine[n] then s.last[e.def.key] = n end
+					if Pick(e, mine)[n] then s.last[e.def.key] = n end
 				end
 			end
 		end
@@ -340,7 +364,7 @@ local function Update()
 				for _, u in ipairs(units) do
 					local auras = auraCache[u]
 					if auras and (u == "player" or not e.def.self) then
-						local st = ns.BuffStatus(auras, e.names, GetTime(), warn)
+						local st = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
 						if st ~= "ok" and Reachable(u, spell) then list[#list + 1] = u end
 						if u == "player" and st == "missing" then selfMissing[#selfMissing + 1] = spell end
 					end
