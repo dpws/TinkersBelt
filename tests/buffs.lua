@@ -28,10 +28,18 @@ check("paladin single blessings", #pal == 7 and pal[2].reminder == false)
 
 -- blessings: only one of yours per target
 local all = { "Might", "Wisdom", "Kings" }
-check("blessing active", ns.ExclusiveStatus({ Might = 1000 }, { "Might" }, all, 100, 180) == "active")
-check("other blessing of mine", ns.ExclusiveStatus({ Might = 1000 }, { "Wisdom" }, all, 100, 180) == "other")
-check("none of mine", ns.ExclusiveStatus({}, { "Wisdom" }, all, 100, 180) == "missing")
-check("mine running out", ns.ExclusiveStatus({ Might = 200 }, { "Might" }, all, 100, 180) == "low")
+check("blessing active", ns.ExclusiveStatus({ Might = 1000 }, { Might = 1000 }, { "Might" }, all, 100, 180) == "active")
+check("other blessing of mine", ns.ExclusiveStatus({ Might = 1000 }, { Might = 1000 }, { "Wisdom" }, all, 100, 180) == "other")
+check("none of mine", ns.ExclusiveStatus({}, {}, { "Wisdom" }, all, 100, 180) == "missing")
+check("mine running out", ns.ExclusiveStatus({ Might = 200 }, { Might = 200 }, { "Might" }, all, 100, 180) == "low")
 check("paladin counts only own casts", ns.BUFF_SPELLS.PALADIN[1].mine and ns.BUFF_SPELLS.PALADIN[2].group == "blessing")
+
+-- another paladin's blessings: no duplicates
+check("taken by another paladin", ns.ExclusiveStatus({}, { Might = 1000 }, { "Might" }, all, 100, 180) == "taken")
+check("other paladin has Might, Wisdom free", ns.ExclusiveStatus({}, { Might = 1000 }, { "Wisdom" }, all, 100, 180) == "missing")
+local taken = function(n) return n == "Might" end
+check("skip remembered if taken", ns.BuffPickFree({ "Might", "Wisdom" }, "Might", taken) == "Wisdom")
+check("remembered if free", ns.BuffPickFree({ "Might", "Wisdom" }, "Wisdom", taken) == "Wisdom")
+check("all taken: nothing", ns.BuffPickFree({ "Might" }, nil, taken) == nil)
 
 print("buffs: " .. passed .. " passed")

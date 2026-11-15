@@ -17,12 +17,14 @@ function ns.BuffStatus(auras, names, now, warnSec)
 end
 
 -- one-of-a-kind buffs (a paladin's blessings: only one of yours per target): "active" = this one of yours is on
--- them, "low" = it's running out, "other" = a different one of yours is on them, "missing" = none of yours
-function ns.ExclusiveStatus(mine, names, allNames, now, warnSec)
+-- them, "low" = it's running out, "other" = a different one of yours is on them, "taken" = another paladin's
+-- copy of this one is on them (casting yours would duplicate it), "missing" = none of yours
+function ns.ExclusiveStatus(mine, all, names, allNames, now, warnSec)
 	local st, left = ns.BuffStatus(mine, names, now, warnSec)
 	if st == "ok" then return "active", left end
 	if st == "low" then return "low", left end
 	if ns.BuffStatus(mine, allNames, now, warnSec) ~= "missing" then return "other" end
+	if ns.BuffStatus(all, names, now, 0) ~= "missing" then return "taken" end
 	return "missing"
 end
 
@@ -32,6 +34,18 @@ function ns.BuffPickCast(known, remembered)
 		if n == remembered then return n end
 	end
 	return known[1]
+end
+
+-- like BuffPickCast, but skipping spells taken(name) says are already on the target; nil if all are
+function ns.BuffPickFree(known, remembered, taken)
+	if remembered and not taken(remembered) then
+		for _, n in ipairs(known) do
+			if n == remembered then return n end
+		end
+	end
+	for _, n in ipairs(known) do
+		if not taken(n) then return n end
+	end
 end
 
 -- Per class: cast = spell ids to cast (rank 1; first known is the default), also = ids that count as present
@@ -114,8 +128,11 @@ local function LoadSpells()
 		if #known > 0 then list[#list + 1] = { def = def, known = known, names = names } end
 	end
 	B.entries = list
-	B.byKey = {}
-	for _, e in ipairs(list) do B.byKey[e.def.key] = e end
+	B.byKey, B.byCast = {}, {}
+	for _, e in ipairs(list) do
+		B.byKey[e.def.key] = e
+		if e.def.group then B.byCast[e.known[1]] = e end -- e.g. Blessing of Might -> its entry (with Greater)
+	end
 end
 
 local function CastName(e) return ns.BuffPickCast(e.known, S().last[e.def.key]) end
@@ -309,13 +326,13 @@ local function UpdateStrips(auraCache, combat)
 				if wanted and auras then
 					local group = e.def.group and B.byKey[e.def.group]
 					if group then
-						status, left = ns.ExclusiveStatus(auras.mine, e.names, group.names, GetTime(), warn)
+						status, left = ns.ExclusiveStatus(auras.mine, auras.all, e.names, group.names, GetTime(), warn)
 					else
 						status, left = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
 					end
 				end
 				-- a blessing of yours is up on them: no blessing buttons until it runs low
-				local hide = status == "active" or status == "other"
+				local hide = status == "active" or status == "other" or status == "taken" -- taken: another paladin's copy is on them
 				if not combat then -- (buttons can't be created, shown or hidden in combat)
 					if wanted and not hide then
 						b = b or StripButton(strip, k)
@@ -373,16 +390,28 @@ local function Update()
 	if s.enabled then
 		for _, e in ipairs(B.entries) do
 			if Reminded(e) then
-				local spell, list = CastName(e), {}
+				local spell, list, first = CastName(e), {}, nil
 				for _, u in ipairs(units) do
 					local auras = auraCache[u]
 					if auras and (u == "player" or not e.def.self) then
 						local st = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
-						if st ~= "ok" and Reachable(u, spell) then list[#list + 1] = u end
+						local cast = spell
+						if e.def.mine and e.def.remember then
+							-- blessings: skip ones another paladin already put on them (yours would duplicate it)
+							cast = ns.BuffPickFree(e.known, S().last[e.def.key], function(n)
+								local single = B.byCast[n]
+								return single and ns.BuffStatus(auras.all, single.names, GetTime(), 0) ~= "missing"
+									and ns.BuffStatus(auras.mine, single.names, GetTime(), 0) == "missing"
+							end)
+						end
+						if st ~= "ok" and cast and Reachable(u, cast) then
+							list[#list + 1] = u
+							first = first or cast
+						end
 						if u == "player" and st == "missing" then selfMissing[#selfMissing + 1] = spell end
 					end
 				end
-				if #list > 0 then needs[#needs + 1] = { spell = spell, units = list } end
+				if #list > 0 then needs[#needs + 1] = { spell = first, units = list } end
 			end
 		end
 		if mine then
@@ -443,7 +472,7 @@ ns.slashCommands["buffs"] = function()
 				local f = FindFrame(unit)
 				local strip = strips[unit]
 				local shown = 0
-				for _, b in ipairs(strip and strip.buttons or {}) do if b:IsShown() then shown = shown + 1 end end
+				for _, b in pairs(strip and strip.buttons or {}) do if b:IsShown() then shown = shown + 1 end end
 				Say(("%s %s: frame=%s strip=%s buttons=%d auras=%s"):format(unit, GetUnitName(unit, true) or "?",
 					f and (f:GetName() or "unnamed") or "NOT FOUND", tostring(strip and strip:IsVisible()), shown,
 					Auras(unit) and "ok" or "hidden"))
