@@ -24,7 +24,8 @@ check("remembered unknown -> first", ns.BuffPickCast({ "Ice Armor" }, "Mage Armo
 -- data sanity: paladin reminder covers every blessing, each blessing also on its own button
 local pal = ns.BUFF_SPELLS.PALADIN
 check("paladin any-blessing entry", pal[1].key == "blessing" and #pal[1].cast == 6 and pal[1].strip == false)
-check("paladin single blessings", #pal == 7 and pal[2].reminder == false)
+check("paladin single blessings", #pal == 8 and pal[2].reminder == false)
+check("paladin aura", pal[8].key == "aura" and pal[8].self and pal[8].mine and #pal[8].cast == 7)
 
 -- blessings: only one of yours per target
 local all = { "Might", "Wisdom", "Kings" }

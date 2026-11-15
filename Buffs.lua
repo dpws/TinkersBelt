@@ -63,6 +63,9 @@ for _, b in ipairs(BLESSINGS) do
 	table.insert(paladin[1].also, b[3])
 	paladin[#paladin + 1] = { key = b[1], cast = { b[2] }, also = { b[3] }, reminder = false, mine = true, group = "blessing" }
 end
+-- your aura: Devotion, Retribution, Concentration, Shadow / Frost / Fire Resistance, Sanctity (recasts the last one;
+-- another paladin's copy of it on you doesn't count, the next free one is suggested instead)
+paladin[#paladin + 1] = { key = "aura", cast = { 465, 7294, 19746, 19876, 19888, 19891, 20218 }, self = true, mine = true, remember = true }
 ns.BUFF_SPELLS = {
 	MAGE = {
 		{ key = "int", cast = { 1459 }, also = { 23028 } },
@@ -455,11 +458,13 @@ local function Update()
 						local st = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
 						local cast = spell
 						if e.def.mine and e.def.remember then
-							-- blessings: skip ones another paladin already put on them (yours would duplicate it)
-							cast = ns.BuffPickFree(e.known, Chosen(u, auras) or S().last[e.def.key], function(n)
+							-- blessings / auras: skip ones another paladin already has on them (yours would duplicate it)
+							local remembered = (e.def.key == "blessing" and Chosen(u, auras)) or S().last[e.def.key]
+							cast = ns.BuffPickFree(e.known, remembered, function(n)
 								local single = B.byCast[n]
-								return single and ns.BuffStatus(auras.all, single.names, GetTime(), 0) ~= "missing"
-									and ns.BuffStatus(auras.mine, single.names, GetTime(), 0) == "missing"
+								local names = single and single.names or { n }
+								return ns.BuffStatus(auras.all, names, GetTime(), 0) ~= "missing"
+									and ns.BuffStatus(auras.mine, names, GetTime(), 0) == "missing"
 							end)
 						end
 						if st ~= "ok" and cast and Reachable(u, cast) then
