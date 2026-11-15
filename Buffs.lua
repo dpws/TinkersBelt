@@ -267,7 +267,7 @@ end
 
 local function UpdateStrips(auraCache, combat)
 	local s = S()
-	local show = s.enabled and s.strips and IsInGroup() and not IsInRaid()
+	local show = s.enabled and s.strips and not IsInRaid() -- solo too: your own frame
 	local warn = (s.warn or 3) * 60
 	local size = s.size or 18
 	for _, unit in ipairs(STRIP_UNITS) do
