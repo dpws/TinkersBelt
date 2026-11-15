@@ -301,32 +301,45 @@ local function UpdateStrips(auraCache, combat)
 		end
 		if strip:IsShown() then
 			local auras = auraCache[unit] or Auras(unit)
-			local n = 0
-			for _, e in ipairs(B.entries) do
-				-- (new buttons only out of combat: setting them up is blocked in combat)
-				if e.def.strip ~= false and (unit == "player" or not e.def.self) and not (combat and not strip.buttons[n + 1]) then
-					n = n + 1
-					local b = strip.buttons[n] or StripButton(strip, n)
-					strip.buttons[n] = b
-					if not combat then
+			local x = 0
+			for k, e in ipairs(B.entries) do
+				local b = strip.buttons[k] -- one button per buff, kept in place
+				local wanted = e.def.strip ~= false and (unit == "player" or not e.def.self)
+				local status, left
+				if wanted and auras then
+					local group = e.def.group and B.byKey[e.def.group]
+					if group then
+						status, left = ns.ExclusiveStatus(auras.mine, e.names, group.names, GetTime(), warn)
+					else
+						status, left = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
+					end
+				end
+				-- a blessing of yours is up on them: no blessing buttons until it runs low
+				local hide = status == "active" or status == "other"
+				if not combat then -- (buttons can't be created, shown or hidden in combat)
+					if wanted and not hide then
+						b = b or StripButton(strip, k)
+						strip.buttons[k] = b
 						b.spell = CastName(e)
 						b:SetAttribute("spell", b.spell)
 						b:SetSize(size, size)
 						b:ClearAllPoints()
-						b:SetPoint("LEFT", strip, "LEFT", (n - 1) * (size + 2), 0)
+						b:SetPoint("LEFT", strip, "LEFT", x * (size + 2), 0)
 						b:Show()
+						x = x + 1
+					elseif b then
+						b:Hide()
 					end
+				end
+				if b and b:IsShown() then
 					b.icon:SetTexture(SpellIcon(b.spell or CastName(e)))
-					local group = e.def.group and B.byKey[e.def.group]
-					if auras and group then
-						Paint(b, ns.ExclusiveStatus(auras.mine, e.names, group.names, GetTime(), warn))
-					elseif auras then
-						Paint(b, ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn))
-					end
+					if status then Paint(b, status, left) end
 				end
 			end
 			if not combat then
-				for i = n + 1, #strip.buttons do strip.buttons[i]:Hide() end
+				for k, b in pairs(strip.buttons) do
+					if k > #B.entries then b:Hide() end
+				end
 			end
 		end
 	end
