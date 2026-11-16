@@ -85,18 +85,51 @@ function R.Layout()
 	snd:SetShown(s.snd)
 end
 
-local function SndAura()
-	local name = SpellName(SND)
+local SND_IDS = { 5171, 6774 } -- ranks 1 and 2
+
+-- the Slice and Dice aura table, or nil; by spell ID first, then by name
+local function FindSnd()
+	local byId = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+	if byId then
+		for _, id in ipairs(SND_IDS) do
+			local ok, a = pcall(byId, id)
+			if ok and a then return a, "id" end
+		end
+	end
 	local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
-	if not (name and get) then return nil end
+	local name = SpellName(SND)
+	if not get then return nil end
 	for i = 1, 40 do
 		local ok, a = pcall(get, "player", i, "HELPFUL")
 		if not ok or not a then return nil end
-		if not Secret(a.name) and a.name == name then
-			if Secret(a.expirationTime) or Secret(a.duration) then return nil end
-			return a.expirationTime, a.duration
-		end
+		local sid = not Secret(a.spellId) and a.spellId
+		if sid == 5171 or sid == 6774 or (name and not Secret(a.name) and a.name == name) then return a, "scan" end
 	end
+end
+
+-- expirationTime, duration (numbers) or nil; secret = the aura is up but its timer is hidden
+local function SndAura()
+	local a = FindSnd()
+	if not a then return nil end
+	if Secret(a.expirationTime) or Secret(a.duration) then return nil, nil, a end
+	return a.expirationTime, a.duration, a
+end
+
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.snd = function()
+	ns.Diagnose(function(Say)
+		local a, how = FindSnd()
+		Say(("snd: bar=%s panel=%s shown=%s found=%s"):format(tostring(S().snd), tostring(panel ~= nil),
+			tostring(panel and panel:IsShown()), tostring(how)))
+		if a then
+			Say(("snd: expiration=%s duration=%s id=%s"):format(Secret(a.expirationTime) and "SECRET" or tostring(a.expirationTime),
+				Secret(a.duration) and "SECRET" or tostring(a.duration), tostring(a.auraInstanceID)))
+		end
+		Say(("snd: GetPlayerAuraBySpellID=%s GetAuraDuration=%s SetTimerDuration=%s"):format(
+			tostring(C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID ~= nil),
+			tostring(C_UnitAuras and C_UnitAuras.GetAuraDuration ~= nil),
+			tostring(snd and snd.SetTimerDuration ~= nil)))
+	end)
 end
 
 local function Cooldown(id)
@@ -136,13 +169,23 @@ local function Update()
 		end
 	end
 	if s.snd then
-		local exp, dur = SndAura()
+		local exp, dur, aura = SndAura()
 		if exp and dur and dur > 0 then
 			local left = math.max(exp - now, 0)
 			snd:SetMinMaxValues(0, dur)
 			snd:SetValue(left)
 			snd.text:SetFormattedText("%d", math.ceil(left))
+		elseif aura and not Secret(aura.auraInstanceID) and snd.SetTimerDuration and C_UnitAuras.GetAuraDuration then
+			-- timer hidden from addons: the game can still drive the bar from the aura (once per aura)
+			if snd.timerAura ~= aura.auraInstanceID then
+				local ok = pcall(function()
+					snd:SetTimerDuration(C_UnitAuras.GetAuraDuration("player", aura.auraInstanceID), nil, 1) -- 1 = drain
+				end)
+				snd.timerAura = ok and aura.auraInstanceID or nil
+				snd.text:SetText("")
+			end
 		else
+			snd.timerAura = nil
 			snd:SetValue(0)
 			snd.text:SetText("")
 		end
