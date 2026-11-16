@@ -95,6 +95,9 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		db.buffs.off = db.buffs.off or {}
 		db.buffs.last = db.buffs.last or {}
 		db.buffs.custom = db.buffs.custom or {} -- [spellID] = true: extra buffs to keep on yourself
+		db.rogueTimers = db.rogueTimers or { mode = "combat", snd = true, size = 28, off = {} }
+		db.lockbox = db.lockbox or { enabled = true }
+		db.opener = db.opener or { markers = true, weapons = true, sets = {} }
 		db.buffs.lastOn = db.buffs.lastOn or {} -- blessing you give each player, by name
 		db.restock = db.restock or { enabled = true, budget = 50000, items = {} } -- budget in copper (5g)
 		-- older settings: combo bar switched off with a checkbox

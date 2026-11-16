@@ -164,12 +164,16 @@ local function BuildPoisonStockPage(parent)
 			-- once recipes are known, offer only poisons this character can craft
 			local known = ns.db.poisonRecipes
 			local onlyKnown = known and next(known) ~= nil
+			local any = false
 			for _, id in ipairs(ns.AllPoisonIds()) do
 				if not p.stock[id] and (not onlyKnown or known[id]) then
+					any = true
 					root:CreateButton(("|T%s:16|t %s"):format(ItemIcon(id) or 134400, ItemName(id)),
 						function() p.stock[id] = 20; Refresh(); Changed() end)
 				end
 			end
+			-- an empty menu draws broken: say why instead
+			if not any then root:CreateButton("All your poisons are already added"):SetEnabled(false) end
 		end)
 	end)
 	for i = 1, MAX_ROWS do
@@ -224,6 +228,70 @@ local function BuildPoisonStockPage(parent)
 	P:Refresher(Refresh)
 	P:EndCard()
 	P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
+	P:Finish()
+end
+
+local function BuildRogueTimersPage(parent)
+	local s = ns.db.rogueTimers
+	local function Relayout() if ns.RogueTimers then ns.RogueTimers.Layout() end end
+	local MODES = {}
+	for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do MODES[#MODES + 1] = { m.key, m.name } end
+	local P = T.Page(parent)
+	P:Card("Display")
+	P:Choice("Show", MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
+	P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end)
+	P:Slider("Icon size", 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
+	P:Card("Cooldowns")
+	for _, c in ipairs(ns.ROGUE_CDS or {}) do
+		local name = C_Spell.GetSpellName(c.id)
+		if name and IsPlayerSpell(c.id) then
+			P:Toggle(("|T%s:16|t  %s"):format(C_Spell.GetSpellTexture(c.id) or 134400, name),
+				function() return ns.RogueTimers.Shown(c) end,
+				function(v) s.off[c.id] = not v; Relayout() end)
+		end
+	end
+	P:Note("Bright = ready, dark with a sweep = cooling down. Only spells you know are listed. Use Unlock panels to move it.")
+	P:Finish()
+end
+
+local function BuildLockboxPage(parent)
+	local P = T.Page(parent)
+	P:Card("How it works")
+	P:Note("When your bags hold a lockbox (or junkbox, locked chest) your Lockpicking skill can open, a button appears. Click it: it casts Pick Lock on the box; click again to open it. The number = boxes ready. Boxes your skill is too low for are skipped. Use Unlock panels to move the button.")
+	P:Finish()
+end
+
+local function BuildOpenerPage(parent)
+	local s = ns.db.opener
+	local P = T.Page(parent)
+	P:Card("Target markers")
+	P:Toggle("Show Sap / Pick Pocket for my target while stealthed", function() return s.markers end, function(v) s.markers = v end)
+	P:Note("Sap: a humanoid that isn't fighting. Pick Pocket: a humanoid NPC you haven't picked yet this session.")
+	P:Card("Weapon sets")
+	P:Toggle("Show the weapon set buttons", function() return s.weapons end,
+		function(v) s.weapons = v; if ns.Opener then ns.Opener.UpdateSets() end end)
+	for _, set in ipairs({ { "opener", "Opener" }, { "fight", "Fight" } }) do
+		P:Custom(34, function(row)
+			local label = T.Text(row, "medium", 13)
+			label:SetPoint("LEFT")
+			label:SetWidth(380)
+			label:SetWordWrap(false)
+			local save = T.NewButton(row, "Save current weapons", 170, 26)
+			save:SetPoint("RIGHT")
+			local function Show()
+				local w = s.sets[set[1]]
+				local names = w and ((w.mh and w.mh.name or "-") .. (w.oh and (" + " .. w.oh.name) or "")) or "|cff8c96a3not saved|r"
+				label:SetText(set[2] .. ":  " .. names)
+			end
+			save:SetScript("OnClick", function()
+				if InCombatLockdown() then return end
+				if ns.Opener then ns.Opener.SaveSet(set[1]) end
+				Show()
+			end)
+			P:Refresher(Show)
+		end)
+	end
+	P:Note("Equip your opener weapons (e.g. a dagger for Ambush) and save them as Opener, then your fight weapons as Fight. Two buttons appear: click to swap (works in combat too). Teal frame = the set you're wearing. Use Unlock panels to move them.")
 	P:Finish()
 end
 
@@ -725,6 +793,16 @@ local GROUPS = {
 				local c = ns.db.combo
 				return (c.healthMode or "combat") ~= "off" or (c.energyMode or "combat") ~= "off" or (c.comboMode or "combat") ~= "off"
 			end },
+		{ name = "Timers", build = BuildRogueTimersPage, icon = ICON .. "Ability_Rogue_SliceDice",
+			desc = "Slice and Dice bar and your cooldowns.",
+			status = function() return ns.db.rogueTimers.mode ~= "off" end },
+		{ name = "Lockboxes", build = BuildLockboxPage, icon = ICON .. "INV_Box_04",
+			desc = "One button to pick and open your lockboxes.",
+			toggle = { function() return ns.db.lockbox.enabled end,
+				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
+		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "Ability_Sap",
+			desc = "Sap / Pick Pocket markers and opener weapon sets.",
+			status = function() return ns.db.opener.markers or ns.db.opener.weapons end },
 	} },
 }
 

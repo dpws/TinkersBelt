@@ -26,3 +26,6 @@ Profiles.lua
 Restock.lua
 Mana.lua
 Buffs.lua
+RogueTimers.lua
+Lockbox.lua
+Opener.lua
