@@ -35,6 +35,12 @@ local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 local SAP, PICK_POCKET = 6770, 921
 local picked = {} -- GUIDs you picked this session
+local lastPick = "none" -- for /dpws opener
+-- by name too: Forever may use another rank / id
+local function IsPickPocket(id)
+	if Secret(id) then return false end
+	return id == PICK_POCKET or (id ~= nil and C_Spell.GetSpellName(id) == C_Spell.GetSpellName(PICK_POCKET))
+end
 local humanCache = {} -- GUID -> humanoid (tooltip scans are slow)
 
 local sets, setButtons = nil, {}
@@ -119,7 +125,11 @@ local function UpdatePlates()
 	if stealthed then
 		for _, unit in ipairs(ns.NamePlateUnits()) do
 			local plate = C_NamePlate.GetNamePlateForUnit(unit)
-			local ok, tags = pcall(function() return ns.OpenerTags(UnitFacts(unit, true)) end)
+			local ok, tags = pcall(function()
+				local f = UnitFacts(unit, true)
+				f.picked = f.picked or (plate and plate.dpwsPicked) or false
+				return ns.OpenerTags(f)
+			end)
 			if plate and ok and #tags > 0 then
 				local t = PlateTag(plate)
 				t.Sap:Hide()
@@ -150,12 +160,15 @@ ns.slashCommands.opener = function()
 	ns.Diagnose(function(Say)
 		Say(("opener: markers=%s stealthed=%s plates=%d target=%s"):format(tostring(S().markers), tostring(Stealthed()),
 			#ns.NamePlateUnits(), tostring(UnitExists("target"))))
+		Say("opener: last Pick Pocket: " .. lastPick)
 		if UnitExists("target") then
 			local t = UnitFacts("target", Stealthed())
 			for _, k in ipairs({ "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
 				Say(("opener: %s=%s"):format(k, tostring(t[k])))
 			end
 			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
+			local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
+			Say(("opener: plate marked picked=%s"):format(tostring(plate and plate.dpwsPicked or false)))
 		end
 	end)
 end
@@ -259,13 +272,22 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterEvent("UPDATE_STEALTH")
 	ev:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 	ev:RegisterEvent("PLAYER_REGEN_ENABLED")
+	ev:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
+	ev:SetScript("OnEvent", function(_, event, unit, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
-			if spellID == PICK_POCKET then
-				local guid = UnitGUID("target")
-				if guid and not Secret(guid) then picked[guid] = true end
+			if IsPickPocket(spellID) then
+				lastPick = ("spell=%s mobID=%s plate=%s"):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
+					tostring(Read(C_NamePlate.GetNamePlateForUnit, "target") ~= nil))
+				local guid = Read(UnitGUID, "target")
+				if guid then picked[guid] = true end
+				-- the mob's ID can be hidden: also mark its plate (cleared when the plate goes away)
+				local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
+				if plate then plate.dpwsPicked = true end
 			end
+		elseif event == "NAME_PLATE_UNIT_REMOVED" then
+			local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
+			if plate then plate.dpwsPicked = nil end
 		elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
 			O.UpdateSets()
 		end
