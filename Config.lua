@@ -986,23 +986,35 @@ local function CreateWindow()
 		UpdateDots()
 	end)
 
-	local y = -18
+	-- nav list scrolls (mouse wheel) above the two buttons when a class has many tools
+	local list = CreateFrame("ScrollFrame", nil, side)
+	list:SetPoint("TOPLEFT")
+	list:SetPoint("BOTTOMRIGHT", 0, 94)
+	local listIn = CreateFrame("Frame", nil, list)
+	listIn:SetWidth(SIDEBAR)
+	list:SetScrollChild(listIn)
+	list:EnableMouseWheel(true)
+	list:SetScript("OnMouseWheel", function(self, d)
+		local max = math.max(listIn:GetHeight() - self:GetHeight(), 0)
+		self:SetVerticalScroll(math.min(math.max(self:GetVerticalScroll() - d * 40, 0), max))
+	end)
+	local y = -14
 	for _, group in ipairs(GROUPS) do
 		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
 			and #group.tools > 0 then
-			local label = T.Text(side, "semibold", 10, T.muted)
+			local label = T.Text(listIn, "semibold", 10, T.muted)
 			label:SetPoint("TOPLEFT", 26, y)
 			label:SetText(group.name:upper())
-			y = y - 22
+			y = y - 18
 			for _, tool in ipairs(group.tools) do
-				local nav = CreateFrame("Button", nil, side)
+				local nav = CreateFrame("Button", nil, listIn)
 				nav:SetPoint("TOPLEFT", 12, y)
-				nav:SetSize(SIDEBAR - 24, 36)
+				nav:SetSize(SIDEBAR - 24, 30)
 				nav.tool = tool
 				nav.active = T.Rounded(nav, T.Accent(0.10), 6, "BACKGROUND", 0)
 				nav.bar = nav:CreateTexture(nil, "ARTWORK")
-				nav.bar:SetPoint("TOPLEFT", 0, -7)
-				nav.bar:SetPoint("BOTTOMLEFT", 0, 7)
+				nav.bar:SetPoint("TOPLEFT", 0, -6)
+				nav.bar:SetPoint("BOTTOMLEFT", 0, 6)
 				nav.bar:SetWidth(3)
 				nav.bar:SetColorTexture(unpack(T.gold))
 				local hl = nav:CreateTexture(nil, "HIGHLIGHT")
@@ -1044,11 +1056,12 @@ local function CreateWindow()
 				nav:SetScript("OnClick", function() Select(nav) end)
 				navs[#navs + 1] = nav
 				toolSelectors[tool.name] = function() Select(nav) end
-				y = y - 38
+				y = y - 31
 			end
-			y = y - 14
+			y = y - 10
 		end
 	end
+	listIn:SetHeight(-y)
 	if navs[1] then
 		Select(navs[1])
 	else
