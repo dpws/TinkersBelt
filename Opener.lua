@@ -273,6 +273,8 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 	ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 	ev:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+	ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+	local gone = {} -- picked plates that just went away: { name, t }
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:SetScript("OnEvent", function(_, event, unit, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
@@ -283,11 +285,25 @@ table.insert(ns.loginHooks, function()
 				if guid then picked[guid] = true end
 				-- the mob's ID can be hidden: also mark its plate (cleared when the plate goes away)
 				local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
-				if plate then plate.dpwsPicked = true end
+				if plate then plate.dpwsPicked = Read(UnitName, "target") or true end
 			end
 		elseif event == "NAME_PLATE_UNIT_REMOVED" then
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
+			-- plates get rebuilt (e.g. during Pick Lock): a plate with the same name back within 5s keeps the mark
+			if plate and type(plate.dpwsPicked) == "string" then gone[#gone + 1] = { name = plate.dpwsPicked, t = GetTime() } end
 			if plate then plate.dpwsPicked = nil end
+		elseif event == "NAME_PLATE_UNIT_ADDED" then
+			local plate, name = Read(C_NamePlate.GetNamePlateForUnit, unit), Read(UnitName, unit)
+			for i = #gone, 1, -1 do
+				local g = gone[i]
+				if GetTime() - g.t > 5 then
+					table.remove(gone, i)
+				elseif plate and name and g.name == name then
+					plate.dpwsPicked = name
+					table.remove(gone, i)
+					break
+				end
+			end
 		elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
 			O.UpdateSets()
 		end
