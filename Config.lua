@@ -261,7 +261,7 @@ local function BuildManaPage(parent)
 	P:Card("Size")
 	P:Slider("Width", 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
 	P:Slider("Height", 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
-	P:Note("Orange: the 5 seconds after spending mana (no spirit regen), with a countdown. Blue spark: where the next 2-second mana tick is. Hidden at full mana. Use Unlock panels to move it.")
+	P:Note("Orange: the 5 seconds after spending mana (no regen), with a countdown. Blue: regenerating, filled to your current mana. Hidden at full mana. Use Unlock panels to move it.")
 	P:Finish()
 end
 
@@ -700,7 +700,7 @@ local GROUPS = {
 	} },
 	{ name = "Caster", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, SHAMAN = true, PALADIN = true, HUNTER = true }, tools = {
 		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
-			desc = "The five second rule and the next mana tick.",
+			desc = "The five second rule, then regeneration.",
 			status = function() return ns.db.mana.mode ~= "off" end },
 		{ name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
 			desc = "Never forget a buff: on you, your group, and beside party frames.",

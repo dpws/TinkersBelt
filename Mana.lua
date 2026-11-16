@@ -1,20 +1,16 @@
 local _, ns = ...
 
-local FSR, TICK = 5, 2 -- the five second rule; Classic mana ticks every 2 seconds
+local FSR = 5 -- the five second rule (Forever has no mana ticks: regen is continuous, but stops for 5s after spending)
 
--- What to show at `now`. lastSpend: when mana was last spent; lastTick: when a mana tick was last seen.
--- The 2s tick clock keeps running during the 5s rule (only spirit regen stops), so ticks are timed from
--- the last seen tick, or from the end of the 5s when none was seen yet.
--- Returns nil at full mana, else { phase = "fsr" | "tick", fraction, remaining?, tickFraction }.
-function ns.ManaPhase(now, lastSpend, lastTick, full)
+-- What to show at `now`. lastSpend: when mana was last spent.
+-- Returns nil at full mana, else { phase = "fsr", remaining, fraction } or { phase = "regen" }.
+function ns.ManaPhase(now, lastSpend, full)
 	if full then return nil end
-	local base = lastTick or (lastSpend and lastSpend + FSR)
-	local tickFraction = base and ((now - base) % TICK) / TICK or 0
 	if lastSpend and now - lastSpend < FSR then
 		local remaining = FSR - (now - lastSpend)
-		return { phase = "fsr", remaining = remaining, fraction = remaining / FSR, tickFraction = tickFraction }
+		return { phase = "fsr", remaining = remaining, fraction = remaining / FSR }
 	end
-	return { phase = "tick", fraction = tickFraction, tickFraction = tickFraction }
+	return { phase = "regen" }
 end
 
 if not CreateFrame then return end -- offline test stops here
@@ -26,9 +22,9 @@ ns.Mana = M
 
 local MANA = Enum.PowerType.Mana
 local function Secret(v) return issecretvalue and issecretvalue(v) end
-local lastSpend, lastTick, lastMana
+local lastSpend, lastMana
 local lastPowerEvent = 0 -- mana change events stop once mana is full: the fallback when mana is hidden
-local bar, fill, spark, text
+local bar, fill, text
 
 local function Mode() return ns.db.mana.mode or "always" end
 
@@ -43,7 +39,6 @@ function M.Layout()
 	if not bar then return end
 	local m = ns.db.mana
 	bar:SetSize(m.width, m.height)
-	spark:SetHeight(m.height + 6)
 end
 
 local function Update()
@@ -52,27 +47,24 @@ local function Update()
 	local full
 	if mana and max then
 		full = mana >= max
-	else -- value hidden from addons: full = no regen ticks lately and not in the 5 seconds
-		full = now - lastPowerEvent > TICK + 0.5 and not (lastSpend and now - lastSpend < FSR)
+	else -- value hidden from addons: full = no mana changes lately and not in the 5 seconds
+		full = now - lastPowerEvent > 2.5 and not (lastSpend and now - lastSpend < FSR)
 	end
-	local phase = ns.ManaPhase(now, lastSpend, lastTick, full)
+	local phase = ns.ManaPhase(now, lastSpend, full)
 	local mode = Mode()
 	local show = mode ~= "off" and (ns.unlocked or (phase and (mode == "always" or UnitAffectingCombat("player"))))
 	bar:SetShown(show and true or false)
 	if not show then return end
-	phase = phase or { phase = "tick", fraction = 0 } -- unlocked at full mana: show an empty bar to place it
+	phase = phase or { phase = "regen" } -- unlocked at full mana: show the bar to place it
 	local w = bar:GetWidth()
 	if phase.phase == "fsr" then
+		fill:SetColorTexture(1, 0.55, 0.1) -- orange: no regen, counting down
 		fill:SetWidth(math.max(w * phase.fraction, 0.01))
-		fill:Show()
-		spark:Hide()
 		text:SetFormattedText("%.1f", phase.remaining)
 	else
-		fill:Hide()
-		spark:ClearAllPoints()
-		spark:SetPoint("CENTER", bar, "LEFT", w * phase.fraction, 0)
-		spark:Show()
-		text:SetText("")
+		fill:SetColorTexture(0.3, 0.6, 1) -- blue: regenerating, filled to your current mana
+		fill:SetWidth(math.max(w * ((mana and max and max > 0) and mana / max or 1), 0.01))
+		text:SetText("regen")
 	end
 end
 
@@ -87,10 +79,7 @@ end
 local function OnPower()
 	local mana = ReadMana()
 	if not mana then return end
-	if lastMana then
-		if mana < lastMana then lastSpend = GetTime() -- spent (backup for casts the spell check missed)
-		elseif mana > lastMana then lastTick = GetTime() end -- a regen tick
-	end
+	if lastMana and mana < lastMana then lastSpend = GetTime() end -- spent (backup for casts the spell check missed)
 	lastMana = mana
 end
 
@@ -101,8 +90,8 @@ ns.slashCommands.mana = function()
 		local mana, max = ReadMana()
 		Say(("mana: readable=%s value=%s max=%s"):format(tostring(mana ~= nil), tostring(mana), tostring(max)))
 		local now = GetTime()
-		Say(("mana: last mana change %.1fs ago, last spend %s, last tick %s"):format(now - lastPowerEvent,
-			lastSpend and ("%.1fs ago"):format(now - lastSpend) or "never", lastTick and ("%.1fs ago"):format(now - lastTick) or "never"))
+		Say(("mana: last mana change %.1fs ago, last spend %s"):format(now - lastPowerEvent,
+			lastSpend and ("%.1fs ago"):format(now - lastSpend) or "never"))
 	end)
 end
 
@@ -118,10 +107,6 @@ table.insert(ns.loginHooks, function()
 	fill = bar:CreateTexture(nil, "ARTWORK")
 	fill:SetPoint("TOPLEFT")
 	fill:SetPoint("BOTTOMLEFT")
-	fill:SetColorTexture(1, 0.55, 0.1) -- orange: the 5 seconds
-	spark = bar:CreateTexture(nil, "OVERLAY")
-	spark:SetWidth(3)
-	spark:SetColorTexture(0.3, 0.6, 1) -- blue: next mana tick
 	text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	text:SetPoint("LEFT", bar, "RIGHT", 4, 0)
 	if m.pos then
