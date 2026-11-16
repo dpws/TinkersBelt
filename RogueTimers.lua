@@ -132,13 +132,29 @@ ns.slashCommands.snd = function()
 	end)
 end
 
+-- by name: the ids are rank 1, and a rank you've replaced never goes on cooldown
 local function Cooldown(id)
+	local spell = SpellName(id) or id
 	if C_Spell and C_Spell.GetSpellCooldown then
-		local ok, info = pcall(C_Spell.GetSpellCooldown, id)
+		local ok, info = pcall(C_Spell.GetSpellCooldown, spell)
 		if ok and info then return info.startTime, info.duration end
 	elseif GetSpellCooldown then
-		return GetSpellCooldown(id)
+		return GetSpellCooldown(spell)
 	end
+end
+
+ns.slashCommands.cds = function()
+	ns.Diagnose(function(Say)
+		local now = GetTime()
+		for _, b in pairs(icons) do
+			if b:IsShown() then
+				local start, duration = Cooldown(b.spell)
+				local function V(v) return Secret(v) and "SECRET" or tostring(v) end
+				Say(("cds: %s start=%s duration=%s left=%s"):format(tostring(SpellName(b.spell)), V(start), V(duration),
+					(Secret(start) or Secret(duration)) and "?" or ("%.1f"):format(ns.CooldownLeft(start, duration, now))))
+			end
+		end
+	end)
 end
 
 local function Update()
