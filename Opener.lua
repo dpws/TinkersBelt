@@ -35,7 +35,9 @@ local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 local SAP, PICK_POCKET = 6770, 921
 local picked = {} -- GUIDs you picked this session
-local lastPick = "none" -- for /dpws opener
+local lastPick, lastLoss = "none", "none" -- for /dpws opener
+local keepTarget = false -- your target was just picked: keep its plate marked while it stays your target
+local pickTime = 0
 -- by name too: Forever may use another rank / id
 local function IsPickPocket(id)
 	if Secret(id) then return false end
@@ -120,6 +122,10 @@ local function PlateTag(plate)
 end
 
 local function UpdatePlates()
+	if keepTarget then -- the picked target may have a new plate by now
+		local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
+		if plate and not plate.dpwsPicked then plate.dpwsPicked = Read(UnitName, "target") or true end
+	end
 	local seen = {}
 	local stealthed = S().markers and Stealthed()
 	if stealthed then
@@ -161,6 +167,7 @@ ns.slashCommands.opener = function()
 		Say(("opener: markers=%s stealthed=%s plates=%d target=%s"):format(tostring(S().markers), tostring(Stealthed()),
 			#ns.NamePlateUnits(), tostring(UnitExists("target"))))
 		Say("opener: last Pick Pocket: " .. lastPick)
+		Say("opener: last mark lost: " .. lastLoss)
 		if UnitExists("target") then
 			local t = UnitFacts("target", Stealthed())
 			for _, k in ipairs({ "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
@@ -269,6 +276,7 @@ table.insert(ns.loginHooks, function()
 
 	local ev = CreateFrame("Frame")
 	ev:RegisterEvent("PLAYER_TARGET_CHANGED")
+	ev:RegisterEvent("LOOT_CLOSED")
 	ev:RegisterEvent("UPDATE_STEALTH")
 	ev:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 	ev:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -279,7 +287,9 @@ table.insert(ns.loginHooks, function()
 	ev:SetScript("OnEvent", function(_, event, unit, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
 			if IsPickPocket(spellID) then
-				lastPick = ("spell=%s mobID=%s plate=%s"):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
+				keepTarget, pickTime = true, GetTime()
+				lastPick = ("spell=%s mobID=%s name=%s plate=%s"):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
+					tostring(Read(UnitName, "target") ~= nil),
 					tostring(Read(C_NamePlate.GetNamePlateForUnit, "target") ~= nil))
 				local guid = Read(UnitGUID, "target")
 				if guid then picked[guid] = true end
@@ -291,6 +301,9 @@ table.insert(ns.loginHooks, function()
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
 			-- plates get rebuilt (e.g. during Pick Lock): a plate with the same name back within 5s keeps the mark
 			if plate and type(plate.dpwsPicked) == "string" then gone[#gone + 1] = { name = plate.dpwsPicked, t = GetTime() } end
+			if plate and plate.dpwsPicked then
+				lastLoss = ("plate removed %.1fs after the pick, name kept=%s"):format(GetTime() - pickTime, tostring(type(plate.dpwsPicked) == "string"))
+			end
 			if plate then plate.dpwsPicked = nil end
 		elseif event == "NAME_PLATE_UNIT_ADDED" then
 			local plate, name = Read(C_NamePlate.GetNamePlateForUnit, unit), Read(UnitName, unit)
@@ -304,6 +317,8 @@ table.insert(ns.loginHooks, function()
 					break
 				end
 			end
+		elseif event == "PLAYER_TARGET_CHANGED" then
+			keepTarget = false
 		elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
 			O.UpdateSets()
 		end
