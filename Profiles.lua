@@ -99,9 +99,11 @@ local function CurrentRank(tab, i) return select(5, GetTalentInfo(tab, i)) or 0 
 
 local function SnapshotTalents()
 	local talents = {}
-	for tab = 1, GetNumTalentTabs() do
-		for i = 1, GetNumTalents(tab) do
-			local name, _, tier, _, rank = GetTalentInfo(tab, i)
+	-- Forever has GetTalentInfo(tab, i) but no GetNumTalentTabs / GetNumTalents: 3 trees, walk until a slot is empty
+	for tab = 1, GetNumTalentTabs and GetNumTalentTabs() or 3 do
+		for i = 1, GetNumTalents and GetNumTalents(tab) or 40 do
+			local ok, name, _, tier, _, rank = pcall(GetTalentInfo, tab, i)
+			if not ok or not name then break end
 			if rank and rank > 0 then talents[#talents + 1] = { tab = tab, i = i, tier = tier, rank = rank, name = name } end
 		end
 	end

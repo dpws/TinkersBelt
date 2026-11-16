@@ -38,27 +38,56 @@ local picked = {} -- GUIDs you picked this session
 
 local marker, sets, setButtons = nil, nil, {}
 
+-- one value at a time: Forever can hide (secret) any of them; nil = couldn't read
+local function Read(fn, ...)
+	local ok, v = pcall(fn, ...)
+	if not ok or Secret(v) then return nil end
+	return v
+end
+
+local function TargetFacts()
+	local ctype = Read(UnitCreatureType, "target")
+	local guid = Read(UnitGUID, "target")
+	local stealthed = IsStealthed and Read(IsStealthed)
+	if stealthed == nil then stealthed = Read(GetShapeshiftForm) == 1 end -- rogue Stealth is stance 1
+	return {
+		stealthed = stealthed,
+		attackable = Read(UnitCanAttack, "player", "target"),
+		dead = Read(UnitIsDeadOrGhost, "target"),
+		combat = Read(UnitAffectingCombat, "target"),
+		humanoid = ctype == nil or ns.HUMANOID[ctype] or false, -- unreadable type: assume it may be humanoid
+		player = Read(UnitIsPlayer, "target"),
+		picked = guid ~= nil and picked[guid] or false,
+		ctype = ctype,
+	}
+end
+
 local function UpdateMarker()
 	if not marker then return end
 	local tags = {}
 	if S().markers and UnitExists("target") then
-		local ok = pcall(function()
-			local guid = UnitGUID("target")
-			tags = ns.OpenerTags({
-				stealthed = IsStealthed(),
-				attackable = UnitCanAttack("player", "target"),
-				dead = UnitIsDeadOrGhost("target"),
-				combat = UnitAffectingCombat("target"),
-				humanoid = ns.HUMANOID[UnitCreatureType("target") or ""],
-				player = UnitIsPlayer("target"),
-				picked = guid and not Secret(guid) and picked[guid],
-			})
-		end)
-		if not ok then tags = {} end
+		local ok, t = pcall(ns.OpenerTags, TargetFacts())
+		tags = ok and t or {}
 	end
 	marker.text:SetText(table.concat(tags, "  ·  "))
 	marker:SetShown(#tags > 0 or ns.unlocked)
 	if ns.unlocked and #tags == 0 then marker.text:SetText("Sap  ·  Pick Pocket") end
+end
+
+-- /dpws opener: what the marker sees for your target
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands.opener = function()
+	ns.Diagnose(function(Say)
+		Say(("opener: markers=%s panel=%s target=%s"):format(tostring(S().markers), tostring(marker ~= nil),
+			tostring(UnitExists("target"))))
+		if UnitExists("target") then
+			local t = TargetFacts()
+			for _, k in ipairs({ "stealthed", "attackable", "dead", "combat", "ctype", "humanoid", "player", "picked" }) do
+				Say(("opener: %s=%s"):format(k, tostring(t[k])))
+			end
+			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
+		end
+	end)
 end
 
 ---------------------------------------------------------------------------
