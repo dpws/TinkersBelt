@@ -273,6 +273,8 @@ local function BuildOpenerPage(parent)
 	local P = T.Page(parent)
 	P:Card("Target markers")
 	P:Toggle("Show Sap / Pick Pocket icons on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
+	P:Slider("Icon size", 12, 48, 1, "px", function() return s.iconSize or 18 end, function(v) s.iconSize = v end)
+	P:Slider("Icon spacing", 0, 20, 1, "px", function() return s.iconGap or 2 end, function(v) s.iconGap = v end)
 	P:Note("Icons appear above enemy nameplates, no target needed (enemy nameplates must be on). Sap: a humanoid that isn't fighting. Pick Pocket: a humanoid NPC you haven't picked yet this session.")
 	P:Card("Weapon sets")
 	P:Toggle("Show the weapon set buttons", function() return s.weapons end,

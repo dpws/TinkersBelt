@@ -103,7 +103,7 @@ local function PlateTag(plate)
 	t:SetPoint("BOTTOM", plate, "TOP", 0, 2)
 	local function Icon(spell)
 		local i = t:CreateTexture(nil, "OVERLAY")
-		i:SetSize(18, 18)
+		i:SetSize(S().iconSize or 18, S().iconSize or 18)
 		i:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 		i:SetTexture(C_Spell.GetSpellTexture(spell))
 		return i
@@ -127,7 +127,10 @@ local function UpdatePlates()
 				for i, tag in ipairs(tags) do
 					local icon = t[tag]
 					icon:ClearAllPoints()
-					icon:SetPoint("CENTER", t, "CENTER", (i - (#tags + 1) / 2) * 20, 0)
+					local size = S().iconSize or 18
+					t:SetHeight(size) -- grows upward from the plate
+					icon:SetSize(size, size)
+					icon:SetPoint("CENTER", t, "CENTER", (i - (#tags + 1) / 2) * (size + (S().iconGap or 2)), 0)
 					icon:Show()
 				end
 				t:Show()
