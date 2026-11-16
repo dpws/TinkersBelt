@@ -45,9 +45,28 @@ local function Read(fn, ...)
 	return v
 end
 
+-- creature type hidden: read it from the tooltip ("Level 30 Humanoid"); nil = tooltip unreadable too
+local function TooltipHumanoid()
+	local ok, data = pcall(C_TooltipInfo.GetUnit, "target")
+	if not ok or not data or not data.lines then return nil end
+	local read = false
+	for _, l in ipairs(data.lines) do
+		local s = l.leftText
+		if s and not Secret(s) then
+			read = true
+			for word in pairs(ns.HUMANOID) do
+				if s:find(word, 1, true) then return true end
+			end
+		end
+	end
+	if read then return false end
+end
+
 local function TargetFacts()
 	local ctype = Read(UnitCreatureType, "target")
 	local guid = Read(UnitGUID, "target")
+	local humanoid
+	if ctype then humanoid = ns.HUMANOID[ctype] or false else humanoid = TooltipHumanoid() end
 	local stealthed = IsStealthed and Read(IsStealthed)
 	if stealthed == nil then stealthed = Read(GetShapeshiftForm) == 1 end -- rogue Stealth is stance 1
 	return {
@@ -55,7 +74,8 @@ local function TargetFacts()
 		attackable = Read(UnitCanAttack, "player", "target"),
 		dead = Read(UnitIsDeadOrGhost, "target"),
 		combat = Read(UnitAffectingCombat, "target"),
-		humanoid = ctype == nil or ns.HUMANOID[ctype] or false, -- unreadable type: assume it may be humanoid
+		humanoid = humanoid ~= false, -- nil = unreadable everywhere: assume it may be humanoid
+		tooltip = ctype == nil and humanoid,
 		player = Read(UnitIsPlayer, "target"),
 		picked = guid ~= nil and picked[guid] or false,
 		ctype = ctype,
@@ -82,7 +102,7 @@ ns.slashCommands.opener = function()
 			tostring(UnitExists("target"))))
 		if UnitExists("target") then
 			local t = TargetFacts()
-			for _, k in ipairs({ "stealthed", "attackable", "dead", "combat", "ctype", "humanoid", "player", "picked" }) do
+			for _, k in ipairs({ "stealthed", "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
 				Say(("opener: %s=%s"):format(k, tostring(t[k])))
 			end
 			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
