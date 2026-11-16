@@ -177,6 +177,7 @@ local function BuildPoisonStockPage(parent)
 			if not any then root:CreateButton("All your poisons are already added"):SetEnabled(false) end
 		end)
 	end)
+	local card, rowsTop = P.card, P.card.y -- the card shrinks to the poisons listed
 	for i = 1, MAX_ROWS do
 		P:Custom(30, function(row)
 			local r = {}
@@ -224,11 +225,16 @@ local function BuildPoisonStockPage(parent)
 				r.remove:SetScript("OnClick", function() p.stock[id] = nil; Refresh(); Changed() end)
 			end
 		end
+		local hidden = (MAX_ROWS - math.min(#ids, MAX_ROWS)) * 30
+		card:SetHeight(-rowsTop + (MAX_ROWS * 30 - hidden) + 10)
+		parent:SetHeight(math.max(-P.y + 8 - hidden, 1)) -- scroll area follows
 		add:GenerateMenu()
 	end
 	P:Refresher(Refresh)
 	P:EndCard()
-	P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
+	local tip = P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
+	tip:ClearAllPoints()
+	tip:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 2, -18)
 	P:Finish()
 end
 
