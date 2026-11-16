@@ -145,7 +145,8 @@ local function Update()
 	if not panel then return end
 	local s = S()
 	local mode = s.mode or "combat"
-	local show = ns.unlocked or mode == "always" or (mode == "combat" and UnitAffectingCombat("player"))
+	-- "combat" also shows while Slice and Dice is up (often cast before the pull)
+	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (s.snd and FindSnd() ~= nil)))
 	panel:SetShown(show)
 	if not show then return end
 	local now = GetTime()
