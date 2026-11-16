@@ -57,14 +57,13 @@ local function Update()
 	if not show then return end
 	phase = phase or { phase = "regen" } -- unlocked at full mana: show the bar to place it
 	local w = bar:GetWidth()
-	if phase.phase == "fsr" then
-		fill:SetColorTexture(1, 0.55, 0.1) -- orange: no regen, counting down
-		fill:SetWidth(math.max(w * phase.fraction, 0.01))
-		text:SetFormattedText("%.1f", phase.remaining)
-	else
-		fill:SetColorTexture(0.3, 0.6, 1) -- blue: regenerating, filled to your current mana
-		fill:SetWidth(math.max(w * ((mana and max and max > 0) and mana / max or 1), 0.01))
-		text:SetText("regen")
+	-- fills up over the 5 seconds; full + glowing = regenerating
+	local regen = phase.phase ~= "fsr"
+	fill:SetWidth(math.max(w * (regen and 1 or (1 - phase.fraction)), 0.01))
+	text:SetText(regen and "" or ("%.1f"):format(phase.remaining))
+	if regen ~= bar.glow:IsShown() then
+		bar.glow:SetShown(regen)
+		if regen then bar.glowAnim:Play() else bar.glowAnim:Stop() end
 	end
 end
 
@@ -107,6 +106,21 @@ table.insert(ns.loginHooks, function()
 	fill = bar:CreateTexture(nil, "ARTWORK")
 	fill:SetPoint("TOPLEFT")
 	fill:SetPoint("BOTTOMLEFT")
+	fill:SetColorTexture(0.3, 0.6, 1) -- mana blue
+	-- soft pulsing glow around the bar while regenerating
+	local glow = bar:CreateTexture(nil, "BACKGROUND", nil, -1)
+	glow:SetPoint("TOPLEFT", -4, 4)
+	glow:SetPoint("BOTTOMRIGHT", 4, -4)
+	glow:SetColorTexture(0.4, 0.75, 1, 0.55)
+	glow:SetBlendMode("ADD")
+	glow:Hide()
+	local ag = glow:CreateAnimationGroup()
+	ag:SetLooping("BOUNCE")
+	local a = ag:CreateAnimation("Alpha")
+	a:SetFromAlpha(1)
+	a:SetToAlpha(0.25)
+	a:SetDuration(0.8)
+	bar.glow, bar.glowAnim = glow, ag
 	text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	text:SetPoint("LEFT", bar, "RIGHT", 4, 0)
 	if m.pos then

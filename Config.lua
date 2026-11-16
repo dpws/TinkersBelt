@@ -261,7 +261,7 @@ local function BuildManaPage(parent)
 	P:Card("Size")
 	P:Slider("Width", 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
 	P:Slider("Height", 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
-	P:Note("Orange: the 5 seconds after spending mana (no regen), with a countdown. Blue: regenerating, filled to your current mana. Hidden at full mana. Use Unlock panels to move it.")
+	P:Note("After you spend mana the bar fills up over the 5 seconds (no regen), with a countdown; full and glowing = regenerating. Hidden at full mana. Use Unlock panels to move it.")
 	P:Finish()
 end
 
