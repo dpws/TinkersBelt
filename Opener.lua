@@ -6,7 +6,7 @@ ns.HUMANOID = {
 	["인간형"] = true, ["人型生物"] = true, ["人形生物"] = true,
 }
 
--- markers for your target while you're stealthed: Sap (humanoid, not fighting), Pick Pocket (humanoid NPC not
+-- markers for a nameplate unit while you're stealthed: Sap (humanoid, not fighting), Pick Pocket (humanoid NPC not
 -- picked yet). t = { stealthed, attackable, dead, combat, humanoid, player, picked }
 function ns.OpenerTags(t)
 	if not (t.stealthed and t.attackable) or t.dead or t.combat then return {} end
@@ -26,17 +26,19 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
--- Opener helper: Sap / Pick Pocket markers for your target while stealthed, and two weapon set buttons
+-- Opener helper: Sap / Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons
 -- (e.g. a dagger for Ambush and your swords for the fight).
 local T = ns.Theme
 local O = {}
 ns.Opener = O
 local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
-local PICK_POCKET = 921
+local SAP, PICK_POCKET = 6770, 921
 local picked = {} -- GUIDs you picked this session
+local humanCache = {} -- GUID -> humanoid (tooltip scans are slow)
 
-local marker, sets, setButtons = nil, nil, {}
+local sets, setButtons = nil, {}
+local tagged = {} -- plates showing icons
 
 -- one value at a time: Forever can hide (secret) any of them; nil = couldn't read
 local function Read(fn, ...)
@@ -46,8 +48,8 @@ local function Read(fn, ...)
 end
 
 -- creature type hidden: read it from the tooltip ("Level 30 Humanoid"); nil = tooltip unreadable too
-local function TooltipHumanoid()
-	local ok, data = pcall(C_TooltipInfo.GetUnit, "target")
+local function TooltipHumanoid(unit)
+	local ok, data = pcall(C_TooltipInfo.GetUnit, unit)
 	if not ok or not data or not data.lines then return nil end
 	local read = false
 	for _, l in ipairs(data.lines) do
@@ -62,47 +64,92 @@ local function TooltipHumanoid()
 	if read then return false end
 end
 
-local function TargetFacts()
-	local ctype = Read(UnitCreatureType, "target")
-	local guid = Read(UnitGUID, "target")
+local function Stealthed()
+	local s = IsStealthed and Read(IsStealthed)
+	if s == nil then s = Read(GetShapeshiftForm) == 1 end -- rogue Stealth is stance 1
+	return s
+end
+
+local function UnitFacts(unit, stealthed)
+	local ctype = Read(UnitCreatureType, unit)
+	local guid = Read(UnitGUID, unit)
 	local humanoid
-	if ctype then humanoid = ns.HUMANOID[ctype] or false else humanoid = TooltipHumanoid() end
-	local stealthed = IsStealthed and Read(IsStealthed)
-	if stealthed == nil then stealthed = Read(GetShapeshiftForm) == 1 end -- rogue Stealth is stance 1
+	if ctype then
+		humanoid = ns.HUMANOID[ctype] or false
+	elseif guid and humanCache[guid] ~= nil then
+		humanoid = humanCache[guid]
+	else
+		humanoid = TooltipHumanoid(unit)
+		if guid and humanoid ~= nil then humanCache[guid] = humanoid end
+	end
 	return {
 		stealthed = stealthed,
-		attackable = Read(UnitCanAttack, "player", "target"),
-		dead = Read(UnitIsDeadOrGhost, "target"),
-		combat = Read(UnitAffectingCombat, "target"),
+		attackable = Read(UnitCanAttack, "player", unit),
+		dead = Read(UnitIsDeadOrGhost, unit),
+		combat = Read(UnitAffectingCombat, unit),
 		humanoid = humanoid ~= false, -- nil = unreadable everywhere: assume it may be humanoid
 		tooltip = ctype == nil and humanoid,
-		player = Read(UnitIsPlayer, "target"),
+		player = Read(UnitIsPlayer, unit),
 		picked = guid ~= nil and picked[guid] or false,
 		ctype = ctype,
 	}
 end
 
-local function UpdateMarker()
-	if not marker then return end
-	local tags = {}
-	if S().markers and UnitExists("target") then
-		local ok, t = pcall(ns.OpenerTags, TargetFacts())
-		tags = ok and t or {}
+local function PlateTag(plate)
+	local t = plate.dpwsOpener
+	if t then return t end
+	t = CreateFrame("Frame", nil, plate)
+	t:SetSize(40, 18)
+	t:SetPoint("BOTTOM", plate, "TOP", 0, 2)
+	local function Icon(spell)
+		local i = t:CreateTexture(nil, "OVERLAY")
+		i:SetSize(18, 18)
+		i:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+		i:SetTexture(C_Spell.GetSpellTexture(spell))
+		return i
 	end
-	marker.text:SetText(table.concat(tags, "  ·  "))
-	marker:SetShown(#tags > 0 or ns.unlocked)
-	if ns.unlocked and #tags == 0 then marker.text:SetText("Sap  ·  Pick Pocket") end
+	t.Sap, t["Pick Pocket"] = Icon(SAP), Icon(PICK_POCKET)
+	plate.dpwsOpener = t
+	return t
 end
 
--- /dpws opener: what the marker sees for your target
+local function UpdatePlates()
+	local seen = {}
+	local stealthed = S().markers and Stealthed()
+	if stealthed then
+		for _, unit in ipairs(ns.NamePlateUnits()) do
+			local plate = C_NamePlate.GetNamePlateForUnit(unit)
+			local ok, tags = pcall(function() return ns.OpenerTags(UnitFacts(unit, true)) end)
+			if plate and ok and #tags > 0 then
+				local t = PlateTag(plate)
+				t.Sap:Hide()
+				t["Pick Pocket"]:Hide()
+				for i, tag in ipairs(tags) do
+					local icon = t[tag]
+					icon:ClearAllPoints()
+					icon:SetPoint("CENTER", t, "CENTER", (i - (#tags + 1) / 2) * 20, 0)
+					icon:Show()
+				end
+				t:Show()
+				seen[plate] = true
+				tagged[plate] = true
+			end
+		end
+	end
+	for plate in pairs(tagged) do
+		if not seen[plate] then plate.dpwsOpener:Hide(); tagged[plate] = nil end
+	end
+end
+
+-- /dpws opener: what the markers see for your target
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.opener = function()
 	ns.Diagnose(function(Say)
-		Say(("opener: markers=%s panel=%s target=%s"):format(tostring(S().markers), tostring(marker ~= nil),
-			tostring(UnitExists("target"))))
+		Say(("opener: markers=%s stealthed=%s plates=%d target=%s"):format(tostring(S().markers), tostring(Stealthed()),
+			#ns.NamePlateUnits(), tostring(UnitExists("target"))))
 		if UnitExists("target") then
-			local t = TargetFacts()
-			for _, k in ipairs({ "stealthed", "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
+			local t = UnitFacts("target", Stealthed())
+			for _, k in ipairs({ "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
 				Say(("opener: %s=%s"):format(k, tostring(t[k])))
 			end
 			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
@@ -189,24 +236,13 @@ local function Place(frame, pos, x, y, name)
 	end
 	ns.RegisterPanel(frame, name, function(self)
 		local point, _, relPoint, px, py = self:GetPoint()
-		local key = name == "Opener" and "markerPos" or "setsPos"
-		S()[key] = { point = point, relPoint = relPoint, x = px, y = py }
+		S().setsPos = { point = point, relPoint = relPoint, x = px, y = py }
 	end)
 end
 
 table.insert(ns.loginHooks, function()
 	if select(2, UnitClass("player")) ~= "ROGUE" then return end
 	local s = S()
-	marker = CreateFrame("Frame", "DpwsOpenerMarker", UIParent)
-	marker:SetSize(200, 22)
-	marker:SetMovable(true)
-	marker:SetClampedToScreen(true)
-	marker.text = T.Text(marker, "semibold", 15, T.gold)
-	marker.text:SetPoint("CENTER")
-	marker.text:SetJustifyH("CENTER")
-	Place(marker, s.markerPos, 0, 120, "Opener")
-	marker:Hide()
-
 	sets = CreateFrame("Frame", "DpwsWeaponSets", UIParent)
 	sets:SetSize(70, 32)
 	sets:SetMovable(true)
@@ -230,9 +266,9 @@ table.insert(ns.loginHooks, function()
 		elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
 			O.UpdateSets()
 		end
-		UpdateMarker()
+		UpdatePlates()
 	end)
-	C_Timer.NewTicker(0.5, UpdateMarker) -- target entering combat, panels unlocked
+	C_Timer.NewTicker(0.25, UpdatePlates) -- plates come and go, mobs enter combat
 	C_Timer.NewTicker(2, function() if not InCombatLockdown() then O.UpdateSets() end end)
 	O.UpdateSets()
 end)

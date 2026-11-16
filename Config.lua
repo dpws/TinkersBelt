@@ -272,8 +272,8 @@ local function BuildOpenerPage(parent)
 	local s = ns.db.opener
 	local P = T.Page(parent)
 	P:Card("Target markers")
-	P:Toggle("Show Sap / Pick Pocket for my target while stealthed", function() return s.markers end, function(v) s.markers = v end)
-	P:Note("Sap: a humanoid that isn't fighting. Pick Pocket: a humanoid NPC you haven't picked yet this session.")
+	P:Toggle("Show Sap / Pick Pocket icons on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
+	P:Note("Icons appear above enemy nameplates, no target needed (enemy nameplates must be on). Sap: a humanoid that isn't fighting. Pick Pocket: a humanoid NPC you haven't picked yet this session.")
 	P:Card("Weapon sets")
 	P:Toggle("Show the weapon set buttons", function() return s.weapons end,
 		function(v) s.weapons = v; if ns.Opener then ns.Opener.UpdateSets() end end)
@@ -801,7 +801,7 @@ local GROUPS = {
 			toggle = { function() return ns.db.lockbox.enabled end,
 				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
 		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "Ability_Sap",
-			desc = "Sap / Pick Pocket markers and opener weapon sets.",
+			desc = "Sap / Pick Pocket icons on nameplates and opener weapon sets.",
 			status = function() return ns.db.opener.markers or ns.db.opener.weapons end },
 	} },
 }
