@@ -6,12 +6,11 @@ ns.HUMANOID = {
 	["인간형"] = true, ["人型生物"] = true, ["人形生物"] = true,
 }
 
--- markers for a nameplate unit while you're stealthed: Sap (humanoid, not fighting), Pick Pocket (humanoid NPC not
+-- marker for a nameplate unit while you're stealthed: Pick Pocket (humanoid NPC, not fighting, not
 -- picked yet). t = { stealthed, attackable, dead, combat, humanoid, player, picked }
 function ns.OpenerTags(t)
 	if not (t.stealthed and t.attackable) or t.dead or t.combat then return {} end
 	local tags = {}
-	if t.humanoid then tags[#tags + 1] = "Sap" end
 	if t.humanoid and not t.player and not t.picked then tags[#tags + 1] = "Pick Pocket" end
 	return tags
 end
@@ -26,14 +25,14 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
--- Opener helper: Sap / Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons
+-- Opener helper: Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons
 -- (e.g. a dagger for Ambush and your swords for the fight).
 local T = ns.Theme
 local O = {}
 ns.Opener = O
 local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
-local SAP, PICK_POCKET = 6770, 921
+local PICK_POCKET = 921
 local picked = {} -- GUIDs you picked this session
 local lastPick, lastLoss = "none", "none" -- for /dpws opener
 local keepTarget = false -- your target was just picked: keep its plate marked while it stays your target
@@ -116,7 +115,7 @@ local function PlateTag(plate)
 		i:SetTexture(C_Spell.GetSpellTexture(spell))
 		return i
 	end
-	t.Sap, t["Pick Pocket"] = Icon(SAP), Icon(PICK_POCKET)
+	t["Pick Pocket"] = Icon(PICK_POCKET)
 	plate.dpwsOpener = t
 	return t
 end
@@ -138,7 +137,6 @@ local function UpdatePlates()
 			end)
 			if plate and ok and #tags > 0 then
 				local t = PlateTag(plate)
-				t.Sap:Hide()
 				t["Pick Pocket"]:Hide()
 				for i, tag in ipairs(tags) do
 					local icon = t[tag]

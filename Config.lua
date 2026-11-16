@@ -272,10 +272,9 @@ local function BuildOpenerPage(parent)
 	local s = ns.db.opener
 	local P = T.Page(parent)
 	P:Card("Target markers")
-	P:Toggle("Show Sap / Pick Pocket icons on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
+	P:Toggle("Show a Pick Pocket icon on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
 	P:Slider("Icon size", 12, 48, 1, "px", function() return s.iconSize or 18 end, function(v) s.iconSize = v end)
-	P:Slider("Icon spacing", 0, 20, 1, "px", function() return s.iconGap or 2 end, function(v) s.iconGap = v end)
-	P:Note("Icons appear above enemy nameplates, no target needed (enemy nameplates must be on). Sap: a humanoid that isn't fighting. Pick Pocket: a humanoid NPC you haven't picked yet this session.")
+	P:Note("The icon shows above NPCs that aren't fighting, no target needed (enemy nameplates must be on). Forever hides which mob is which from addons, so a picked mob is remembered only while it stays your target or keeps its nameplate, and beasts may get the icon too.")
 	P:Card("Weapon sets")
 	P:Toggle("Show the weapon set buttons", function() return s.weapons end,
 		function(v) s.weapons = v; if ns.Opener then ns.Opener.UpdateSets() end end)
@@ -802,8 +801,8 @@ local GROUPS = {
 			desc = "One button to pick and open your lockboxes.",
 			toggle = { function() return ns.db.lockbox.enabled end,
 				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
-		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "Ability_Sap",
-			desc = "Sap / Pick Pocket icons on nameplates and opener weapon sets.",
+		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "INV_Misc_Bag_11",
+			desc = "Pick Pocket icons on nameplates and opener weapon sets.",
 			status = function() return ns.db.opener.markers or ns.db.opener.weapons end },
 	} },
 }
