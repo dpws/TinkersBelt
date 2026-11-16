@@ -315,6 +315,7 @@ Page.__index = Page
 local ROW, PAD = 38, 16
 
 function T.Page(parent)
+	if parent.dpwsPage then return parent.dpwsPage end -- a second builder on the same page continues below
 	local p = setmetatable({ parent = parent, y = 0, refreshers = {} }, Page)
 	p.width = parent:GetWidth() > 0 and parent:GetWidth() or 640
 	parent.dpwsPage = p -- the window reads p.y to size its scroll area
@@ -438,6 +439,7 @@ function Page:Note(text, color)
 	local w = (self.card and self.width - 2 * PAD or self.width) - 4
 	fs:SetWidth(w)
 	fs:SetWordWrap(true)
+	fs:SetText(text)
 	if self.card then
 		fs:SetPoint("TOPLEFT", x, self.card.y - 4)
 	else

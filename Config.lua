@@ -150,10 +150,11 @@ local function BuildPoisonStockPage(parent)
 	p.stock = p.stock or {}
 	local function Changed() if ns.PoisonStock then ns.PoisonStock.Update() end end
 	local P = T.Page(parent)
-	local status = P:Note(" ")
 	local Refresh
 
 	P:Card("Poisons to keep in bags")
+	local status = P:Note(" \n ") -- two lines reserved: the text is set later
+	P:Toggle("Buy ingredients", function() return p.buyMats ~= false end, function(v) p.buyMats = v end)
 	local rows, MAX_ROWS = {}, 9
 	local add
 	P:Custom(38, function(row)
@@ -237,11 +238,11 @@ local function BuildRogueTimersPage(parent)
 	local MODES = {}
 	for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do MODES[#MODES + 1] = { m.key, m.name } end
 	local P = T.Page(parent)
-	P:Card("Display")
+	P:Card("Slice and Dice and cooldowns")
 	P:Choice("Show", MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
 	P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end)
 	P:Slider("Icon size", 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
-	P:Card("Cooldowns")
+	P:Card("Cooldowns to show")
 	for _, c in ipairs(ns.ROGUE_CDS or {}) do
 		local name = C_Spell.GetSpellName(c.id)
 		if name and IsPlayerSpell(c.id) then
@@ -779,23 +780,16 @@ local GROUPS = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
 			desc = "Which bars switch page while in Stealth.",
 			status = function() return next(ns.db.barSwitch) ~= nil end },
-		{ name = "Poisons", build = BuildPoisonsPage, icon = ICON .. "Ability_Poisons",
-			desc = "Weapon poison bar, timers and reminders.",
+		{ name = "Poisons", build = function(p) BuildPoisonsPage(p); BuildPoisonStockPage(p) end, icon = ICON .. "Ability_Poisons",
+			desc = "Weapon poison bar, reminders, and poisons kept in bags.",
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
-		{ name = "Poison Stock", build = BuildPoisonStockPage, icon = ICON .. "Trade_BrewPoison",
-			desc = "Poisons to keep in bags: ingredients bought and crafting suggested.",
-			toggle = { function() return ns.db.poisons.buyMats ~= false end, function(v) ns.db.poisons.buyMats = v end },
-			toggleText = "Buy ingredients" },
-		{ name = "Combat Bars", build = BuildComboPage, icon = ICON .. "Ability_Rogue_Eviscerate",
-			desc = "Health, energy and combo point bars.",
+		{ name = "Combat Bars", build = function(p) BuildComboPage(p); BuildRogueTimersPage(p) end, icon = ICON .. "Ability_Rogue_Eviscerate",
+			desc = "Health, energy and combo point bars, Slice and Dice and cooldowns.",
 			status = function()
 				local c = ns.db.combo
-				return (c.healthMode or "combat") ~= "off" or (c.energyMode or "combat") ~= "off" or (c.comboMode or "combat") ~= "off"
+				return (ns.db.rogueTimers.mode or "combat") ~= "off" or (c.healthMode or "combat") ~= "off" or (c.energyMode or "combat") ~= "off" or (c.comboMode or "combat") ~= "off"
 			end },
-		{ name = "Timers", build = BuildRogueTimersPage, icon = ICON .. "Ability_Rogue_SliceDice",
-			desc = "Slice and Dice bar and your cooldowns.",
-			status = function() return ns.db.rogueTimers.mode ~= "off" end },
 		{ name = "Lockboxes", build = BuildLockboxPage, icon = ICON .. "INV_Box_04",
 			desc = "One button to pick and open your lockboxes.",
 			toggle = { function() return ns.db.lockbox.enabled end,
