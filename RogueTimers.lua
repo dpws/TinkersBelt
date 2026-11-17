@@ -175,55 +175,34 @@ ns.slashCommands.cds = function()
 	end)
 end
 
--- Slice and Dice is hidden in combat: remember which buff appeared when you cast it (aura instance id)
-local sndIID, lastAdded, lastAddedAt, sndCastAt, lastCast = nil, nil, 0, 0, "none"
+-- Slice and Dice is hidden in combat, but your cast isn't: time it from the cast. Its length per combo point
+-- is learned whenever the buff is readable (out of combat, talents included); until then 6s + 3s per point.
+local own -- { start, dur, cp } of your last cast
+local cpSeen, cpSeenAt = nil, 0 -- last combo points read (they're spent by the time the cast event comes)
+local lastCast = "none"
 local function IsSnd(id)
 	if not id or Secret(id) then return false end
 	return id == 5171 or id == 6774 or SpellName(id) == SpellName(SND)
 end
-local function Alive(iid)
-	if not iid then return false end
-	local ok, a = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, "player", iid)
-	return ok and a ~= nil
-end
+local function Learned() S().sndLearn = S().sndLearn or {} return S().sndLearn end
 local function OnCast(spellID)
 	if not IsSnd(spellID) then return end
 	local now = GetTime()
-	if Alive(sndIID) then lastCast = "refresh" return end -- recast: the same buff is updated
-	if lastAdded and now - lastAddedAt < 0.5 then
-		sndIID, lastCast = lastAdded, "buff came first"
-	else
-		sndCastAt, lastCast = now, "waiting for the buff"
-	end
+	local cp = (now - cpSeenAt < 2) and cpSeen or nil
+	local dur = (cp and (Learned()[cp] or (6 + 3 * cp))) or S().sndLast or 21
+	own = { start = now, dur = dur, cp = cp }
+	lastCast = ("cp=%s dur=%s learned=%s"):format(tostring(cp), tostring(dur), tostring(cp and Learned()[cp] ~= nil))
 end
-local function OnAura(info)
-	if not info then return end
-	local now = GetTime()
-	for _, a in ipairs(info.addedAuras or {}) do
-		local iid = a.auraInstanceID
-		if iid and not Secret(iid) then
-			if IsSnd(a.spellId) or now - sndCastAt < 0.5 then
-				sndIID, sndCastAt, lastCast = iid, 0, "buff found"
-				snd.timerAura = nil
-			else
-				lastAdded, lastAddedAt = iid, now
-			end
-		end
-	end
-	for _, iid in ipairs(info.updatedAuraInstanceIDs or {}) do
-		if iid == sndIID then snd.timerAura = nil end -- refreshed: restart the bar
-	end
-	for _, iid in ipairs(info.removedAuraInstanceIDs or {}) do
-		if iid == sndIID then sndIID = nil end
-	end
-end
+local function OnAura() end -- kept for the event hook
 
-local function SndUp() return FindSnd() ~= nil or Alive(sndIID) end
+local function SndUp() return FindSnd() ~= nil or (own ~= nil and GetTime() < own.start + own.dur) end
 
 ns.slashCommands.snd2 = function()
 	ns.Diagnose(function(Say)
-		Say(("snd: tracked buff=%s alive=%s bar timer=%s last cast=%s"):format(tostring(sndIID), tostring(Alive(sndIID)),
-			tostring(snd and snd.timerAura), lastCast))
+		Say(("snd: last cast %s, combo points seen=%s (%.1fs ago)"):format(lastCast, tostring(cpSeen), GetTime() - cpSeenAt))
+		local parts = {}
+		for cp, d in pairs(Learned()) do parts[#parts + 1] = cp .. "=" .. d end
+		Say("snd: learned " .. (#parts > 0 and table.concat(parts, " ") or "nothing yet (cast it out of combat)"))
 	end)
 end
 
@@ -232,12 +211,16 @@ local function SetFill(on) snd:GetStatusBarTexture():SetAlpha(on and 1 or 0) end
 local function Update()
 	if not panel then return end
 	local s = S()
+	local now = GetTime()
+	if s.snd then -- combo points, sampled before they're spent
+		local ok, cp = pcall(GetComboPoints, "player", "target")
+		if ok and cp and not Secret(cp) and cp > 0 then cpSeen, cpSeenAt = cp, now end
+	end
 	local mode = s.mode or "combat"
 	-- "combat" also shows while Slice and Dice is up (often cast before the pull)
 	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (s.snd and SndUp())))
 	panel:SetShown(show)
 	if not show then return end
-	local now = GetTime()
 	for _, b in pairs(icons) do
 		if b:IsShown() then
 			local start, duration, info = Cooldown(b.spell)
@@ -262,29 +245,24 @@ local function Update()
 		end
 	end
 	if s.snd then
-		local exp, dur, aura = SndAura()
-		if aura and not Secret(aura.auraInstanceID) then sndIID = aura.auraInstanceID end
+		local exp, dur = SndAura()
 		if exp and dur and dur > 0 then
-			local left = math.max(exp - now, 0)
-			snd.timerAura = nil
+			-- readable: learn its length for the combo points of the cast that made it
+			if own and own.cp and math.abs((exp - dur) - own.start) < 1 then
+				Learned()[own.cp] = dur
+				own.dur = dur
+			end
+			s.sndLast = dur
+		elseif own and now < own.start + own.dur then
+			exp, dur = own.start + own.dur, own.dur
+		end
+		if exp and dur and dur > 0 and exp > now then
+			local left = exp - now
 			snd:SetMinMaxValues(0, dur)
 			snd:SetValue(left)
 			SetFill(true)
 			snd.text:SetFormattedText("%d", math.ceil(left))
-		elseif Alive(sndIID) and snd.SetTimerDuration and C_UnitAuras.GetAuraDuration then
-			-- timer hidden from addons: the game drives the bar from the buff (set once per cast / refresh)
-			if snd.timerAura ~= sndIID then
-				local ok = pcall(function()
-					local d = C_UnitAuras.GetAuraDuration("player", sndIID)
-					local dir = Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime
-					if dir then snd:SetTimerDuration(d, nil, dir) else snd:SetTimerDuration(d) end
-				end)
-				snd.timerAura = ok and sndIID or "failed"
-			end
-			SetFill(true)
-			snd.text:SetText("")
 		else
-			snd.timerAura = nil
 			snd:SetValue(0)
 			SetFill(false)
 			snd.text:SetText("")
