@@ -6,12 +6,15 @@ ns.HUMANOID = {
 	["인간형"] = true, ["人型生物"] = true, ["人形生物"] = true,
 }
 
--- marker for a nameplate unit while you're stealthed: Pick Pocket (humanoid NPC, not fighting, not
--- picked yet). t = { stealthed, attackable, dead, combat, humanoid, player, picked }
-function ns.OpenerTags(t)
+-- markers for a nameplate unit while you're stealthed: Sap (humanoid, not fighting), Pick Pocket (humanoid NPC,
+-- not fighting, not picked yet). t = { stealthed, attackable, dead, combat, humanoid, player, picked }
+-- show = { sap, pick } (nil = both)
+function ns.OpenerTags(t, show)
 	if not (t.stealthed and t.attackable) or t.dead or t.combat then return {} end
+	show = show or { sap = true, pick = true }
 	local tags = {}
-	if t.humanoid and not t.player and not t.picked then tags[#tags + 1] = "Pick Pocket" end
+	if show.sap and t.humanoid then tags[#tags + 1] = "Sap" end
+	if show.pick and t.humanoid and not t.player and not t.picked then tags[#tags + 1] = "Pick Pocket" end
 	return tags
 end
 
@@ -25,14 +28,15 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
--- Opener helper: Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons
+-- Opener helper: Sap / Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons
 -- (e.g. a dagger for Ambush and your swords for the fight).
 local T = ns.Theme
 local O = {}
 ns.Opener = O
 local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
-local PICK_POCKET = 921
+local SAP, PICK_POCKET = 6770, 921
+local function Show() return { sap = S().sap ~= false, pick = S().markers } end
 local picked = {} -- GUIDs you picked this session
 local lastPick, lastLoss = "none", "none" -- for /dpws opener
 local keepTarget = false -- your target was just picked: keep its plate marked while it stays your target
@@ -132,7 +136,7 @@ local function PlateTag(plate)
 		i:SetTexture(C_Spell.GetSpellTexture(spell))
 		return i
 	end
-	t["Pick Pocket"] = Icon(PICK_POCKET)
+	t.Sap, t["Pick Pocket"] = Icon(SAP), Icon(PICK_POCKET)
 	plate.dpwsOpener = t
 	return t
 end
@@ -143,17 +147,19 @@ local function UpdatePlates()
 		if plate and not plate.dpwsPicked then plate.dpwsPicked = Read(UnitName, "target") or true end
 	end
 	local seen = {}
-	local stealthed = S().markers and Stealthed()
+	local show = Show()
+	local stealthed = (show.sap or show.pick) and Stealthed()
 	if stealthed then
 		for _, unit in ipairs(ns.NamePlateUnits()) do
 			local plate = C_NamePlate.GetNamePlateForUnit(unit)
 			local ok, tags = pcall(function()
 				local f = UnitFacts(BestToken(unit), true)
 				f.picked = f.picked or (plate and plate.dpwsPicked) or false
-				return ns.OpenerTags(f)
+				return ns.OpenerTags(f, show)
 			end)
 			if plate and ok and #tags > 0 then
 				local t = PlateTag(plate)
+				t.Sap:Hide()
 				t["Pick Pocket"]:Hide()
 				for i, tag in ipairs(tags) do
 					local icon = t[tag]
@@ -188,7 +194,7 @@ ns.slashCommands.opener = function()
 			for _, k in ipairs({ "attackable", "dead", "combat", "ctype", "tooltip", "humanoid", "player", "picked" }) do
 				Say(("opener: %s=%s"):format(k, tostring(t[k])))
 			end
-			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
+			Say("opener: tags=" .. table.concat(ns.OpenerTags(t, Show()), ", "))
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
 			Say(("opener: plate marked picked=%s"):format(tostring(plate and plate.dpwsPicked or false)))
 			local pu = TargetPlateUnit()
@@ -196,13 +202,10 @@ ns.slashCommands.opener = function()
 				local p = UnitFacts(pu, Stealthed())
 				Say(("opener: as %s: ctype=%s tooltip=%s humanoid=%s combat=%s attackable=%s tags=%s"):format(pu,
 					tostring(p.ctype), tostring(p.tooltip), tostring(p.humanoid), tostring(p.combat), tostring(p.attackable),
-					table.concat(ns.OpenerTags(p), ", ")))
+					table.concat(ns.OpenerTags(p, Show()), ", ")))
 				local t = plate and plate.dpwsOpener
-				local i = t and t["Pick Pocket"]
-				Say(("opener: icon shown=%s alpha=%.2f size=%s at=%s,%s plate at=%s,%s level=%s/%s"):format(tostring(i and i:IsVisible() or false),
-					t and t:GetEffectiveAlpha() or 0, tostring(i and math.floor(i:GetWidth())), tostring(i and i:GetLeft() and math.floor(i:GetLeft())),
-					tostring(i and i:GetBottom() and math.floor(i:GetBottom())), tostring(plate and plate:GetLeft() and math.floor(plate:GetLeft())),
-					tostring(plate and plate:GetTop() and math.floor(plate:GetTop())), tostring(t and t:GetFrameLevel()), tostring(plate and plate:GetFrameLevel())))
+				Say(("opener: icons shown=%s (Sap=%s, Pick Pocket=%s)"):format(tostring(t and t:IsVisible() or false),
+					tostring(t and t.Sap:IsShown() or false), tostring(t and t["Pick Pocket"]:IsShown() or false)))
 			else
 				Say("opener: no nameplate unit matches your target")
 			end

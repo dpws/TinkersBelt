@@ -29,9 +29,11 @@ check("skill too low: nothing", ns.LockboxNext({ a }) == nil)
 -- opener markers
 local function tags(t) return table.concat(ns.OpenerTags(t), ",") end
 local npc = { stealthed = true, attackable = true, humanoid = true }
-check("humanoid npc: pick pocket", tags(npc) == "Pick Pocket")
-check("picked already: nothing", tags({ stealthed = true, attackable = true, humanoid = true, picked = true }) == "")
-check("player: nothing", tags({ stealthed = true, attackable = true, humanoid = true, player = true }) == "")
+check("humanoid npc: sap + pick pocket", tags(npc) == "Sap,Pick Pocket")
+check("picked already: sap only", tags({ stealthed = true, attackable = true, humanoid = true, picked = true }) == "Sap")
+check("player: sap only", tags({ stealthed = true, attackable = true, humanoid = true, player = true }) == "Sap")
+check("sap turned off", table.concat(ns.OpenerTags(npc, { pick = true }), ",") == "Pick Pocket")
+check("pick pocket turned off", table.concat(ns.OpenerTags(npc, { sap = true }), ",") == "Sap")
 check("beast: nothing", tags({ stealthed = true, attackable = true }) == "")
 check("not stealthed: nothing", tags({ attackable = true, humanoid = true }) == "")
 check("in combat: nothing", tags({ stealthed = true, attackable = true, humanoid = true, combat = true }) == "")
