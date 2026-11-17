@@ -12,11 +12,11 @@
   --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #15171a; --surface: #1d2024; --line: #2f343a; --fg: #e6e2da; --muted: #9aa1aa;
-  --brass: #d6a24a; --brass-ink: #1a1408; --brass-soft: #3a2f1c; --code-bg: #262a2f; color-scheme: dark } }
+  --bg: #0a131a; --surface: #101d26; --line: #1f3340; --fg: #e8e1d2; --muted: #93a3ad;
+  --brass: #e0b062; --brass-ink: #1a1206; --brass-soft: #173b3d; --code-bg: #16262f; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #15171a; --surface: #1d2024; --line: #2f343a; --fg: #e6e2da; --muted: #9aa1aa;
-  --brass: #d6a24a; --brass-ink: #1a1408; --brass-soft: #3a2f1c; --code-bg: #262a2f; color-scheme: dark }
+  --bg: #0a131a; --surface: #101d26; --line: #1f3340; --fg: #e8e1d2; --muted: #93a3ad;
+  --brass: #e0b062; --brass-ink: #1a1206; --brass-soft: #173b3d; --code-bg: #16262f; color-scheme: dark }
 
 body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
 .wrap { max-width: 720px; margin: 0 auto; padding-block: 40px 64px;
@@ -24,14 +24,14 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
   display: grid; gap: 40px; }
 h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.1; }
 h1 { font-size: 44px; }
+.brand { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.brand img { width: 88px; height: 88px; border-radius: 20px; flex: none; }
 h2 { font-size: 26px; }
 h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
 p { margin: 0; }
 code { font: 500 13px var(--mono); background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
 
 .plate { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 28px; display: grid; gap: 18px; position: relative; }
-.plate::before, .plate::after { content: ""; position: absolute; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--brass); opacity: 0.55; }
-.plate::before { left: 12px; } .plate::after { right: 12px; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .meta b { color: var(--fg); font-weight: 600; }
 .lead { font-size: 17px; max-width: 60ch; }
@@ -62,7 +62,10 @@ ol.steps li::before { content: counter(s); font: 700 15px var(--display); width:
 
 <div class="wrap">
   <div class="plate">
-    <h1>Tinker's Belt</h1>
+    <div class="brand">
+      <img src="logo.png" alt="Tinker's Belt logo: a brass T on a belt buckle" width="88" height="88">
+      <h1>Tinker's Belt</h1>
+    </div>
     <p class="lead">Small quality-of-life tools for World of Warcraft: Forever, with a full rogue kit. Type <code>/tb</code> in game to open the settings.</p>
     <div class="meta">
       <span>Version <b id="ver">0.1.0</b></span>
