@@ -44,6 +44,36 @@ local function PageLabel(page)
 	return Colored(("Bar 1, page %d"):format(page), false)
 end
 
+-- on-screen overlays showing the number of each visible bar
+local overlays, highlightsOn = {}, false
+local HIGHLIGHT_BARS = { { frame = "MainActionBar", name = "Bar 1" } }
+for _, bar in ipairs(ns.BARS) do HIGHLIGHT_BARS[#HIGHLIGHT_BARS + 1] = bar end
+
+local function SetHighlights(on)
+	highlightsOn = on
+	for _, bar in ipairs(HIGHLIGHT_BARS) do
+		local target = _G[bar.frame] or (bar.name == "Bar 1" and _G.MainMenuBar)
+		local o = overlays[bar.name]
+		if on and target and target:IsVisible() then
+			if not o then
+				-- parented to UIParent, only anchored to the bar: never touches the protected bar itself
+				o = CreateFrame("Frame", nil, UIParent)
+				o:SetFrameStrata("DIALOG")
+				T.Panel(o, T.Accent(0.18), T.Accent(0.8))
+				local text = T.Text(o, "semibold", 26, T.gold)
+				text:SetPoint("CENTER")
+				text:SetText(bar.name:match("%d+"))
+				overlays[bar.name] = o
+			end
+			o:ClearAllPoints()
+			o:SetAllPoints(target)
+			o:Show()
+		elseif o then
+			o:Hide()
+		end
+	end
+end
+
 local function BuildBarSwitchPage(parent)
 	local P = T.Page(parent)
 	local labels = ns.STATE_LABELS[select(2, UnitClass("player"))]
@@ -53,6 +83,7 @@ local function BuildBarSwitchPage(parent)
 		return
 	end
 	P:Note("Pick which page each bar shows while in a state. Put spells on that page by dragging them onto the bar while the state is active. Green bars are visible now, gray ones are hidden and free to borrow.")
+	P:Toggle("Highlight bar numbers on screen", function() return highlightsOn end, function(v) SetHighlights(v) end)
 	-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
 	if _G.MelloUIActionBar2Button1 then
 		P:Note("MelloUI's own action bars are active: bar switching won't affect them.", T.red)
@@ -90,36 +121,6 @@ local function BuildBarSwitchPage(parent)
 		end
 	end
 	P:Finish()
-end
-
--- on-screen overlays showing the number of each visible bar
-local overlays, highlightsOn = {}, false
-local HIGHLIGHT_BARS = { { frame = "MainActionBar", name = "Bar 1" } }
-for _, bar in ipairs(ns.BARS) do HIGHLIGHT_BARS[#HIGHLIGHT_BARS + 1] = bar end
-
-local function SetHighlights(on)
-	highlightsOn = on
-	for _, bar in ipairs(HIGHLIGHT_BARS) do
-		local target = _G[bar.frame] or (bar.name == "Bar 1" and _G.MainMenuBar)
-		local o = overlays[bar.name]
-		if on and target and target:IsVisible() then
-			if not o then
-				-- parented to UIParent, only anchored to the bar: never touches the protected bar itself
-				o = CreateFrame("Frame", nil, UIParent)
-				o:SetFrameStrata("DIALOG")
-				T.Panel(o, T.Accent(0.18), T.Accent(0.8))
-				local text = T.Text(o, "semibold", 26, T.gold)
-				text:SetPoint("CENTER")
-				text:SetText(bar.name:match("%d+"))
-				overlays[bar.name] = o
-			end
-			o:ClearAllPoints()
-			o:SetAllPoints(target)
-			o:Show()
-		elseif o then
-			o:Hide()
-		end
-	end
 end
 
 ---------------------------------------------------------------------------
@@ -994,10 +995,10 @@ local function CreateWindow()
 		UpdateDots()
 	end)
 
-	-- nav list scrolls (mouse wheel) above the two buttons when a class has many tools
+	-- nav list scrolls (mouse wheel) above the lock button when a class has many tools
 	local list = CreateFrame("ScrollFrame", nil, side)
 	list:SetPoint("TOPLEFT")
-	list:SetPoint("BOTTOMRIGHT", 0, 94)
+	list:SetPoint("BOTTOMRIGHT", 0, 56)
 	local listIn = CreateFrame("Frame", nil, list)
 	listIn:SetWidth(SIDEBAR)
 	list:SetScrollChild(listIn)
@@ -1077,9 +1078,6 @@ local function CreateWindow()
 		headToggle:Hide()
 	end
 
-	local hlb = T.NewButton(side, "Highlight bars", SIDEBAR - 40, 28)
-	hlb:SetPoint("BOTTOMLEFT", 20, 56)
-	hlb:SetScript("OnClick", function() SetHighlights(not highlightsOn) end)
 	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
 	lock:SetPoint("BOTTOMLEFT", 20, 18)
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
