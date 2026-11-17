@@ -82,7 +82,7 @@ local function OnPower()
 	lastMana = mana
 end
 
--- /dpws mana: can the addon read mana, and what does the bar think
+-- /tb mana: can the addon read mana, and what does the bar think
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.mana = function()
 	ns.Diagnose(function(Say)

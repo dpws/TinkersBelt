@@ -82,8 +82,8 @@ local function Record(guid, name, kind)
 	if ns.OnPvpLogChanged then ns.OnPvpLogChanged() end
 end
 
--- /dpws debug: print what PvP tracking sees
-local function Debug(msg) if ns.pvpDebug then print("|cff88ccffdpws pvp:|r " .. msg) end end
+-- /tb debug: print what PvP tracking sees
+local function Debug(msg) if ns.pvpDebug then print("|cff88ccffTB pvp:|r " .. msg) end end
 local hiddenCount = 0 -- enemy units whose identity the game hid from us
 
 -- the same kill can be seen through several units (target + nameplate): count it once
@@ -165,7 +165,7 @@ end)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.debug = function()
 	ns.pvpDebug = not ns.pvpDebug
-	print(("dpws_tools: PvP debug %s. Enemy units hidden by the game so far: %d")
+	print(("Tinker's Belt: PvP debug %s. Enemy units hidden by the game so far: %d")
 		:format(ns.pvpDebug and "ON" or "OFF", hiddenCount))
 end
 

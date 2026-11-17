@@ -1,11 +1,11 @@
 ## Interface: 16001
-## Title: dpws tools
-## Notes: Small quality-of-life tools. /dpws
+## Title: Tinker's Belt
+## Notes: Small quality-of-life tools. /tb
 ## Author: dpws
 ## Version: 0.1.0
 ## SavedVariables: DpwsToolsDB
 ## SavedVariablesPerCharacter: DpwsToolsCharDB
-## IconTexture: Interface\AddOns\dpws_tools\media\icon
+## IconTexture: Interface\AddOns\TinkersBelt\media\icon
 
 Core.lua
 Theme.lua

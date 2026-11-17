@@ -38,7 +38,7 @@ local function Secret(v) return issecretvalue and issecretvalue(v) end
 local SAP, PICK_POCKET = 6770, 921
 local function Show() return { sap = S().sap ~= false, pick = S().markers } end
 local picked = {} -- GUIDs you picked this session
-local lastPick, lastLoss = "none", "none" -- for /dpws opener
+local lastPick, lastLoss = "none", "none" -- for /tb opener
 local keepTarget = false -- your target was just picked: keep its plate marked while it stays your target
 local pickTime = 0
 -- by name too: Forever may use another rank / id
@@ -115,7 +115,7 @@ local function BestToken(unit)
 	return unit
 end
 
--- the nameplate unit showing your target (for /dpws opener)
+-- the nameplate unit showing your target (for /tb opener)
 local function TargetPlateUnit()
 	for _, u in ipairs(ns.NamePlateUnits()) do
 		if Read(UnitIsUnit, u, "target") then return u end
@@ -181,7 +181,7 @@ local function UpdatePlates()
 	end
 end
 
--- /dpws opener: what the markers see for your target
+-- /tb opener: what the markers see for your target
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.opener = function()
 	ns.Diagnose(function(Say)
@@ -276,7 +276,7 @@ local function SetButton(i, key, label)
 			if set.mh then GameTooltip:AddLine(set.mh.name, 1, 1, 1) end
 			if set.oh then GameTooltip:AddLine(set.oh.name, 1, 1, 1) end
 		else
-			GameTooltip:AddLine("Save it on the Openers page (/dpws)", 0.6, 0.65, 0.7)
+			GameTooltip:AddLine("Save it on the Openers page (/tb)", 0.6, 0.65, 0.7)
 		end
 		GameTooltip:Show()
 	end)

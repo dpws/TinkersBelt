@@ -88,7 +88,7 @@ end
 
 local function SetPoison(info, id)
 	ns.db.poisons[info.key] = id
-	if InCombatLockdown() then print("dpws_tools: poison change applies after combat") end
+	if InCombatLockdown() then print("Tinker's Belt: poison change applies after combat") end
 	P.Refresh()
 end
 
@@ -161,13 +161,13 @@ local function MakeButton(info, i)
 	b:SetScript("PostClick", function(self, button)
 		if button == "RightButton" then OpenMenu(self, info) end
 	end)
-	-- drag moves the whole bar while panels are unlocked (/dpws)
+	-- drag moves the whole bar while panels are unlocked (/tb)
 	b:SetScript("OnDragStart", function() ns.StartMovingPanel(bar) end)
 	b:SetScript("OnDragStop", function() ns.StopMovingPanel(bar) end)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetInventoryItem("player", info.slot)
-		GameTooltip:AddLine("Left-click: apply poison   Right-click: choose   Unlock panels in /dpws to move", 0.6, 0.8, 1, true)
+		GameTooltip:AddLine("Left-click: apply poison   Right-click: choose   Unlock panels in /tb to move", 0.6, 0.8, 1, true)
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)

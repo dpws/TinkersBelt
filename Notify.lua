@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- Addon-wide center-screen notifications in a movable panel (unlock in /dpws to move).
+-- Addon-wide center-screen notifications in a movable panel (unlock in /tb to move).
 local frame
 
 -- addon-wide sound choices (SOUNDKIT keys); missing ones on this client are skipped when played
@@ -24,7 +24,7 @@ function ns.Notify(msg, playSound)
 	if frame then
 		frame:AddMessage(msg, 1, 0.3, 0.1)
 	else
-		print("dpws_tools: " .. msg) -- before login
+		print("Tinker's Belt: " .. msg) -- before login
 	end
 	if playSound then PlaySound(SOUNDKIT.RAID_WARNING) end
 	if ns.SetFooter then ns.SetFooter(msg) end -- config window status line

@@ -1,9 +1,9 @@
 ---
 name: publish
-description: Ship a stable release of the dpws_tools addon as the Claude artifact download page - checks, version bump, changelog, git tag, zip, install instructions, always the same artifact URL. Use when the user says "publish", "release", "ship the addon" or /publish.
+description: Ship a stable release of the Tinker's Belt addon (repo dpws_tools) as the Claude artifact download page - checks, version bump, changelog, git tag, zip, install instructions, always the same artifact URL. Use when the user says "publish", "release", "ship the addon" or /publish.
 ---
 
-# Publish a dpws_tools release
+# Publish a Tinker's Belt release
 
 Ships the addon as **one artifact that never changes its URL**: a download page with the zip, install
 instructions and the changelog. Each release republishes that same artifact.
@@ -25,7 +25,7 @@ Stop and tell the user what failed if any of these fail; never release around a 
 
 ## 2. Version
 
-Current version: `## Version:` line in `dpws_tools.toc`. Last release: `git describe --tags --abbrev=0`
+Current version: `## Version:` line in `TinkersBelt.toc`. Last release: `git describe --tags --abbrev=0`
 (none yet → this is the first release; ship the toc version as-is if no tag uses it).
 
 Bump (semver, pre-1.0 rules) from the commits since the last tag:
@@ -58,7 +58,7 @@ the tools instead of the full history.
 ## 4. Commit and tag
 
 ```bash
-git add dpws_tools.toc CHANGELOG.md
+git add TinkersBelt.toc CHANGELOG.md
 git commit -m "release: v<version>"   # plus the session's Co-Authored-By line
 git tag v<version>
 ```
@@ -71,7 +71,7 @@ Don't push unless the user asks.
 powershell -ExecutionPolicy Bypass -File .claude/skills/publish/build-zip.ps1 -Version <version> -OutDir <scratchpad>/release
 ```
 
-Prints the zip path. The zip holds a single `dpws_tools` folder (no tests, docs, scripts).
+Prints the zip path. The zip holds a single `TinkersBelt` folder (no tests, docs, scripts).
 
 ## 6. Artifact page (same URL every time)
 
@@ -86,20 +86,20 @@ The URL lives in `.claude/skills/publish/artifact-url.txt`.
 Page source: `docs/release/index.html` (kept in git so each release edits the last one). Load the
 `artifact-design` skill before writing it the first time. Contents:
 
-1. Title "dpws tools", the version, release date, one-line description (from the toc `## Notes`),
+1. Title "Tinker's Belt", the version, release date, one-line description (from the toc `## Notes`),
    target client: WoW Forever (`## Interface` from the toc).
 2. **Download** button → the zip, published alongside the page through `files`:
-   `{"dpws_tools-<version>.zip": "<zip path>"}` (contentType `application/zip`), and `null` for the
+   `{"TinkersBelt-<version>.zip": "<zip path>"}` (contentType `application/zip`), and `null` for the
    previous release's zip path so old zips don't pile up.
 3. **How to install**:
-   1. Close the game (or be ready to `/reload`).
+   1. Close the game (a new addon folder is only picked up on a restart; updates need just `/reload`).
    2. Download the zip.
-   3. If an older dpws_tools is installed, delete the `Interface\AddOns\dpws_tools` folder first.
+   3. If an older version is installed, delete the `Interface\AddOns\TinkersBelt` folder first.
    4. Extract the zip into `<WoW folder>\_forever_\Interface\AddOns\` so you get
-      `Interface\AddOns\dpws_tools\dpws_tools.toc` (not a doubled `dpws_tools\dpws_tools\`).
-   5. Start the game, enable "dpws tools" in the AddOns list on the character screen
+      `Interface\AddOns\TinkersBelt\TinkersBelt.toc` (not a doubled `TinkersBelt\TinkersBelt\`).
+   5. Start the game, enable "Tinker's Belt" in the AddOns list on the character screen
       ("Load out of date AddOns" if it shows as out of date).
-   6. In game: `/dpws` opens the settings. Saved settings carry over between versions.
+   6. In game: `/tb` opens the settings. Saved settings carry over between versions.
 4. **Changelog**: the whole `CHANGELOG.md`, rendered as HTML, newest first.
 
 Publish with `icon: "download"` on the first publish only, and a one-sentence `description`.

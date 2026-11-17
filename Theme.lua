@@ -3,7 +3,7 @@ local _, ns = ...
 -- Flat dark UI kit in the style of BuffTap's settings window: rounded cards, gold accent, Inter font.
 -- Own textures only (media/circle.tga is generated, Inter is OFL-licensed).
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local MEDIA = "Interface\\AddOns\\dpws_tools\\media\\"
+local MEDIA = "Interface\\AddOns\\TinkersBelt\\media\\"
 local CIRCLE = MEDIA .. "circle"
 
 local T = {

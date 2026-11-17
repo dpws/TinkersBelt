@@ -279,7 +279,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 	end
 end)
 
-SLASH_DPWS1 = "/dpws"
+SLASH_DPWS1 = "/tb"
 -- WoW chat can't be copied: show text in a selectable box (Ctrl+C) for diagnostics
 local copyFrame
 function ns.ShowCopyWindow(text)
@@ -297,7 +297,7 @@ function ns.ShowCopyWindow(text)
 		T.Box(copyFrame, T.window, T.border, 10)
 		local title = T.Text(copyFrame, "semibold", 13, { 1, 1, 1, 1 })
 		title:SetPoint("TOPLEFT", 14, -12)
-		title:SetText("dpws tools - press Ctrl+C to copy, Esc to close")
+		title:SetText("Tinker's Belt - press Ctrl+C to copy, Esc to close")
 		local close = CreateFrame("Button", nil, copyFrame)
 		close:SetSize(24, 24)
 		close:SetPoint("TOPRIGHT", -8, -6)
@@ -339,9 +339,9 @@ function ns.Diagnose(fn)
 	ns.ShowCopyWindow(table.concat(lines, "\n"))
 end
 
--- /dpws opens the window; /dpws <word> runs a module command (e.g. /dpws debug)
+-- /tb opens the window; /tb <word> runs a module command (e.g. /tb debug)
 SlashCmdList.DPWS = function(msg)
 	local cmd = strtrim(msg or ""):lower()
 	if cmd ~= "" and ns.slashCommands and ns.slashCommands[cmd] then return ns.slashCommands[cmd]() end
-	if ns.ToggleWindow then ns.ToggleWindow() else print("dpws_tools loaded") end
+	if ns.ToggleWindow then ns.ToggleWindow() else print("Tinker's Belt loaded") end
 end

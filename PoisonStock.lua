@@ -66,7 +66,7 @@ function S.MaterialTargets()
 	return targets
 end
 
--- /dpws tradeskill: with the Poisons window open, show what each profession API reports
+-- /tb tradeskill: with the Poisons window open, show what each profession API reports
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.tradeskill = function()
 	local function idOf(link) return link and tonumber(link:match("item:(%d+)")) end
@@ -111,7 +111,7 @@ ns.slashCommands.tradeskill = function()
 	end)
 end
 
--- one line per stocked poison, for /dpws restock
+-- one line per stocked poison, for /tb restock
 function S.Describe()
 	local lines = {}
 	if not Stock() then return lines end
@@ -195,7 +195,7 @@ end
 
 local function Craft(id, crafts)
 	local h = handles[id]
-	if not h then print("dpws_tools: open your Poisons window first (left-click the craft button)") return end
+	if not h then print("Tinker's Belt: open your Poisons window first (left-click the craft button)") return end
 	if h.craftIndex then
 		DoCraft(h.craftIndex) -- the Craft window makes one per call: one poison per click
 	elseif h.recipeID then
@@ -237,7 +237,7 @@ local function OpenMenu(owner)
 				function() Craft(id, crafts) end)
 			if crafts <= 0 then b:SetEnabled(false) end
 		end
-		if #ids == 0 then root:CreateButton("No poisons in stock list (/dpws > Rogue > Poison Stock)"):SetEnabled(false) end
+		if #ids == 0 then root:CreateButton("No poisons in stock list (/tb > Rogue > Poison Stock)"):SetEnabled(false) end
 	end)
 end
 

@@ -595,7 +595,7 @@ local function Update()
 	panel:SetWidth(math.max(#needs, 1) * (SIZE + 4))
 	panel:SetShown(#needs > 0 or ns.unlocked)
 end
--- keep the last error for /dpws buffs (it still reaches BugSack)
+-- keep the last error for /tb buffs (it still reaches BugSack)
 local function SafeUpdate()
 	xpcall(Update, function(err)
 		B.lastError = tostring(err) .. "\n" .. (debugstack and debugstack(2, 6, 0) or "")

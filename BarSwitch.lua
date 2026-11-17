@@ -92,5 +92,5 @@ table.insert(ns.loginHooks, function() ns.RunOutOfCombat(Setup) end)
 -- self-check
 local p2 = ns.ValidPages(2)
 if not (tContains(p2, 14) and not tContains(p2, 6) and not tContains(p2, 7) and not tContains(p2, 12) and #p2 == 8) then
-	print("|cffff4040dpws_tools: self-check FAILED (BarSwitch)|r")
+	print("|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r")
 end

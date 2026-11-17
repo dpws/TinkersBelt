@@ -168,6 +168,6 @@ ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.allies = function()
 	S().enabled = not S().enabled
 	A.Apply()
-	print(("dpws_tools: Friendly Names %s"):format(S().enabled and "ON" or "OFF (your nameplate setting is restored)"))
+	print(("Tinker's Belt: Friendly Names %s"):format(S().enabled and "ON" or "OFF (your nameplate setting is restored)"))
 end
 ns.slashCommands["allies info"] = function() ns.Diagnose(Info) end

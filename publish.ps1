@@ -5,8 +5,8 @@ if (-not (Test-Path $AddOnsDir)) {
 	Write-Error "AddOns folder not found: $AddOnsDir"
 	exit 1
 }
-$target = Join-Path $AddOnsDir "dpws_tools"
-# /MIR deletes stale files, but only inside our own dpws_tools folder
+$target = Join-Path $AddOnsDir "TinkersBelt"
+# /MIR deletes stale files, but only inside our own TinkersBelt folder
 robocopy $PSScriptRoot $target /MIR /XD docs tests .git .claude .superpowers /XF publish.ps1 .gitignore .gitattributes /NJH /NJS /NP
 if ($LASTEXITCODE -ge 8) { exit 1 }
 Write-Host "Published to $target"

@@ -83,7 +83,7 @@ local function RunQueue()
 	if #queue > 0 then C_Timer.After(0.5, RunQueue) end
 end
 
--- verbose: a function receiving every step (for /dpws restock)
+-- verbose: a function receiving every step (for /tb restock)
 local function Restock(verbose)
 	local function Say(msg) if verbose then verbose("restock: " .. msg) end end
 	local r = ns.db.restock
@@ -104,11 +104,11 @@ local function Restock(verbose)
 	local buys, total, over = ns.RestockPlan(items, Count, goods, r.budget)
 	if #buys == 0 then return Say("nothing to buy here (vendor doesn't sell them, or you have enough)") end
 	if over then
-		print(("dpws_tools: restock skipped, it would cost %s (limit %s)"):format(
+		print(("Tinker's Belt: restock skipped, it would cost %s (limit %s)"):format(
 			Coins(total), Coins(r.budget)))
 		return
 	end
-	if GetMoney() < total then print("dpws_tools: restock skipped, not enough gold") return end
+	if GetMoney() < total then print("Tinker's Belt: restock skipped, not enough gold") return end
 	local parts = {}
 	for _, b in ipairs(buys) do
 		if b.batches then
@@ -125,7 +125,7 @@ local function Restock(verbose)
 			parts[#parts + 1] = ("%d %s"):format(b.qty, ItemName(b.id))
 		end
 	end
-	print(("dpws_tools: restocking %s (%s)"):format(table.concat(parts, ", "), Coins(total)))
+	print(("Tinker's Belt: restocking %s (%s)"):format(table.concat(parts, ", "), Coins(total)))
 	RunQueue()
 end
 
@@ -148,7 +148,7 @@ ev:SetScript("OnEvent", function(_, event)
 	C_Timer.After(0.5, function() if merchantOpen then xpcall(Restock, geterrorhandler()) end end)
 end)
 
--- /dpws restock: explain what restock sees (open a vendor first to see what it would buy)
+-- /tb restock: explain what restock sees (open a vendor first to see what it would buy)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.restock = function()
 	ns.Diagnose(function(Say)

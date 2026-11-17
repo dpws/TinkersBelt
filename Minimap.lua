@@ -1,6 +1,6 @@
 local _, ns = ...
 
-local ICON = "Interface\\AddOns\\dpws_tools\\media\\icon"
+local ICON = "Interface\\AddOns\\TinkersBelt\\media\\icon"
 local RADIUS = 105 -- distance from minimap center; default minimap is ~140px wide
 
 local function Place(button, angle)
@@ -37,7 +37,7 @@ table.insert(ns.loginHooks, function()
 	b:SetScript("OnClick", function() ns.ToggleWindow() end)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-		GameTooltip:AddLine("dpws tools")
+		GameTooltip:AddLine("Tinker's Belt")
 		GameTooltip:AddLine("Click: open settings  ||  Drag: move", 1, 1, 1)
 		GameTooltip:Show()
 	end)

@@ -162,13 +162,13 @@ local function Describe(a)
 end
 
 function P.LoadBars(name)
-	if InCombatLockdown() then print("dpws_tools: can't change action bars in combat") return end
+	if InCombatLockdown() then print("Tinker's Belt: can't change action bars in combat") return end
 	local profile = Store()[name]
 	if not profile then return end
 	local api, missing = ResolveAPI()
-	if not api then print("dpws_tools: can't load bars on this client (missing " .. missing .. "), nothing changed") return end
+	if not api then print("Tinker's Belt: can't load bars on this client (missing " .. missing .. "), nothing changed") return end
 	local plan = ns.BarRestorePlan(profile.bars, SnapshotBars(), SLOTS) -- built before the backup may overwrite it
-	if not next(plan) then print(("dpws_tools: bars already match '%s'"):format(name)) return end
+	if not next(plan) then print(("Tinker's Belt: bars already match '%s'"):format(name)) return end
 	if name ~= BACKUP then P.Save(BACKUP) end
 	local failed = {}
 	for slot, step in pairs(plan) do
@@ -183,9 +183,9 @@ function P.LoadBars(name)
 	end
 	ClearCursor()
 	if #failed > 0 then
-		print(("dpws_tools: bars loaded from '%s', not placed: %s"):format(name, table.concat(failed, ", ")))
+		print(("Tinker's Belt: bars loaded from '%s', not placed: %s"):format(name, table.concat(failed, ", ")))
 	else
-		print(("dpws_tools: bars loaded from '%s' (previous bars saved as '%s')"):format(name, BACKUP))
+		print(("Tinker's Belt: bars loaded from '%s' (previous bars saved as '%s')"):format(name, BACKUP))
 	end
 end
 
@@ -205,7 +205,7 @@ local function Finish()
 	applying = nil
 	local missing = 0
 	for _, s in ipairs(a.saved) do missing = missing + math.max(0, s.rank - CurrentRank(s.tab, s.i)) end
-	print(("dpws_tools: talents from '%s' done%s"):format(a.name,
+	print(("Tinker's Belt: talents from '%s' done%s"):format(a.name,
 		missing > 0 and (", %d points not spent (reset talents at a trainer first?)"):format(missing) or ""))
 	if a.onDone then a.onDone() end
 end
@@ -235,14 +235,14 @@ end
 function P.LoadTalents(name, onDone)
 	local profile = Store()[name]
 	if not profile or applying then return false end
-	if Unspent() == 0 then print("dpws_tools: no unspent talent points (reset talents at a trainer first)") return false end
+	if Unspent() == 0 then print("Tinker's Belt: no unspent talent points (reset talents at a trainer first)") return false end
 	applying = { name = name, saved = profile.talents, skip = {}, fails = {}, onDone = onDone }
 	ticker = C_Timer.NewTicker(0.25, function()
 		local ok, err = pcall(TalentTick)
 		if not ok then -- never leave the stepper stuck
 			if ticker then ticker:Cancel(); ticker = nil end
 			applying = nil
-			print("dpws_tools: talent loading stopped: " .. tostring(err))
+			print("Tinker's Belt: talent loading stopped: " .. tostring(err))
 		end
 	end)
 	return true
@@ -257,7 +257,7 @@ end
 local attached
 local function OpenMenu(owner)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle("dpws profiles")
+		root:CreateTitle("Tinker's Belt profiles")
 		for _, name in ipairs(P.List()) do
 			local sub = root:CreateButton(name)
 			sub:CreateButton("Load talents", function() P.LoadTalents(name) end)
@@ -280,7 +280,7 @@ local function Attach()
 	ns.Theme.Button(b)
 	b:SetFrameStrata("DIALOG")
 	b:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -1)
-	b:SetText("dpws Profiles")
+	b:SetText("TB Profiles")
 	b:SetScript("OnClick", OpenMenu)
 	b:SetShown(frame:IsShown())
 	frame:HookScript("OnShow", function() b:Show() end)
@@ -291,10 +291,10 @@ end
 f:RegisterEvent("ADDON_LOADED") -- the talent UI loads on demand
 f:SetScript("OnEvent", Attach)
 
--- /dpws frames: which talent-like windows are open (to find the talent window on this client)
+-- /tb frames: which talent-like windows are open (to find the talent window on this client)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.frames = function()
-	print(("dpws_tools: profiles button attached: %s"):format(attached and "yes" or "no"))
+	print(("Tinker's Belt: profiles button attached: %s"):format(attached and "yes" or "no"))
 	if attached then
 		local x, y = attached:GetCenter()
 		print(("  button visible: %s, position: %s, %s (screen %d x %d)"):format(tostring(attached:IsVisible()),
