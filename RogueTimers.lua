@@ -71,6 +71,11 @@ function R.Layout()
 				icons[i] = b
 			end
 			b:SetSize(size, size)
+			-- countdown numbers about a third of the icon
+			local regions = { b.cd.GetCountdownFontString and b.cd:GetCountdownFontString(), b.cd:GetRegions() }
+			for _, r in pairs(regions) do
+				if r.GetObjectType and r:GetObjectType() == "FontString" then r:SetFont(T.font.semibold, math.max(math.floor(size * 0.36), 8), "OUTLINE") end
+			end
 			b:ClearAllPoints()
 			b:SetPoint("TOPLEFT", panel, "TOPLEFT", n * (size + 3), -top)
 			b:Show()
