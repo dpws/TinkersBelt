@@ -124,6 +124,7 @@ local function PlateTag(plate)
 	t = CreateFrame("Frame", nil, plate)
 	t:SetSize(40, 18)
 	t:SetPoint("BOTTOM", plate, "TOP", 0, 2)
+	t:SetFrameLevel(plate:GetFrameLevel() + 50) -- above the plate's own parts (the target plate is drawn bigger)
 	local function Icon(spell)
 		local i = t:CreateTexture(nil, "OVERLAY")
 		i:SetSize(S().iconSize or 18, S().iconSize or 18)
@@ -196,7 +197,12 @@ ns.slashCommands.opener = function()
 				Say(("opener: as %s: ctype=%s tooltip=%s humanoid=%s combat=%s attackable=%s tags=%s"):format(pu,
 					tostring(p.ctype), tostring(p.tooltip), tostring(p.humanoid), tostring(p.combat), tostring(p.attackable),
 					table.concat(ns.OpenerTags(p), ", ")))
-				Say(("opener: icon shown=%s"):format(tostring(plate and plate.dpwsOpener and plate.dpwsOpener:IsVisible() or false)))
+				local t = plate and plate.dpwsOpener
+				local i = t and t["Pick Pocket"]
+				Say(("opener: icon shown=%s alpha=%.2f size=%s at=%s,%s plate at=%s,%s level=%s/%s"):format(tostring(i and i:IsVisible() or false),
+					t and t:GetEffectiveAlpha() or 0, tostring(i and math.floor(i:GetWidth())), tostring(i and i:GetLeft() and math.floor(i:GetLeft())),
+					tostring(i and i:GetBottom() and math.floor(i:GetBottom())), tostring(plate and plate:GetLeft() and math.floor(plate:GetLeft())),
+					tostring(plate and plate:GetTop() and math.floor(plate:GetTop())), tostring(t and t:GetFrameLevel()), tostring(plate and plate:GetFrameLevel())))
 			else
 				Say("opener: no nameplate unit matches your target")
 			end
