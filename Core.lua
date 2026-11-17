@@ -50,62 +50,135 @@ function ns.RegisterPanel(frame, name, onMoved)
 	ns.panels[#ns.panels + 1] = o
 end
 
-function ns.StartMovingPanel(frame)
-	if ns.unlocked and not InCombatLockdown() then frame:StartMoving() end
+-- layout grid (account-wide setting adb.layout): shown while unlocked; panels snap to it while dragged.
+-- Lines run out from the screen centre, so the centre lines are grid lines too. Hold Shift to place freely.
+local function L() return ns.adb.layout end
+
+-- nearest grid line to v on an axis whose centre line is at c
+function ns.SnapToGrid(v, size, c)
+	return math.floor((v - c) / size + 0.5) * size + c
 end
 
--- grid shown while unlocked; dropped panels snap their top-left corner to it (hold Shift to place freely)
-local GRID = 16
-local grid
-
-function ns.SnapToGrid(v) return math.floor(v / GRID + 0.5) * GRID end
-
--- new start of a span [lo, lo+size]: whichever of its start, middle or end is closest to a grid line snaps
-function ns.SnapEdges(lo, size)
+-- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps
+function ns.SnapEdges(lo, len, size, c)
 	local best
-	for _, off in ipairs({ 0, size / 2, size }) do
-		local d = ns.SnapToGrid(lo + off) - (lo + off)
+	for _, off in ipairs({ 0, len / 2, len }) do
+		local d = ns.SnapToGrid(lo + off, size, c) - (lo + off)
 		if not best or math.abs(d) < math.abs(best) then best = d end
 	end
 	return lo + best
 end
 
-local function ShowGrid(on)
-	if on and not grid then
+local grid, lines = nil, {}
+local function DrawGrid()
+	if not grid then
 		grid = CreateFrame("Frame", nil, UIParent)
 		grid:SetAllPoints()
 		grid:SetFrameStrata("BACKGROUND")
-		local w, h = UIParent:GetWidth(), UIParent:GetHeight()
-		local cx, cy = w / 2, h / 2
-		local function Line(vertical, pos, center)
-			local t = grid:CreateTexture(nil, "BACKGROUND")
-			t:SetColorTexture(1, 1, 1, center and 0.35 or 0.08)
-			if vertical then
-				t:SetPoint("TOPLEFT", pos, 0); t:SetPoint("BOTTOMLEFT", pos, 0); t:SetWidth(1)
-			else
-				t:SetPoint("BOTTOMLEFT", 0, pos); t:SetPoint("BOTTOMRIGHT", 0, pos); t:SetHeight(1)
-			end
-		end
-		for x = 0, w, GRID do Line(true, x, false) end
-		for y = 0, h, GRID do Line(false, y, false) end
-		Line(true, cx, true); Line(false, cy, true)
 	end
-	if grid then grid:SetShown(on) end
+	for _, t in ipairs(lines) do t:Hide() end
+	local n = 0
+	local function Line(vertical, pos, center)
+		n = n + 1
+		local t = lines[n] or grid:CreateTexture(nil, "BACKGROUND")
+		lines[n] = t
+		t:ClearAllPoints()
+		t:SetColorTexture(1, 1, 1, center and 0.35 or 0.08)
+		if vertical then
+			t:SetPoint("TOPLEFT", pos, 0); t:SetPoint("BOTTOMLEFT", pos, 0); t:SetWidth(1)
+		else
+			t:SetPoint("BOTTOMLEFT", 0, pos); t:SetPoint("BOTTOMRIGHT", 0, pos); t:SetHeight(1)
+		end
+		t:Show()
+	end
+	local w, h, size = UIParent:GetWidth(), UIParent:GetHeight(), L().size
+	for x = (w / 2) % size, w, size do Line(true, x, math.abs(x - w / 2) < 0.5) end
+	for y = (h / 2) % size, h, size do Line(false, y, math.abs(y - h / 2) < 0.5) end
+end
+
+local function UpdateGrid()
+	local on = ns.unlocked and L().grid
+	if on then DrawGrid() end
+	if grid then grid:SetShown(on and true or false) end
+end
+
+-- drag: move the panel ourselves every frame so it can snap while it moves
+local mover = CreateFrame("Frame")
+mover:Hide()
+local function Place(frame, left, top, snap)
+	local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale() -- grid is in UIParent units
+	if snap then
+		local size = L().size
+		local w, h = frame:GetWidth() * s, frame:GetHeight() * s
+		left = ns.SnapEdges(left, w, size, UIParent:GetWidth() / 2)
+		top = ns.SnapEdges(top - h, h, size, UIParent:GetHeight() / 2) + h
+	end
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left / s, top / s)
+end
+local function Cursor()
+	local x, y = GetCursorPosition()
+	local u = UIParent:GetEffectiveScale()
+	return x / u, y / u
+end
+mover:SetScript("OnUpdate", function(self)
+	if InCombatLockdown() or not IsMouseButtonDown("LeftButton") then ns.StopMovingPanel(self.frame) return end
+	local x, y = Cursor()
+	Place(self.frame, self.left + x - self.x, self.top + y - self.y, L().snap and not IsShiftKeyDown())
+end)
+
+-- force: move even while panels are locked (Shift+drag on the buff reminder)
+function ns.StartMovingPanel(frame, force)
+	if not (ns.unlocked or force) or InCombatLockdown() or not frame:GetLeft() then return end
+	local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+	mover.frame, mover.left, mover.top = frame, frame:GetLeft() * s, frame:GetTop() * s
+	mover.x, mover.y = Cursor()
+	mover:Show()
 end
 
 function ns.StopMovingPanel(frame)
-	frame:StopMovingOrSizing()
-	local left, top = frame:GetLeft(), frame:GetTop()
-	if left and not IsShiftKeyDown() then
-		-- grid is in UIParent units, the frame's offsets are in its own scale
-		local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
-		local w, h = frame:GetWidth() * s, frame:GetHeight() * s
-		local x = ns.SnapEdges(left * s, w)
-		local y = ns.SnapEdges(top * s - h, h) + h
-		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / s, y / s)
-	end
+	if mover.frame ~= frame then return end
+	mover:Hide()
+	mover.frame = nil
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
+end
+
+-- small settings bar at the top of the screen while unlocked
+local bar
+local function SettingsBar()
+	local T = ns.Theme
+	bar = CreateFrame("Frame", nil, UIParent)
+	bar:SetSize(560, 44)
+	bar:SetPoint("TOP", 0, -12)
+	bar:SetFrameStrata("DIALOG")
+	bar:EnableMouse(true)
+	T.Panel(bar)
+	local x = 14
+	local function Label(text)
+		local fs = T.Text(bar, "medium", 12, T.text)
+		fs:SetPoint("LEFT", x, 0)
+		fs:SetText(text)
+		x = x + fs:GetStringWidth() + 8
+	end
+	local function Toggle(text, key)
+		Label(text)
+		local t = T.NewToggle(bar, function(on) L()[key] = on; UpdateGrid() end)
+		t:SetPoint("LEFT", x, 0)
+		t:SetChecked(L()[key])
+		x = x + 36 + 18
+	end
+	Toggle("Snap", "snap")
+	Toggle("Grid", "grid")
+	Label("Grid size")
+	local sl = T.NewSlider(bar, 8, 64, 4, "px", function(v) L().size = v; UpdateGrid() end)
+	sl:SetWidth(220)
+	sl:SetPoint("LEFT", x, 0)
+	sl:SetValue(L().size)
+	x = x + 220 + 12
+	local lock = T.NewButton(bar, "Lock", 70, 26, "accent")
+	lock:SetPoint("LEFT", x, 0)
+	lock:SetScript("OnClick", function() ns.SetUnlocked(false) end)
+	bar:SetWidth(x + 70 + 14)
 end
 
 -- scale around the panel's center (call out of combat for frames with secure children)
@@ -124,7 +197,11 @@ end
 function ns.SetUnlocked(on)
 	ns.unlocked = on
 	for _, o in ipairs(ns.panels) do o:SetShown(on) end
-	ShowGrid(on)
+	if on and not bar then SettingsBar() end
+	if bar then bar:SetShown(on) end
+	if not on and mover.frame then ns.StopMovingPanel(mover.frame) end
+	UpdateGrid()
+	if ns.OnLockChanged then ns.OnLockChanged() end
 end
 
 local f = CreateFrame("Frame")
@@ -162,6 +239,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		if adb.pvpAnnounce == nil then adb.pvpAnnounce = true end
 		adb.nearby = adb.nearby or { enabled = true, timeout = 60, alert = "off" }
 		adb.allies = adb.allies or { enabled = false, size = 13, guild = true }
+		adb.layout = adb.layout or { snap = true, grid = true, size = 32 }
 		ns.adb = adb
 	elseif event == "PLAYER_LOGIN" then
 		-- one module failing must not stop the others; the error still reaches BugSack

@@ -1080,6 +1080,7 @@ local function CreateWindow()
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked); LockText() end)
 	lock:SetScript("OnShow", LockText)
+	ns.OnLockChanged = LockText
 	LockText()
 
 	f:SetScript("OnShow", UpdateDots)

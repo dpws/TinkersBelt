@@ -221,7 +221,7 @@ local function ReminderButton(i)
 	b:SetAttribute("shift-type1", "") -- Shift+drag moves the panel: don't cast on that click
 	b:RegisterForDrag("LeftButton")
 	b:SetScript("OnDragStart", function()
-		if (IsShiftKeyDown() or ns.unlocked) and not InCombatLockdown() then panel:StartMoving() end
+		ns.StartMovingPanel(panel, IsShiftKeyDown())
 	end)
 	b:SetScript("OnDragStop", function() ns.StopMovingPanel(panel) end)
 	b.icon = b:CreateTexture(nil, "ARTWORK")
