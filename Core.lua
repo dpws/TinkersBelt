@@ -59,14 +59,16 @@ function ns.SnapToGrid(v, size, c)
 	return math.floor((v - c) / size + 0.5) * size + c
 end
 
--- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps
+-- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps.
+-- Also returns that grid line.
 function ns.SnapEdges(lo, len, size, c)
-	local best
+	local best, line
 	for _, off in ipairs({ 0, len / 2, len }) do
-		local d = ns.SnapToGrid(lo + off, size, c) - (lo + off)
-		if not best or math.abs(d) < math.abs(best) then best = d end
+		local g = ns.SnapToGrid(lo + off, size, c)
+		local d = g - (lo + off)
+		if not best or math.abs(d) < math.abs(best) then best, line = d, g end
 	end
-	return lo + best
+	return lo + best, line
 end
 
 local grid, lines = nil, {}
@@ -105,14 +107,39 @@ end
 -- drag: move the panel ourselves every frame so it can snap while it moves
 local mover = CreateFrame("Frame")
 mover:Hide()
+-- the two grid lines the dragged panel is snapped to, in the accent colour
+local hl
+local function Highlight(x, y)
+	if not hl then
+		hl = CreateFrame("Frame", nil, UIParent)
+		hl:SetAllPoints()
+		hl:SetFrameStrata("BACKGROUND")
+		hl:SetFrameLevel(10)
+		local T = ns.Theme
+		hl.v = hl:CreateTexture(nil, "OVERLAY")
+		hl.v:SetColorTexture(unpack(T.Accent(0.9)))
+		hl.v:SetWidth(2)
+		hl.h = hl:CreateTexture(nil, "OVERLAY")
+		hl.h:SetColorTexture(unpack(T.Accent(0.9)))
+		hl.h:SetHeight(2)
+	end
+	hl:SetShown(x ~= nil)
+	if not x then return end
+	hl.v:ClearAllPoints(); hl.v:SetPoint("TOP", hl, "TOPLEFT", x, 0); hl.v:SetPoint("BOTTOM", hl, "BOTTOMLEFT", x, 0)
+	hl.h:ClearAllPoints(); hl.h:SetPoint("LEFT", hl, "BOTTOMLEFT", 0, y); hl.h:SetPoint("RIGHT", hl, "BOTTOMRIGHT", 0, y)
+end
+
 local function Place(frame, left, top, snap)
 	local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale() -- grid is in UIParent units
+	local lineX, lineY
 	if snap then
 		local size = L().size
 		local w, h = frame:GetWidth() * s, frame:GetHeight() * s
-		left = ns.SnapEdges(left, w, size, UIParent:GetWidth() / 2)
-		top = ns.SnapEdges(top - h, h, size, UIParent:GetHeight() / 2) + h
+		left, lineX = ns.SnapEdges(left, w, size, UIParent:GetWidth() / 2)
+		top, lineY = ns.SnapEdges(top - h, h, size, UIParent:GetHeight() / 2)
+		top = top + h
 	end
+	Highlight(lineX, lineY)
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left / s, top / s)
 end
@@ -140,6 +167,7 @@ function ns.StopMovingPanel(frame)
 	if mover.frame ~= frame then return end
 	mover:Hide()
 	mover.frame = nil
+	Highlight(nil)
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
 
