@@ -60,6 +60,16 @@ local grid
 
 function ns.SnapToGrid(v) return math.floor(v / GRID + 0.5) * GRID end
 
+-- new start of a span [lo, lo+size]: whichever of its start, middle or end is closest to a grid line snaps
+function ns.SnapEdges(lo, size)
+	local best
+	for _, off in ipairs({ 0, size / 2, size }) do
+		local d = ns.SnapToGrid(lo + off) - (lo + off)
+		if not best or math.abs(d) < math.abs(best) then best = d end
+	end
+	return lo + best
+end
+
 local function ShowGrid(on)
 	if on and not grid then
 		grid = CreateFrame("Frame", nil, UIParent)
@@ -89,8 +99,11 @@ function ns.StopMovingPanel(frame)
 	if left and not IsShiftKeyDown() then
 		-- grid is in UIParent units, the frame's offsets are in its own scale
 		local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+		local w, h = frame:GetWidth() * s, frame:GetHeight() * s
+		local x = ns.SnapEdges(left * s, w)
+		local y = ns.SnapEdges(top * s - h, h) + h
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", ns.SnapToGrid(left * s) / s, ns.SnapToGrid(top * s) / s)
+		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / s, y / s)
 	end
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
