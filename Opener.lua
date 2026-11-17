@@ -102,6 +102,22 @@ local function UnitFacts(unit, stealthed)
 	}
 end
 
+-- Forever hides more about "nameplateN" than about the same mob as "target": read a plate that is your
+-- target / focus / mouseover through that token
+local function BestToken(unit)
+	for _, token in ipairs({ "target", "focus", "mouseover" }) do
+		if Read(UnitIsUnit, unit, token) then return token end
+	end
+	return unit
+end
+
+-- the nameplate unit showing your target (for /dpws opener)
+local function TargetPlateUnit()
+	for _, u in ipairs(ns.NamePlateUnits()) do
+		if Read(UnitIsUnit, u, "target") then return u end
+	end
+end
+
 local function PlateTag(plate)
 	local t = plate.dpwsOpener
 	if t then return t end
@@ -131,7 +147,7 @@ local function UpdatePlates()
 		for _, unit in ipairs(ns.NamePlateUnits()) do
 			local plate = C_NamePlate.GetNamePlateForUnit(unit)
 			local ok, tags = pcall(function()
-				local f = UnitFacts(unit, true)
+				local f = UnitFacts(BestToken(unit), true)
 				f.picked = f.picked or (plate and plate.dpwsPicked) or false
 				return ns.OpenerTags(f)
 			end)
@@ -174,6 +190,16 @@ ns.slashCommands.opener = function()
 			Say("opener: tags=" .. table.concat(ns.OpenerTags(t), ", "))
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
 			Say(("opener: plate marked picked=%s"):format(tostring(plate and plate.dpwsPicked or false)))
+			local pu = TargetPlateUnit()
+			if pu then
+				local p = UnitFacts(pu, Stealthed())
+				Say(("opener: as %s: ctype=%s tooltip=%s humanoid=%s combat=%s attackable=%s tags=%s"):format(pu,
+					tostring(p.ctype), tostring(p.tooltip), tostring(p.humanoid), tostring(p.combat), tostring(p.attackable),
+					table.concat(ns.OpenerTags(p), ", ")))
+				Say(("opener: icon shown=%s"):format(tostring(plate and plate.dpwsOpener and plate.dpwsOpener:IsVisible() or false)))
+			else
+				Say("opener: no nameplate unit matches your target")
+			end
 		end
 	end)
 end
