@@ -175,10 +175,10 @@ local function SettingsBar()
 	sl:SetPoint("LEFT", x, 0)
 	sl:SetValue(L().size)
 	x = x + 220 + 12
-	local lock = T.NewButton(bar, "Lock", 70, 26, "accent")
+	local lock = T.NewButton(bar, "Lock panels", 100, 26, "accent")
 	lock:SetPoint("LEFT", x, 0)
 	lock:SetScript("OnClick", function() ns.SetUnlocked(false) end)
-	bar:SetWidth(x + 70 + 14)
+	bar:SetWidth(x + 100 + 14)
 end
 
 -- scale around the panel's center (call out of combat for frames with secure children)

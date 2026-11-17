@@ -1078,13 +1078,17 @@ local function CreateWindow()
 	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
 	lock:SetPoint("BOTTOMLEFT", 20, 18)
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
-	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked); LockText() end)
+	-- unlocking hides this window so the panels are free to move; locking (here or on the layout bar) brings it back
+	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked) end)
 	lock:SetScript("OnShow", LockText)
-	ns.OnLockChanged = LockText
+	ns.OnLockChanged = function()
+		LockText()
+		f:SetShown(not ns.unlocked)
+	end
 	LockText()
 
 	f:SetScript("OnShow", UpdateDots)
-	f:SetScript("OnHide", function() SetHighlights(false); ns.SetUnlocked(false) end)
+	f:SetScript("OnHide", function() SetHighlights(false) end)
 	f:Hide()
 	return f
 end
