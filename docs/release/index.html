@@ -1,0 +1,168 @@
+<title>Tinker's Belt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column, a riveted brass "plate" header with the download, then install steps and changelog */
+:root {
+  --bg: #f3f1ec; --surface: #ffffff; --line: #ddd6c8; --fg: #23262b; --muted: #636a73;
+  --brass: #9a6a1c; --brass-ink: #ffffff; --brass-soft: #f1e4c9; --code-bg: #ece7dc;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15171a; --surface: #1d2024; --line: #2f343a; --fg: #e6e2da; --muted: #9aa1aa;
+  --brass: #d6a24a; --brass-ink: #1a1408; --brass-soft: #3a2f1c; --code-bg: #262a2f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --line: #2f343a; --fg: #e6e2da; --muted: #9aa1aa;
+  --brass: #d6a24a; --brass-ink: #1a1408; --brass-soft: #3a2f1c; --code-bg: #262a2f; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 40px; }
+h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: 44px; }
+h2 { font-size: 26px; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
+p { margin: 0; }
+code { font: 500 13px var(--mono); background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+
+.plate { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 28px; display: grid; gap: 18px; position: relative; }
+.plate::before, .plate::after { content: ""; position: absolute; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--brass); opacity: 0.55; }
+.plate::before { left: 12px; } .plate::after { right: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.meta b { color: var(--fg); font-weight: 600; }
+.lead { font-size: 17px; max-width: 60ch; }
+.get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+button.dl { font: 600 15px var(--body); background: var(--brass); color: var(--brass-ink); border: 0; border-radius: 8px; padding: 12px 22px; cursor: pointer; }
+button.dl:hover { filter: brightness(1.08); }
+button.dl:focus-visible { outline: 3px solid var(--brass-soft); outline-offset: 2px; }
+button.dl:disabled { opacity: 0.6; cursor: default; }
+.status { color: var(--muted); font-size: 13px; min-height: 1.6em; }
+
+section { display: grid; gap: 16px; }
+ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; }
+ol.steps li::before { content: counter(s); font: 700 15px var(--display); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--brass-soft); color: var(--fg); margin-top: 1px; }
+.path { display: block; margin-top: 6px; overflow-x: auto; }
+.path code { white-space: nowrap; }
+
+.release { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 14px; }
+.release header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.release header strong { font: 700 22px var(--display); }
+.release header span { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.release ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.release li b { font-weight: 600; }
+.group { display: grid; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="plate">
+    <h1>Tinker's Belt</h1>
+    <p class="lead">Small quality-of-life tools for World of Warcraft: Forever, with a full rogue kit. Type <code>/tb</code> in game to open the settings.</p>
+    <div class="meta">
+      <span>Version <b id="ver">0.1.0</b></span>
+      <span>Released <b>17 Nov 2026</b></span>
+      <span>Client <b>WoW Forever</b> (interface 16001)</span>
+      <span>Size <b>572 KB</b></span>
+    </div>
+    <div class="get">
+      <button class="dl" id="dl" type="button">Download TinkersBelt-0.1.0.zip</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+  </div>
+
+  <section aria-labelledby="install">
+    <h2 id="install">How to install</h2>
+    <ol class="steps">
+      <li><p>Close the game. A new addon folder is only picked up when the game starts; later updates just need <code>/reload</code>.</p></li>
+      <li><p>Download the zip above.</p></li>
+      <li><p>If an older version is installed, delete its folder first: <span class="path"><code>Interface\AddOns\TinkersBelt</code></span></p></li>
+      <li><p>Extract the zip into your game's AddOns folder, so the addon ends up here (not in a doubled <code>TinkersBelt\TinkersBelt</code>):
+        <span class="path"><code>World of Warcraft\_forever_\Interface\AddOns\TinkersBelt\TinkersBelt.toc</code></span></p></li>
+      <li><p>Start the game and make sure "Tinker's Belt" is ticked in the AddOns list on the character screen. If it says out of date, tick "Load out of date AddOns".</p></li>
+      <li><p>In game, type <code>/tb</code> to open the settings. Your settings carry over between versions.</p></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="changes">
+    <h2 id="changes">Changelog</h2>
+    <article class="release">
+      <header><strong>0.1.0</strong><span>17 Nov 2026 · first release</span></header>
+      <div class="group">
+        <h3>For everyone</h3>
+        <ul>
+          <li><b>PvP Kills:</b> your score against each enemy player, with recent kills and deaths.</li>
+          <li><b>PvP Settings:</b> score in tooltips, kill announcements and sounds for open-world PvP.</li>
+          <li><b>Nearby Enemies:</b> a list of opposite-faction players seen around you.</li>
+          <li><b>Friendly Names:</b> clean labels above friendly players (class colour and guild) instead of nameplates.</li>
+          <li><b>Profiles:</b> save and load action bars and talents, shared by your characters of the same class.</li>
+          <li><b>Auto Restock:</b> buys reagents and supplies at vendors, within a gold limit you set.</li>
+          <li><b>Movable panels:</b> unlock to drag any panel, with a grid, live snapping to edges and centres, and adjustable grid size.</li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Casters</h3>
+        <ul>
+          <li><b>Mana Ticks:</b> a bar for the five-second rule, then regeneration ticks.</li>
+          <li><b>Buffs:</b> reminder buttons for you, your group and nearby players, plus buff buttons beside party frames.</li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Rogues</h3>
+        <ul>
+          <li><b>Stealth Action Bars:</b> choose which bars switch page while you're in Stealth.</li>
+          <li><b>Poisons:</b> weapon poison bar, reminders before poisons run out, and poisons kept stocked in your bags.</li>
+          <li><b>Combat Bars:</b> health, energy and combo point bars, a Slice and Dice timer that also works in combat, and cooldown icons with adjustable icon and text size.</li>
+          <li><b>Lockboxes:</b> one button that picks and opens your lockboxes.</li>
+          <li><b>Openers:</b> Sap and Pick Pocket icons above enemy nameplates while stealthed, and two weapon set buttons (opener and fight).</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+</div>
+
+<script>
+const FILE = "TinkersBelt-0.1.0.zip";
+// artifacts can't serve .zip, so the zip ships base64-encoded beside the page and is rebuilt here
+const SOURCE = FILE + ".b64.txt";
+const btn = document.getElementById("dl");
+const status = document.getElementById("status");
+let downloads = null;
+btn.disabled = true;
+status.textContent = "Getting the download ready…";
+window.claude?.use?.("downloads").then(d => {
+  downloads = d;
+  btn.disabled = !d;
+  status.textContent = d ? "" : "Downloads aren't available in this view. Open this page on claude.ai to download.";
+}).catch(() => { status.textContent = "Downloads aren't available in this view. Open this page on claude.ai to download."; });
+if (!window.claude?.use) status.textContent = "Open this page on claude.ai to download.";
+
+btn.addEventListener("click", async () => {
+  if (!downloads) return;
+  btn.disabled = true;
+  status.textContent = "Preparing…";
+  try {
+    const res = await fetch(SOURCE);
+    if (!res.ok) throw { message: "The file couldn't be loaded (" + res.status + "). Try again in a moment." };
+    const bin = atob((await res.text()).trim());
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes]);
+    status.textContent = "Confirm the save in the prompt.";
+    await downloads.save({ filename: FILE, data: blob });
+    status.textContent = "Saved. Now follow the install steps below.";
+  } catch (e) {
+    const code = e && e.code;
+    status.textContent = code === "declined" ? "Download cancelled."
+      : code === "rate_limited" ? "A save prompt is already open. Finish it, then try again."
+      : (e && e.message) || "The download didn't work. Try again.";
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>

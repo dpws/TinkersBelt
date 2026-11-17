@@ -88,9 +88,14 @@ Page source: `docs/release/index.html` (kept in git so each release edits the la
 
 1. Title "Tinker's Belt", the version, release date, one-line description (from the toc `## Notes`),
    target client: WoW Forever (`## Interface` from the toc).
-2. **Download** button → the zip, published alongside the page through `files`:
-   `{"TinkersBelt-<version>.zip": "<zip path>"}` (contentType `application/zip`), and `null` for the
-   previous release's zip path so old zips don't pile up.
+2. **Download** button → the zip. Artifacts refuse to serve `.zip`, so ship it base64-encoded:
+   `base64 -w0 <zip> > <zip>.b64.txt` (check the round trip with `base64 -d ... | cmp - <zip>`), publish
+   `{"TinkersBelt-<version>.zip.b64.txt": "<b64 path>"}` through `files`, plus `null` for the previous
+   release's `.b64.txt` so old ones don't pile up. The page declares `capabilities: {downloads: true}`
+   (first publish only; omit on later publishes to keep it), fetches the `.b64.txt`, decodes it to a Blob
+   and calls `downloads.save({filename: "TinkersBelt-<version>.zip", data})`. A plain or `download` link
+   does not work in artifacts. On a new release, change the `FILE` constant, the version, date and size
+   in the page.
 3. **How to install**:
    1. Close the game (a new addon folder is only picked up on a restart; updates need just `/reload`).
    2. Download the zip.
