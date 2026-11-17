@@ -137,41 +137,111 @@ local function Cooldown(id)
 	local spell = SpellName(id) or id
 	if C_Spell and C_Spell.GetSpellCooldown then
 		local ok, info = pcall(C_Spell.GetSpellCooldown, spell)
-		if ok and info then return info.startTime, info.duration end
+		if ok and info then return info.startTime, info.duration, info end
 	elseif GetSpellCooldown then
 		return GetSpellCooldown(spell)
 	end
 end
 
+-- in combat Forever hides cooldown times: hand the hidden cooldown straight to the sweep
+local function HiddenCooldown(b, start, duration)
+	local spell = SpellName(b.spell) or b.spell
+	if b.cd.SetCooldownFromDurationObject and C_Spell.GetSpellCooldownDuration then
+		local ok = pcall(function() b.cd:SetCooldownFromDurationObject(C_Spell.GetSpellCooldownDuration(spell)) end)
+		if ok then return "duration" end
+	end
+	return pcall(b.cd.SetCooldown, b.cd, start, duration) and "secret" or "failed"
+end
+
 ns.slashCommands.cds = function()
 	ns.Diagnose(function(Say)
 		local now = GetTime()
+		local _, any = next(icons)
+		Say(("cds: GetSpellCooldownDuration=%s SetCooldownFromDurationObject=%s"):format(
+			tostring(C_Spell.GetSpellCooldownDuration ~= nil), tostring(any and any.cd.SetCooldownFromDurationObject ~= nil)))
 		for _, b in pairs(icons) do
 			if b:IsShown() then
 				local start, duration = Cooldown(b.spell)
 				local function V(v) return Secret(v) and "SECRET" or tostring(v) end
-				Say(("cds: %s start=%s duration=%s left=%s"):format(tostring(SpellName(b.spell)), V(start), V(duration),
-					(Secret(start) or Secret(duration)) and "?" or ("%.1f"):format(ns.CooldownLeft(start, duration, now))))
+				Say(("cds: %s start=%s duration=%s left=%s sweep=%s"):format(tostring(SpellName(b.spell)), V(start), V(duration),
+					(Secret(start) or Secret(duration)) and "?" or ("%.1f"):format(ns.CooldownLeft(start, duration, now)), tostring(b.how)))
 			end
 		end
 	end)
 end
+
+-- Slice and Dice is hidden in combat: remember which buff appeared when you cast it (aura instance id)
+local sndIID, lastAdded, lastAddedAt, sndCastAt, lastCast = nil, nil, 0, 0, "none"
+local function IsSnd(id)
+	if not id or Secret(id) then return false end
+	return id == 5171 or id == 6774 or SpellName(id) == SpellName(SND)
+end
+local function Alive(iid)
+	if not iid then return false end
+	local ok, a = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, "player", iid)
+	return ok and a ~= nil
+end
+local function OnCast(spellID)
+	if not IsSnd(spellID) then return end
+	local now = GetTime()
+	if Alive(sndIID) then lastCast = "refresh" return end -- recast: the same buff is updated
+	if lastAdded and now - lastAddedAt < 0.5 then
+		sndIID, lastCast = lastAdded, "buff came first"
+	else
+		sndCastAt, lastCast = now, "waiting for the buff"
+	end
+end
+local function OnAura(info)
+	if not info then return end
+	local now = GetTime()
+	for _, a in ipairs(info.addedAuras or {}) do
+		local iid = a.auraInstanceID
+		if iid and not Secret(iid) then
+			if IsSnd(a.spellId) or now - sndCastAt < 0.5 then
+				sndIID, sndCastAt, lastCast = iid, 0, "buff found"
+				snd.timerAura = nil
+			else
+				lastAdded, lastAddedAt = iid, now
+			end
+		end
+	end
+	for _, iid in ipairs(info.updatedAuraInstanceIDs or {}) do
+		if iid == sndIID then snd.timerAura = nil end -- refreshed: restart the bar
+	end
+	for _, iid in ipairs(info.removedAuraInstanceIDs or {}) do
+		if iid == sndIID then sndIID = nil end
+	end
+end
+
+local function SndUp() return FindSnd() ~= nil or Alive(sndIID) end
+
+ns.slashCommands.snd2 = function()
+	ns.Diagnose(function(Say)
+		Say(("snd: tracked buff=%s alive=%s bar timer=%s last cast=%s"):format(tostring(sndIID), tostring(Alive(sndIID)),
+			tostring(snd and snd.timerAura), lastCast))
+	end)
+end
+
+local function SetFill(on) snd:GetStatusBarTexture():SetAlpha(on and 1 or 0) end
 
 local function Update()
 	if not panel then return end
 	local s = S()
 	local mode = s.mode or "combat"
 	-- "combat" also shows while Slice and Dice is up (often cast before the pull)
-	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (s.snd and FindSnd() ~= nil)))
+	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (s.snd and SndUp())))
 	panel:SetShown(show)
 	if not show then return end
 	local now = GetTime()
 	for _, b in pairs(icons) do
 		if b:IsShown() then
-			local start, duration = Cooldown(b.spell)
+			local start, duration, info = Cooldown(b.spell)
 			if Secret(start) or Secret(duration) then
-				pcall(b.cd.SetCooldown, b.cd, start, duration) -- hidden values: let the game draw it
+				local gcd = info and not Secret(info.isOnGCD) and info.isOnGCD
+				if gcd then b.cd:Clear() else b.how = HiddenCooldown(b, start, duration) end
+				b.cdStart = nil
 				b.icon:SetDesaturated(false)
+				b.icon:SetAlpha(1)
 			else
 				local left = ns.CooldownLeft(start, duration, now)
 				if left > 0 then
@@ -180,6 +250,7 @@ local function Update()
 					b.cd:Clear()
 				end
 				b.cdStart = left > 0 and start or nil
+				b.how = "readable"
 				b.icon:SetDesaturated(left > 0)
 				b.icon:SetAlpha(left > 0 and 0.6 or 1)
 			end
@@ -187,23 +258,30 @@ local function Update()
 	end
 	if s.snd then
 		local exp, dur, aura = SndAura()
+		if aura and not Secret(aura.auraInstanceID) then sndIID = aura.auraInstanceID end
 		if exp and dur and dur > 0 then
 			local left = math.max(exp - now, 0)
+			snd.timerAura = nil
 			snd:SetMinMaxValues(0, dur)
 			snd:SetValue(left)
+			SetFill(true)
 			snd.text:SetFormattedText("%d", math.ceil(left))
-		elseif aura and not Secret(aura.auraInstanceID) and snd.SetTimerDuration and C_UnitAuras.GetAuraDuration then
-			-- timer hidden from addons: the game can still drive the bar from the aura (once per aura)
-			if snd.timerAura ~= aura.auraInstanceID then
+		elseif Alive(sndIID) and snd.SetTimerDuration and C_UnitAuras.GetAuraDuration then
+			-- timer hidden from addons: the game drives the bar from the buff (set once per cast / refresh)
+			if snd.timerAura ~= sndIID then
 				local ok = pcall(function()
-					snd:SetTimerDuration(C_UnitAuras.GetAuraDuration("player", aura.auraInstanceID), nil, 1) -- 1 = drain
+					local d = C_UnitAuras.GetAuraDuration("player", sndIID)
+					local dir = Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime
+					if dir then snd:SetTimerDuration(d, nil, dir) else snd:SetTimerDuration(d) end
 				end)
-				snd.timerAura = ok and aura.auraInstanceID or nil
-				snd.text:SetText("")
+				snd.timerAura = ok and sndIID or "failed"
 			end
+			SetFill(true)
+			snd.text:SetText("")
 		else
 			snd.timerAura = nil
 			snd:SetValue(0)
+			SetFill(false)
 			snd.text:SetText("")
 		end
 	end
@@ -238,6 +316,12 @@ table.insert(ns.loginHooks, function()
 	R.Layout()
 	local ev = CreateFrame("Frame")
 	ev:RegisterEvent("SPELLS_CHANGED")
-	ev:SetScript("OnEvent", function() R.Layout() end)
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	ev:RegisterUnitEvent("UNIT_AURA", "player")
+	ev:SetScript("OnEvent", function(_, event, _, a2, a3)
+		if event == "UNIT_SPELLCAST_SUCCEEDED" then pcall(OnCast, a3)
+		elseif event == "UNIT_AURA" then pcall(OnAura, a2)
+		else R.Layout() end
+	end)
 	C_Timer.NewTicker(0.1, Update)
 end)
