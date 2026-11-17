@@ -1,14 +1,14 @@
 <title>Tinker's Belt</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@600;700&family=Lato:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one narrow column, a riveted brass "plate" header with the download, then install steps and changelog */
+/* Layout: one narrow column; the brand banner and download on a plate, then install steps and changelog. Fonts follow the logo (EB Garamond + Lato). */
 :root {
   --bg: #f3f1ec; --surface: #ffffff; --line: #ddd6c8; --fg: #23262b; --muted: #636a73;
   --brass: #9a6a1c; --brass-ink: #ffffff; --brass-soft: #f1e4c9; --code-bg: #ece7dc;
-  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
-  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "EB Garamond", Georgia, serif;
+  --body: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -24,8 +24,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
   display: grid; gap: 40px; }
 h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.1; }
 h1 { font-size: 44px; }
-.brand { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.brand img { width: 88px; height: 88px; border-radius: 20px; flex: none; }
+.banner { display: block; width: 100%; height: auto; border-radius: 8px; background: #08111a; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 h2 { font-size: 26px; }
 h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
 p { margin: 0; }
@@ -62,10 +62,8 @@ ol.steps li::before { content: counter(s); font: 700 15px var(--display); width:
 
 <div class="wrap">
   <div class="plate">
-    <div class="brand">
-      <img src="logo.png" alt="Tinker's Belt logo: a brass T on a belt buckle" width="88" height="88">
-      <h1>Tinker's Belt</h1>
-    </div>
+    <img class="banner" src="banner.png" alt="Tinker's Belt: a brass T buckle on a leather belt. A better way through Azeroth." width="1500" height="1000">
+    <h1 class="sr">Tinker's Belt</h1>
     <p class="lead">Small quality-of-life tools for World of Warcraft: Forever, with a full rogue kit. Type <code>/tb</code> in game to open the settings.</p>
     <div class="meta">
       <span>Version <b id="ver">0.1.0</b></span>

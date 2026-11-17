@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" width="700" height="700">
+<defs>
+<radialGradient id="bg"><stop stop-color="#163f46"/><stop offset=".42" stop-color="#0e232e"/><stop offset="1" stop-color="#050d18"/></radialGradient>
+<radialGradient id="teal" cx="38%" cy="33%"><stop stop-color="#8ffff7"/><stop offset=".19" stop-color="#33dccc"/><stop offset=".58" stop-color="#127b85"/><stop offset=".93" stop-color="#103746"/><stop offset="1" stop-color="#102631"/></radialGradient>
+<linearGradient id="brass" x1="0" y1="0" x2=".87" y2="1"><stop stop-color="#fff0ad"/><stop offset=".17" stop-color="#dfa34b"/><stop offset=".43" stop-color="#9d5727"/><stop offset=".7" stop-color="#f2c476"/><stop offset=".89" stop-color="#8c4c22"/><stop offset="1" stop-color="#e2ad5e"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff4b9"/><stop offset=".17" stop-color="#f3c777"/><stop offset=".48" stop-color="#b87735"/><stop offset=".55" stop-color="#ffdb83"/><stop offset=".84" stop-color="#bd7d3d"/><stop offset="1" stop-color="#70411e"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#d8e3d9"/><stop offset=".28" stop-color="#859c9e"/><stop offset=".6" stop-color="#415e63"/><stop offset=".77" stop-color="#aec3c0"/><stop offset="1" stop-color="#344a56"/></linearGradient>
+<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#5c382c"/><stop offset=".14" stop-color="#925e39"/><stop offset=".35" stop-color="#503223"/><stop offset=".67" stop-color="#38251f"/><stop offset=".88" stop-color="#8b5839"/><stop offset="1" stop-color="#2e2423"/></linearGradient>
+<linearGradient id="bevel" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#1f424b"/><stop offset=".5" stop-color="#071820"/><stop offset="1" stop-color="#092e37"/></linearGradient>
+<filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="11"/></filter>
+<filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="9"/></filter>
+<filter id="smallglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="softshadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020b12" flood-opacity=".85"/></filter>
+<pattern id="grit" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="3" cy="9" r=".6" fill="#f3d69b" opacity=".16"/><circle cx="27" cy="26" r=".7" fill="#70eadf" opacity=".15"/></pattern>
+</defs>
+<rect x="12" y="12" width="676" height="676" rx="103" fill="#060f19" stroke="#2d231e" stroke-width="24"/>
+<rect x="30" y="30" width="640" height="640" rx="86" fill="url(#bg)" stroke="url(#gold)" stroke-width="12"/>
+<rect x="40" y="40" width="620" height="620" rx="74" fill="none" stroke="#ffdfa0" stroke-width="2" opacity=".5"/>
+<g transform="translate(350 350) scale(.93)">
+<!-- diffused turquoise power aura -->
+<circle r="244" fill="#00dddf" opacity=".15" filter="url(#shadow)"/>
+<circle r="224" fill="none" stroke="#46e9dd" stroke-width="1.6" stroke-dasharray="2 16" opacity=".33"/>
+<circle r="245" fill="none" stroke="#9b783f" stroke-width="1.1" stroke-dasharray="36 22 2 29" opacity=".44"/>
+<!-- crossed tool: adjustable spanner -->
+<g transform="rotate(-38)" filter="url(#softshadow)">
+    <path d="M-19 -167 C-43 -193 -42 -222 -27 -239 L-23 -203 L0 -191 L23 -204 L29 -239 C52 -216 46 -182 23 -167 L21 161 Q21 179 0 183 Q-21 179 -21 161Z" fill="url(#steel)" stroke="#142a31" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M0 -154 L0 143" stroke="#e0ebd7" stroke-width="4" opacity=".5"/>
+    <circle cy="156" r="9" fill="#112c36" stroke="#d0b27f" stroke-width="3"/>
+</g>
+<!-- crossed tool: screwdriver -->
+<g transform="rotate(40)" filter="url(#softshadow)">
+    <path d="M-12 -204 L-9 -148 L-14 -129 L14 -129 L9 -148 L12 -204Z" fill="url(#steel)" stroke="#192f38" stroke-width="5"/>
+    <path d="M-21 -125 Q-27 -105 -22 -92 L-22 115 Q0 147 22 115 L22 -92 Q27 -105 21 -125Z" fill="url(#brass)" stroke="#2c2527" stroke-width="7"/>
+    <path d="M-12 -80 L-12 97 M12 -80 L12 97" stroke="#e6a75e" stroke-width="4" opacity=".65"/>
+    <path d="M-23 -76 L23 -76 M-23 101 L23 101" stroke="#3a2a22" stroke-width="7"/>
+</g>
+<!-- toothed gear base -->
+<polygon points="-39.5,-180.7 -26.5,-183.1 -20.9,-211.0 20.9,-211.0 26.5,-183.1 39.5,-180.7 42.8,-180.0 55.6,-176.5 72.7,-199.1 110.4,-181.0 103.3,-153.5 114.0,-145.7 116.6,-143.6 126.6,-134.9 151.9,-147.9 178.0,-115.2 159.7,-93.5 166.0,-81.8 167.4,-78.8 172.6,-66.6 201.0,-67.3 210.3,-26.6 184.4,-14.9 185.0,-1.7 185.0,1.7 184.4,14.9 210.3,26.6 201.0,67.3 172.6,66.6 167.4,78.8 166.0,81.8 159.7,93.5 178.0,115.2 151.9,147.9 126.6,134.9 116.6,143.6 114.0,145.7 103.3,153.5 110.4,181.0 72.7,199.1 55.6,176.5 42.8,180.0 39.5,180.7 26.5,183.1 20.9,211.0 -20.9,211.0 -26.5,183.1 -39.5,180.7 -42.8,180.0 -55.6,176.5 -72.7,199.1 -110.4,181.0 -103.3,153.5 -114.0,145.7 -116.6,143.6 -126.6,134.9 -151.9,147.9 -178.0,115.2 -159.7,93.5 -166.0,81.8 -167.4,78.8 -172.6,66.6 -201.0,67.3 -210.3,26.6 -184.4,14.9 -185.0,1.7 -185.0,-1.7 -184.4,-14.9 -210.3,-26.6 -201.0,-67.3 -172.6,-66.6 -167.4,-78.8 -166.0,-81.8 -159.7,-93.5 -178.0,-115.2 -151.9,-147.9 -126.6,-134.9 -116.6,-143.6 -114.0,-145.7 -103.3,-153.5 -110.4,-181.0 -72.7,-199.1 -55.6,-176.5 -42.8,-180.0" fill="url(#brass)" stroke="#322720" stroke-width="9" stroke-linejoin="round" filter="url(#softshadow)"/>
+<circle r="185" fill="#372d28" stroke="#ffe0a0" stroke-width="5"/>
+<circle r="174" fill="url(#bevel)" stroke="#473326" stroke-width="12"/>
+<circle r="161" fill="none" stroke="#b78044" stroke-width="3"/>
+<!-- radial rivets and gear dial markers -->
+<g transform="rotate(0)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(30)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(60)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(90)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(120)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(150)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(180)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(210)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(240)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(270)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(300)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g><g transform="rotate(330)"><path d="M-2 -168 L2 -168 L1 -153 L-1 -153Z" fill="#c28a49" opacity=".8"/><circle cy="-192" r="5.3" fill="#6b4e32" stroke="#f6c57d" stroke-width="1.8"/></g>
+<!-- belt straps across gear -->
+<path d="M-324 -73 Q-178 -91 0 -77 Q170 -90 324 -73 L324 73 Q170 90 0 77 Q-178 91 -324 73Z" fill="url(#leather)" stroke="#120f16" stroke-width="10" filter="url(#softshadow)"/>
+<path d="M-316 -60 Q-184 -75 0 -63 Q177 -76 316 -60 M-316 59 Q-184 74 0 62 Q177 74 316 59" fill="none" stroke="#cb945a" stroke-width="3.3" opacity=".72" stroke-dasharray="5 6"/>
+<path d="M-315 -79 L-315 78 M315 -79 L315 78" stroke="#e3a45e" stroke-width="7"/>
+<!-- belt-hole hardware -->
+<g transform="translate(-275 0)"><circle r="11" fill="#151c20" stroke="url(#gold)" stroke-width="4"/><circle r="4" fill="#25444a"/></g><g transform="translate(-226 0)"><circle r="11" fill="#151c20" stroke="url(#gold)" stroke-width="4"/><circle r="4" fill="#25444a"/></g><g transform="translate(226 0)"><circle r="11" fill="#151c20" stroke="url(#gold)" stroke-width="4"/><circle r="4" fill="#25444a"/></g><g transform="translate(275 0)"><circle r="11" fill="#151c20" stroke="url(#gold)" stroke-width="4"/><circle r="4" fill="#25444a"/></g>
+<!-- stacked utility pouch flaps left and right -->
+<g transform="translate(-194 90) rotate(-10)">
+<path d="M-48 -31 L48 -31 L43 49 Q0 74 -43 49Z" fill="url(#leather)" stroke="#161d1f" stroke-width="8"/>
+<path d="M-50 -33 L50 -33 L43 6 Q0 28 -43 6Z" fill="url(#brass)" stroke="#3d2d24" stroke-width="7"/>
+<path d="M-40 -28 L40 -28 L34 0 Q0 16 -34 0Z" fill="#7a482e"/>
+<rect x="-9" y="0" width="18" height="17" rx="3" fill="url(#gold)" stroke="#3b2a27" stroke-width="3"/>
+</g>
+<g transform="translate(194 90) rotate(10)">
+<path d="M-48 -31 L48 -31 L43 49 Q0 74 -43 49Z" fill="url(#leather)" stroke="#161d1f" stroke-width="8"/>
+<path d="M-50 -33 L50 -33 L43 6 Q0 28 -43 6Z" fill="url(#brass)" stroke="#3d2d24" stroke-width="7"/>
+<path d="M-40 -28 L40 -28 L34 0 Q0 16 -34 0Z" fill="#7a482e"/>
+<rect x="-9" y="0" width="18" height="17" rx="3" fill="url(#gold)" stroke="#3b2a27" stroke-width="3"/>
+</g>
+<!-- buckle surround -->
+<path d="M-116 -124 L116 -124 L152 -86 L152 86 L116 124 L-116 124 L-152 86 L-152 -86Z" fill="#2a2424" stroke="#140e12" stroke-width="19" stroke-linejoin="round" filter="url(#softshadow)"/>
+<path d="M-116 -124 L116 -124 L152 -86 L152 86 L116 124 L-116 124 L-152 86 L-152 -86Z" fill="url(#gold)" stroke="#f8db95" stroke-width="4" stroke-linejoin="round"/>
+<path d="M-107 -100 L107 -100 L127 -78 L127 78 L107 100 L-107 100 L-127 78 L-127 -78Z" fill="#302c2b" stroke="#573b23" stroke-width="8"/>
+<path d="M-91 -89 L91 -89 L115 -65 L115 65 L91 89 L-91 89 L-115 65 L-115 -65Z" fill="url(#teal)" stroke="#163b41" stroke-width="9"/>
+<path d="M-96 -73 L-77 -88 L83 -88 L104 -67" fill="none" stroke="#a9ffec" stroke-width="4" opacity=".85"/>
+<path d="M-104 69 L-83 87 L83 87 L104 69" fill="none" stroke="#6acfc7" stroke-width="3" opacity=".38"/>
+<!-- core glow -->
+<ellipse rx="80" ry="61" fill="#30f4e2" opacity=".42" filter="url(#glow)"/>
+<!-- monogram T in machined bronze -->
+<path d="M-84 -53 L84 -53 L70 -19 L29 -19 L29 66 L-29 66 L-29 -19 L-70 -19Z" fill="#050d14" stroke="#123f4b" stroke-width="11" stroke-linejoin="round"/>
+<path d="M-84 -53 L84 -53 L70 -19 L29 -19 L29 66 L-29 66 L-29 -19 L-70 -19Z" fill="url(#gold)" stroke="#ffefaa" stroke-width="4" stroke-linejoin="round"/>
+<path d="M-61 -42 L61 -42 M-16 -8 L-16 49" stroke="#ffffc7" stroke-width="4" opacity=".65"/>
+<!-- small central rune -->
+<path d="M0 24 L8 35 L0 46 L-8 35Z" fill="#fffbd0" stroke="#7d4b27" stroke-width="2"/>
+<!-- top and bottom rivets on buckle -->
+<circle cx="-111" cy="-107" r="5" fill="#6e4425" stroke="#ffde91" stroke-width="2"/><circle cx="111" cy="-107" r="5" fill="#6e4425" stroke="#ffde91" stroke-width="2"/><circle cx="-111" cy="107" r="5" fill="#6e4425" stroke="#ffde91" stroke-width="2"/><circle cx="111" cy="107" r="5" fill="#6e4425" stroke="#ffde91" stroke-width="2"/>
+<!-- glowing motes in front -->
+<g transform="translate(-278 -172) scale(1)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(270 -145) scale(0.8)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(-246 185) scale(0.65)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(249 210) scale(0.8)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(-96 -281) scale(0.65)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(150 -275) scale(0.5)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(-311 27) scale(0.55)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g><g transform="translate(310 -10) scale(0.7)"><path d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" fill="#97fbef" opacity=".8"/><circle r="2" fill="white"/></g>
+</g>
+</svg>
