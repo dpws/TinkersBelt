@@ -198,6 +198,23 @@ local function GroupUnits()
 	return units
 end
 
+-- friendly players near you who aren't in your group (seen through friendly nameplates). PvP-flagged ones
+-- are skipped while you aren't flagged: buffing them would flag you.
+local function NearbyUnits()
+	local units = {}
+	if S().nearby == false then return units end
+	local flagged = UnitIsPVP("player")
+	for _, u in ipairs(ns.NamePlateUnits()) do
+		local ok, yes = pcall(function()
+			return UnitIsPlayer(u) and UnitIsFriend("player", u) and not UnitIsUnit(u, "player")
+				and not UnitInParty(u) and not UnitInRaid(u) and (flagged or not UnitIsPVP(u))
+		end)
+		if ok and yes == true then units[#units + 1] = u end
+	end
+	return units
+end
+
+
 local function Reachable(unit, spell)
 	if unit == "player" then return true end
 	if not UnitIsConnected(unit) or UnitIsDeadOrGhost(unit) or not UnitIsVisible(unit) then return false end
@@ -480,6 +497,13 @@ local function Update()
 	local auraCache = {}
 	local units = GroupUnits()
 	for _, u in ipairs(units) do auraCache[u] = Auras(u) end
+	-- needing a buff: your group first, then nearby players (the button casts on the first in the list)
+	local targets = {}
+	for _, u in ipairs(units) do targets[#targets + 1] = u end
+	for _, u in ipairs(NearbyUnits()) do
+		targets[#targets + 1] = u
+		auraCache[u] = Auras(u) -- nil when the game hides them: that player is skipped
+	end
 
 	-- remember which armor/aspect/blessing you use
 	local mine = auraCache.player
@@ -510,7 +534,7 @@ local function Update()
 		for _, e in ipairs(B.entries) do
 			if Reminded(e) then
 				local spell, list, first = CastName(e), {}, nil
-				for _, u in ipairs(units) do
+				for _, u in ipairs(targets) do
 					local auras = auraCache[u]
 					if auras and (u == "player" or not e.def.self) then
 						local st = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
