@@ -54,8 +54,44 @@ function ns.StartMovingPanel(frame)
 	if ns.unlocked and not InCombatLockdown() then frame:StartMoving() end
 end
 
+-- grid shown while unlocked; dropped panels snap their top-left corner to it (hold Shift to place freely)
+local GRID = 16
+local grid
+
+function ns.SnapToGrid(v) return math.floor(v / GRID + 0.5) * GRID end
+
+local function ShowGrid(on)
+	if on and not grid then
+		grid = CreateFrame("Frame", nil, UIParent)
+		grid:SetAllPoints()
+		grid:SetFrameStrata("BACKGROUND")
+		local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+		local cx, cy = w / 2, h / 2
+		local function Line(vertical, pos, center)
+			local t = grid:CreateTexture(nil, "BACKGROUND")
+			t:SetColorTexture(1, 1, 1, center and 0.35 or 0.08)
+			if vertical then
+				t:SetPoint("TOPLEFT", pos, 0); t:SetPoint("BOTTOMLEFT", pos, 0); t:SetWidth(1)
+			else
+				t:SetPoint("BOTTOMLEFT", 0, pos); t:SetPoint("BOTTOMRIGHT", 0, pos); t:SetHeight(1)
+			end
+		end
+		for x = 0, w, GRID do Line(true, x, false) end
+		for y = 0, h, GRID do Line(false, y, false) end
+		Line(true, cx, true); Line(false, cy, true)
+	end
+	if grid then grid:SetShown(on) end
+end
+
 function ns.StopMovingPanel(frame)
 	frame:StopMovingOrSizing()
+	local left, top = frame:GetLeft(), frame:GetTop()
+	if left and not IsShiftKeyDown() then
+		-- grid is in UIParent units, the frame's offsets are in its own scale
+		local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", ns.SnapToGrid(left * s) / s, ns.SnapToGrid(top * s) / s)
+	end
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
 
@@ -75,6 +111,7 @@ end
 function ns.SetUnlocked(on)
 	ns.unlocked = on
 	for _, o in ipairs(ns.panels) do o:SetShown(on) end
+	ShowGrid(on)
 end
 
 local f = CreateFrame("Frame")
