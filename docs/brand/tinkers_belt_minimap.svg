@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<defs>
+  <radialGradient id="core" cx=".38" cy=".25" r=".86">
+    <stop offset="0" stop-color="#5bf2de"/>
+    <stop offset=".26" stop-color="#1d9c9a"/>
+    <stop offset=".65" stop-color="#115263"/>
+    <stop offset="1" stop-color="#071b2a"/>
+  </radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2=".77" y2="1">
+    <stop offset="0" stop-color="#fff2bb"/>
+    <stop offset=".19" stop-color="#e9ab54"/>
+    <stop offset=".39" stop-color="#965224"/>
+    <stop offset=".69" stop-color="#f2c673"/>
+    <stop offset="1" stop-color="#7e471f"/>
+  </linearGradient>
+  <linearGradient id="letter" x1="0" y1="0" x2="0" y2="1">
+    <stop stop-color="#fff6c5"/>
+    <stop offset=".22" stop-color="#e7bd60"/>
+    <stop offset=".55" stop-color="#b9712e"/>
+    <stop offset=".73" stop-color="#f8d382"/>
+    <stop offset="1" stop-color="#986029"/>
+  </linearGradient>
+  <linearGradient id="leather" x1="0" y1="0" x2="0" y2="1">
+    <stop stop-color="#b57a47"/>
+    <stop offset=".25" stop-color="#613724"/>
+    <stop offset=".7" stop-color="#392620"/>
+    <stop offset="1" stop-color="#7e4b31"/>
+  </linearGradient>
+  <radialGradient id="light"><stop stop-color="#44ffea" stop-opacity=".33"/><stop offset="1" stop-color="#44ffea" stop-opacity="0"/></radialGradient>
+</defs>
+<!-- transparent corners; gear silhouette survives LibDBIcon's circular mask -->
+<polygon points="101.89,26.30 111.03,24.38 115.05,10.71 140.95,10.71 144.97,24.38 154.11,26.30 156.24,26.87 165.11,29.78 175.43,19.95 197.86,32.90 194.50,46.75 201.46,52.98 203.02,54.54 209.25,61.50 223.10,58.14 236.05,80.57 226.22,90.89 229.13,99.76 229.70,101.89 231.62,111.03 245.29,115.05 245.29,140.95 231.62,144.97 229.70,154.11 229.13,156.24 226.22,165.11 236.05,175.43 223.10,197.86 209.25,194.50 203.02,201.46 201.46,203.02 194.50,209.25 197.86,223.10 175.43,236.05 165.11,226.22 156.24,229.13 154.11,229.70 144.97,231.62 140.95,245.29 115.05,245.29 111.03,231.62 101.89,229.70 99.76,229.13 90.89,226.22 80.57,236.05 58.14,223.10 61.50,209.25 54.54,203.02 52.98,201.46 46.75,194.50 32.90,197.86 19.95,175.43 29.78,165.11 26.87,156.24 26.30,154.11 24.38,144.97 10.71,140.95 10.71,115.05 24.38,111.03 26.30,101.89 26.87,99.76 29.78,90.89 19.95,80.57 32.90,58.14 46.75,61.50 52.98,54.54 54.54,52.98 61.50,46.75 58.14,32.90 80.57,19.95 90.89,29.78 99.76,26.87" fill="#130e0d" stroke="#110d10" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="102.38,28.24 111.35,26.35 115.49,14.69 140.51,14.69 144.65,26.35 153.62,28.24 155.70,28.79 164.41,31.65 173.82,23.61 195.49,36.12 193.24,48.29 200.07,54.41 201.59,55.93 207.71,62.76 219.88,60.51 232.39,82.18 224.35,91.59 227.21,100.30 227.76,102.38 229.65,111.35 241.31,115.49 241.31,140.51 229.65,144.65 227.76,153.62 227.21,155.70 224.35,164.41 232.39,173.82 219.88,195.49 207.71,193.24 201.59,200.07 200.07,201.59 193.24,207.71 195.49,219.88 173.82,232.39 164.41,224.35 155.70,227.21 153.62,227.76 144.65,229.65 140.51,241.31 115.49,241.31 111.35,229.65 102.38,227.76 100.30,227.21 91.59,224.35 82.18,232.39 60.51,219.88 62.76,207.71 55.93,201.59 54.41,200.07 48.29,193.24 36.12,195.49 23.61,173.82 31.65,164.41 28.79,155.70 28.24,153.62 26.35,144.65 14.69,140.51 14.69,115.49 26.35,111.35 28.24,102.38 28.79,100.30 31.65,91.59 23.61,82.18 36.12,60.51 48.29,62.76 54.41,55.93 55.93,54.41 62.76,48.29 60.51,36.12 82.18,23.61 91.59,31.65 100.30,28.79" fill="url(#gold)" stroke="#593920" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="128" cy="128" r="105" fill="#291c17" stroke="#ffe8a0" stroke-width="2.5"/>
+<circle cx="128" cy="128" r="97" fill="#10212a" stroke="#53361f" stroke-width="7"/>
+<circle cx="128" cy="128" r="90" fill="url(#core)" stroke="#d7a75e" stroke-width="3.3"/>
+<circle cx="128" cy="128" r="85" fill="none" stroke="#c4fff0" stroke-opacity=".32" stroke-width="1.5"/>
+<!-- leather belt behind buckle: small recognisable side wings -->
+<path d="M29 110 C48 108 66 109 81 111 L81 148 C60 147 46 149 29 146Z" fill="url(#leather)" stroke="#15151a" stroke-width="5"/>
+<path d="M175 111 C195 109 214 109 227 110 L227 146 C209 148 194 148 175 148Z" fill="url(#leather)" stroke="#15151a" stroke-width="5"/>
+<path d="M34 117 H77 M180 117 H223" stroke="#c99255" stroke-width="2" opacity=".7"/>
+<path d="M34 141 H77 M180 141 H223" stroke="#c99255" stroke-width="2" opacity=".55"/>
+<circle cx="48" cy="129" r="4.5" fill="#1c1c20" stroke="#e2ac59" stroke-width="2.4"/>
+<circle cx="208" cy="129" r="4.5" fill="#1c1c20" stroke="#e2ac59" stroke-width="2.4"/>
+<!-- chamfered buckle -->
+<path d="M91 72 H165 L184 91 V165 L165 184 H91 L72 165 V91Z" fill="#221a18" stroke="#080f19" stroke-width="9" stroke-linejoin="round"/>
+<path d="M91 72 H165 L184 91 V165 L165 184 H91 L72 165 V91Z" fill="url(#gold)" stroke="#ffdb91" stroke-width="2.4" stroke-linejoin="round"/>
+<path d="M97 84 H159 L172 97 V159 L159 172 H97 L84 159 V97Z" fill="#0d2b33" stroke="#3b2d25" stroke-width="6" stroke-linejoin="round"/>
+<path d="M99 90 H157 L166 99 V157 L157 166 H99 L90 157 V99Z" fill="url(#core)" stroke="#a3e9da" stroke-opacity=".55" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="128" cy="128" r="51" fill="url(#light)"/>
+<!-- strongly contrasted, machined golden T -->
+<path d="M93 105 H163 L155 122 H140 V154 H116 V122 H101Z" fill="#0b2831" stroke="#07121d" stroke-width="6" stroke-linejoin="round"/>
+<path d="M93 104 H163 L155 122 H140 V154 H116 V122 H101Z" fill="url(#letter)" stroke="#fff0ad" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M102 110 H154 M121 128 V146" stroke="#fff3c2" stroke-width="2.4" opacity=".68"/>
+<path d="M128 136 L132 140 L128 144 L124 140Z" fill="#fff8d2"/>
+<!-- subtle corner rivets -->
+<circle cx="93" cy="80" r="2.6" fill="#78502c" stroke="#fff0ae" stroke-width="1"/>
+<circle cx="163" cy="80" r="2.6" fill="#78502c" stroke="#fff0ae" stroke-width="1"/>
+<circle cx="93" cy="176" r="2.6" fill="#78502c" stroke="#fff0ae" stroke-width="1"/>
+<circle cx="163" cy="176" r="2.6" fill="#78502c" stroke="#fff0ae" stroke-width="1"/>
+</svg>

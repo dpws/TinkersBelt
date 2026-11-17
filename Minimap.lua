@@ -1,6 +1,6 @@
 local _, ns = ...
 
-local ICON = "Interface\\AddOns\\TinkersBelt\\media\\icon"
+local ICON = "Interface\\AddOns\\TinkersBelt\\media\\minimap"
 local RADIUS = 105 -- distance from minimap center; default minimap is ~140px wide
 
 local function Place(button, angle)
@@ -18,21 +18,15 @@ table.insert(ns.loginHooks, function()
 	b:SetFrameLevel(8)
 	b:RegisterForClicks("LeftButtonUp")
 	b:RegisterForDrag("LeftButton")
-	b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-
-	local icon = b:CreateTexture(nil, "BACKGROUND")
-	icon:SetSize(20, 20)
-	icon:SetPoint("CENTER", 0, 1)
+	-- the badge has its own gear rim: no round mask or tracking border
+	local icon = b:CreateTexture(nil, "ARTWORK")
+	icon:SetAllPoints()
 	icon:SetTexture(ICON)
-	local mask = b:CreateMaskTexture()
-	mask:SetAllPoints(icon)
-	mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	icon:AddMaskTexture(mask)
-
-	local border = b:CreateTexture(nil, "OVERLAY")
-	border:SetSize(53, 53)
-	border:SetPoint("TOPLEFT")
-	border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+	local hl = b:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetTexture(ICON)
+	hl:SetBlendMode("ADD")
+	hl:SetAlpha(0.35)
 
 	b:SetScript("OnClick", function() ns.ToggleWindow() end)
 	b:SetScript("OnEnter", function(self)
