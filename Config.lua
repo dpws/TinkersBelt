@@ -248,6 +248,8 @@ local function BuildRogueTimersPage(parent)
 	P:Choice("Show", MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
 	P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end)
 	P:Slider("Icon size", 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
+	P:Slider("Countdown text size", 6, 24, 1, "px", function() return s.textSize or math.max(math.floor((s.size or 28) * 0.36), 8) end,
+		function(v) s.textSize = v; Relayout() end)
 	P:Card("Cooldowns to show")
 	for _, c in ipairs(ns.ROGUE_CDS or {}) do
 		local name = C_Spell.GetSpellName(c.id)
