@@ -42,7 +42,9 @@ function T.UseTheme(name)
 	if name ~= "classic" then return end
 	T.theme = "classic"
 	for key, c in pairs(CLASSIC) do for i = 1, 4 do T[key][i] = c[i] end end
-	local friz = "Fonts\\FRIZQT__.TTF"
+	-- the Cyrillic build of Friz Quadrata: the plain FRIZQT__ draws Russian names as squares
+	local friz = "Fonts\\FRIZQT___CYR.TTF"
+	if UIParent and not UIParent:CreateFontString():SetFont(friz, 12, "") then friz = (GameFontNormal:GetFont()) end
 	T.font.regular, T.font.medium, T.font.semibold = friz, friz, friz
 	T.BAR = "Interface\\TargetingFrame\\UI-StatusBar"
 end
