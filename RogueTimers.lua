@@ -23,6 +23,19 @@ ns.ROGUE_CDS = {
 	{ id = 14278, off = true }, -- Ghostly Strike
 	{ id = 14251, off = true }, -- Riposte
 }
+-- shamans get the same row (no Slice and Dice bar). The three shocks share one cooldown: Earth Shock stands for it.
+ns.SHAMAN_CDS = {
+	{ id = 8042 }, -- Earth Shock (= all shocks)
+	{ id = 8177 }, -- Grounding Totem
+	{ id = 17364 }, -- Stormstrike
+	{ id = 16166 }, -- Elemental Mastery
+	{ id = 16188 }, -- Nature's Swiftness
+	{ id = 16190 }, -- Mana Tide Totem
+	{ id = 1535 }, -- Fire Nova Totem
+	{ id = 20608 }, -- Reincarnation
+	{ id = 5730, off = true }, -- Stoneclaw Totem
+	{ id = 2484, off = true }, -- Earthbind Totem
+}
 local SND = 5171 -- Slice and Dice
 
 if not CreateFrame then return end -- offline test stops here
@@ -31,7 +44,9 @@ if not CreateFrame then return end -- offline test stops here
 local T = ns.Theme
 local R = {}
 ns.RogueTimers = R
+R.CDS = ns.ROGUE_CDS -- set per class at login
 local function S() return ns.db.rogueTimers end
+local function SndOn() return R.CDS == ns.ROGUE_CDS and S().snd end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 local function SpellName(id)
 	return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id))
@@ -53,9 +68,9 @@ function R.Layout()
 	if not panel then return end
 	local s = S()
 	local size = s.size or 28
-	local top = s.snd and (BAR_H + 3) or 0
+	local top = SndOn() and (BAR_H + 3) or 0
 	local n = 0
-	for i, c in ipairs(ns.ROGUE_CDS) do
+	for i, c in ipairs(R.CDS) do
 		local b = icons[i]
 		if Known(c.id) and R.Shown(c) then
 			if not b then
@@ -87,7 +102,7 @@ function R.Layout()
 	local w = math.max(n, 3) * (size + 3) - 3
 	panel:SetSize(w, size + top)
 	snd:SetSize(w, BAR_H)
-	snd:SetShown(s.snd)
+	snd:SetShown(SndOn() and true or false)
 end
 
 local SND_IDS = { 5171, 6774 } -- ranks 1 and 2
@@ -212,13 +227,13 @@ local function Update()
 	if not panel then return end
 	local s = S()
 	local now = GetTime()
-	if s.snd then -- combo points, sampled before they're spent
+	if SndOn() then -- combo points, sampled before they're spent
 		local ok, cp = pcall(GetComboPoints, "player", "target")
 		if ok and cp and not Secret(cp) and cp > 0 then cpSeen, cpSeenAt = cp, now end
 	end
 	local mode = s.mode or "combat"
 	-- "combat" also shows while Slice and Dice is up (often cast before the pull)
-	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (s.snd and SndUp())))
+	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (SndOn() and SndUp())))
 	panel:SetShown(show)
 	if not show then return end
 	for _, b in pairs(icons) do
@@ -244,7 +259,7 @@ local function Update()
 			end
 		end
 	end
-	if s.snd then
+	if SndOn() then
 		local exp, dur = SndAura()
 		if exp and dur and dur > 0 then
 			-- readable: learn its length for the combo points of the cast that made it
@@ -272,7 +287,9 @@ end
 R.Update = Update
 
 table.insert(ns.loginHooks, function()
-	if select(2, UnitClass("player")) ~= "ROGUE" then return end
+	local class = select(2, UnitClass("player"))
+	if class ~= "ROGUE" and class ~= "SHAMAN" then return end
+	R.CDS = class == "SHAMAN" and ns.SHAMAN_CDS or ns.ROGUE_CDS
 	local s = S()
 	panel = CreateFrame("Frame", "DpwsRogueTimers", UIParent)
 	panel:SetMovable(true)
@@ -292,7 +309,7 @@ table.insert(ns.loginHooks, function()
 	else
 		panel:SetPoint("CENTER", UIParent, "CENTER", 0, -250)
 	end
-	ns.RegisterPanel(panel, "Rogue Timers", function(self)
+	ns.RegisterPanel(panel, class == "SHAMAN" and "Cooldowns" or "Rogue Timers", function(self)
 		local point, _, relPoint, px, py = self:GetPoint()
 		s.pos = { point = point, relPoint = relPoint, x = px, y = py }
 	end)

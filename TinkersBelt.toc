@@ -27,5 +27,6 @@ Restock.lua
 Mana.lua
 Buffs.lua
 RogueTimers.lua
+Totems.lua
 Lockbox.lua
 Opener.lua

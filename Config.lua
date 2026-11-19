@@ -128,10 +128,12 @@ end
 
 local function BuildPoisonsPage(parent)
 	local P = T.Page(parent)
-	if select(2, UnitClass("player")) ~= "ROGUE" then
-		P:Note("The poison bar is for rogues.")
+	local class = select(2, UnitClass("player"))
+	if class ~= "ROGUE" and class ~= "SHAMAN" then
+		P:Note("The poison bar is for rogues (and the weapon imbue bar for shamans).")
 		return P:Finish()
 	end
+	local word = class == "SHAMAN" and "imbue" or "poison"
 	local p = ns.db.poisons
 	local function Rescale() if ns.Poisons then ns.Poisons.ApplyScale() end end
 	P:Card("Reminders")
@@ -140,9 +142,9 @@ local function BuildPoisonsPage(parent)
 	P:Card("Size")
 	P:Slider("Weapon icons", 50, 200, 10, "%", function() return (p.scale or 1) * 100 end,
 		function(v) p.scale = v / 100; Rescale() end)
-	P:Slider("Poison icon", 50, 200, 10, "%", function() return (p.poisonScale or 1) * 100 end,
+	P:Slider(word == "imbue" and "Imbue icon" or "Poison icon", 50, 200, 10, "%", function() return (p.poisonScale or 1) * 100 end,
 		function(v) p.poisonScale = v / 100; Rescale() end)
-	P:Note("On the bar: left-click applies the chosen poison, right-click chooses it. Use Unlock panels to move the bar.")
+	P:Note(("On the bar: left-click applies the chosen %s, right-click chooses it. Use Unlock panels to move the bar."):format(word))
 	P:Finish()
 end
 
@@ -252,14 +254,15 @@ local function BuildRogueTimersPage(parent)
 	local MODES = {}
 	for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do MODES[#MODES + 1] = { m.key, m.name } end
 	local P = T.Page(parent)
-	P:Card("Slice and Dice and cooldowns")
+	local rogue = select(2, UnitClass("player")) == "ROGUE"
+	P:Card(rogue and "Slice and Dice and cooldowns" or "Cooldown icons")
 	P:Choice("Show", MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
-	P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end)
+	if rogue then P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end) end
 	P:Slider("Icon size", 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
 	P:Slider("Countdown text size", 6, 24, 1, "px", function() return s.textSize or math.max(math.floor((s.size or 28) * 0.36), 8) end,
 		function(v) s.textSize = v; Relayout() end)
 	P:Card("Cooldowns to show")
-	for _, c in ipairs(ns.ROGUE_CDS or {}) do
+	for _, c in ipairs(rogue and ns.ROGUE_CDS or ns.SHAMAN_CDS) do
 		local name = C_Spell.GetSpellName(c.id)
 		if name and IsPlayerSpell(c.id) then
 			P:Toggle(("|T%s:16|t  %s"):format(C_Spell.GetSpellTexture(c.id) or 134400, name),
@@ -267,7 +270,41 @@ local function BuildRogueTimersPage(parent)
 				function(v) s.off[c.id] = not v; Relayout() end)
 		end
 	end
-	P:Note("Bright = ready, dark with a sweep = cooling down. Only spells you know are listed. Use Unlock panels to move it.")
+	P:Note("Bright = ready, dark with a sweep = cooling down. Only spells you know are listed." ..
+		(rogue and "" or " Earth Shock stands for all three shocks (they share a cooldown).") .. " Use Unlock panels to move it.")
+	P:Finish()
+end
+
+local function BuildTotemsPage(parent)
+	local P = T.Page(parent)
+	local s = ns.db.totems
+	if select(2, UnitClass("player")) ~= "SHAMAN" or not s then
+		P:Note("The totem bar is for shamans.")
+		return P:Finish()
+	end
+	local function Refresh() if ns.Totems then ns.Totems.Refresh() end end
+	P:Card("Totem bar")
+	P:Toggle("Show the totem bar", function() return s.enabled end, function(v) s.enabled = v; Refresh() end)
+	P:Toggle("Sound with alerts (totem killed, totem item missing)", function() return s.sound end, function(v) s.sound = v end)
+	P:Slider("Size", 50, 200, 10, "%", function() return (s.scale or 1) * 100 end, function(v) s.scale = v / 100; Refresh() end)
+	P:Note("Earth, Fire, Water and Air show the totem that's down with its time left (an alert sounds if one is killed early); left-click drops that element's totem from the active set, right-click destroys it. A red tint = that element's totem item is missing from your bags. The last button is Lightning Shield with its charges. Use Unlock panels to move it.")
+	for i, setName in ipairs(ns.TOTEM_SET_NAMES) do
+		P:Card(setName .. " set")
+		for _, e in ipairs(ns.TOTEM_ELEMENTS) do
+			P:Dropdown(e.name, function(root)
+				local set = s.sets[i]
+				root:CreateRadio("None", function() return set[e.key] == nil end, function() set[e.key] = nil; Refresh() end)
+				for _, id in ipairs(e.spells) do
+					local name = C_Spell.GetSpellName(id)
+					if name and IsPlayerSpell(id) then
+						root:CreateRadio(("|T%s:16|t %s"):format(C_Spell.GetSpellTexture(id) or 134400, name),
+							function() return set[e.key] == id end, function() set[e.key] = id; Refresh() end)
+					end
+				end
+			end, 260)
+		end
+	end
+	P:Note("The set button (left of the totems) drops the active set one totem per click: Earth, Fire, Water, Air. Right-click it to switch sets. It starts over after combat or 30 seconds.")
 	P:Finish()
 end
 
@@ -798,6 +835,19 @@ local GROUPS = {
 			desc = "Never forget a buff: on you, your group, and beside party frames.",
 			toggle = { function() return ns.db.buffs.enabled end,
 				function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } },
+	} },
+	{ name = "Shaman", class = "SHAMAN", tools = {
+		{ name = "Weapon Imbues", build = BuildPoisonsPage, icon = ICON .. "Spell_Nature_RockBiter",
+			desc = "Weapon imbue bar with reminders before it runs out.",
+			toggle = { function() return ns.db.poisons.enabled end,
+				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
+		{ name = "Totems", build = BuildTotemsPage, icon = ICON .. "Spell_Nature_StoneSkinTotem",
+			desc = "Totem timers, kill alerts, totem sets and Lightning Shield charges.",
+			toggle = { function() return ns.db.totems and ns.db.totems.enabled end,
+				function(v) if ns.db.totems then ns.db.totems.enabled = v; if ns.Totems then ns.Totems.Refresh() end end end } },
+		{ name = "Cooldowns", build = BuildRogueTimersPage, icon = ICON .. "Spell_Nature_EarthShock",
+			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.",
+			status = function() return (ns.db.rogueTimers.mode or "combat") ~= "off" end },
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",

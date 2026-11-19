@@ -24,6 +24,11 @@ P.SLOTS = {
 	{ slot = 17, key = "oh", name = "Off Hand" },
 }
 
+-- Shamans get the same bar for weapon imbues: spells instead of poison items (rank 1 IDs, cast by name =
+-- highest rank). P.imbue is set at login.
+P.IMBUES = { 8017, 8024, 8033, 8232 } -- Rockbiter, Flametongue, Frostbrand, Windfury Weapon
+local function Word() return P.imbue and "imbue" or "poison" end
+
 local bar
 local buttons, states = {}, {}
 
@@ -36,6 +41,26 @@ local function ItemName(id)
 end
 local function Count(id)
 	return (C_Item and C_Item.GetItemCount or GetItemCount)(id)
+end
+
+local function SpellName(id) return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or GetSpellInfo(id) end
+local function Known(id) return (IsPlayerSpell and IsPlayerSpell(id)) or (IsSpellKnown and IsSpellKnown(id)) end
+-- the chosen poison item / imbue spell
+local function OptIcon(id)
+	if P.imbue then return (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)) or GetSpellTexture(id) end
+	return ItemIcon(id)
+end
+local function Usable(id) if P.imbue then return Known(id) end return Count(id) > 0 end
+local function Macro(id, slot)
+	if P.imbue then return "/cast " .. (SpellName(id) or "") end
+	return ("/use item:%d\n/use %d"):format(id, slot)
+end
+
+-- the item in a weapon slot; a shield or off-hand frill doesn't count (shamans)
+local function WeaponID(slot)
+	local id = GetInventoryItemID("player", slot)
+	if id and slot == 17 and C_Item and C_Item.GetItemInfoInstant and select(6, C_Item.GetItemInfoInstant(id)) ~= 2 then return nil end
+	return id
 end
 
 local function Warn(msg)
@@ -52,8 +77,8 @@ local function UpdateIcons()
 	for _, b in ipairs(buttons) do
 		local id = ns.db.poisons[b.info.key]
 		b.icon:SetTexture(GetInventoryItemTexture("player", b.info.slot))
-		b.poison:SetTexture(id and ItemIcon(id) or nil)
-		b.icon:SetDesaturated(not id or Count(id) == 0)
+		b.poison:SetTexture(id and OptIcon(id) or nil)
+		b.icon:SetDesaturated(not id or not Usable(id))
 	end
 end
 
@@ -64,8 +89,8 @@ local function UpdateSecure()
 		bar:SetShown(ns.db.poisons.enabled)
 		for _, b in ipairs(buttons) do
 			local id = ns.db.poisons[b.info.key]
-			b:SetAttribute("macrotext1", id and ("/use item:%d\n/use %d"):format(id, b.info.slot) or nil)
-			b:SetShown(GetInventoryItemID("player", b.info.slot) ~= nil)
+			b:SetAttribute("macrotext1", id and Macro(id, b.info.slot) or nil)
+			b:SetShown(WeaponID(b.info.slot) ~= nil)
 		end
 	end)
 end
@@ -88,14 +113,25 @@ end
 
 local function SetPoison(info, id)
 	ns.db.poisons[info.key] = id
-	if InCombatLockdown() then print("Tinker's Belt: poison change applies after combat") end
+	if InCombatLockdown() then print("Tinker's Belt: " .. Word() .. " change applies after combat") end
 	P.Refresh()
 end
 
 local function OpenMenu(owner, info)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle(info.name .. " poison")
+		root:CreateTitle(info.name .. " " .. Word())
 		local any = false
+		if P.imbue then
+			for _, id in ipairs(P.IMBUES) do
+				if Known(id) then
+					any = true
+					root:CreateRadio(("|T%s:16|t %s"):format(OptIcon(id) or "", SpellName(id) or id),
+						function() return ns.db.poisons[info.key] == id end, function() SetPoison(info, id) end)
+				end
+			end
+			if not any then root:CreateButton("No weapon imbues learned yet"):SetEnabled(false) end
+			return
+		end
 		for _, id in ipairs(ns.AllPoisonIds()) do
 			local count = Count(id)
 			if count > 0 then
@@ -167,7 +203,7 @@ local function MakeButton(info, i)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetInventoryItem("player", info.slot)
-		GameTooltip:AddLine("Left-click: apply poison   Right-click: choose   Unlock panels in /tb to move", 0.6, 0.8, 1, true)
+		GameTooltip:AddLine(("Left-click: apply %s   Right-click: choose   Unlock panels in /tb to move"):format(Word()), 0.6, 0.8, 1, true)
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
@@ -185,14 +221,14 @@ local function OnUpdate(_, dt)
 	for _, b in ipairs(buttons) do
 		local key, d = b.info.key, data[b.info.key]
 		local has, ms, charges = d[1], d[2] or 0, d[3] or 0
-		local itemID = GetInventoryItemID("player", b.info.slot)
+		local itemID = WeaponID(b.info.slot)
 		if itemID then
 			local event
 			states[key], event = ns.PoisonStep(states[key], has, ms, warnMs, itemID)
 			if event == "early" then
-				Warn(("%s poison: %d min left"):format(b.info.name, ns.db.poisons.warnMinutes))
+				Warn(("%s %s: %d min left"):format(b.info.name, Word(), ns.db.poisons.warnMinutes))
 			elseif event == "expired" then
-				Warn(b.info.name .. " poison expired!")
+				Warn(("%s %s expired!"):format(b.info.name, Word()))
 			end
 			b.time:SetText(has and FormatTime(ms) or "")
 			b.charges:SetText(has and charges > 0 and charges or "")
@@ -221,7 +257,7 @@ local function Create()
 		bar:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
 	end
 	for i, info in ipairs(P.SLOTS) do buttons[i] = MakeButton(info, i) end
-	ns.RegisterPanel(bar, "Poisons", function(self)
+	ns.RegisterPanel(bar, P.imbue and "Weapon Imbues" or "Poisons", function(self)
 		local point, _, relPoint, x, y = self:GetPoint()
 		ns.db.poisons.pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
@@ -237,9 +273,9 @@ local function Create()
 			if not bar:IsShown() then return end
 			local hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
 			local missing = {}
-			if GetInventoryItemID("player", 16) and not hasMH then missing[#missing + 1] = "Main Hand" end
-			if GetInventoryItemID("player", 17) and not hasOH then missing[#missing + 1] = "Off Hand" end
-			if #missing > 0 then Warn("No poison on " .. table.concat(missing, " / ") .. "!") end
+			if WeaponID(16) and not hasMH then missing[#missing + 1] = "Main Hand" end
+			if WeaponID(17) and not hasOH then missing[#missing + 1] = "Off Hand" end
+			if #missing > 0 then Warn(("No %s on %s!"):format(Word(), table.concat(missing, " / "))) end
 		else
 			P.Refresh()
 		end
@@ -248,5 +284,12 @@ local function Create()
 end
 
 table.insert(ns.loginHooks, function()
-	if select(2, UnitClass("player")) == "ROGUE" then ns.RunOutOfCombat(Create) end
+	local class = select(2, UnitClass("player"))
+	P.imbue = class == "SHAMAN"
+	-- imbues last 5 minutes: the rogue default (warn at 5 min left) would warn at once
+	if P.imbue and not ns.db.poisons.imbueDefaults then
+		ns.db.poisons.imbueDefaults = true
+		ns.db.poisons.warnMinutes = 1
+	end
+	if class == "ROGUE" or P.imbue then ns.RunOutOfCombat(Create) end
 end)
