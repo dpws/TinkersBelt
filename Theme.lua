@@ -24,8 +24,49 @@ local T = {
 	red = { 0.95, 0.35, 0.30, 1 },
 	WHITE = WHITE,
 	CIRCLE = CIRCLE,
+	BAR = WHITE, -- status bar fill
+	theme = "modern",
 }
 ns.Theme = T
+
+-- Classic theme: Blizzard tooltip/dialog frames, Friz Quadrata, gold and white text. Picked once at
+-- ADDON_LOADED (before any UI exists), so switching needs a reload. Colours change in place: other
+-- files keep references to these tables.
+local CLASSIC = {
+	window = { 0, 0, 0, 0.92 }, sidebar = { 0, 0, 0, 0 }, card = { 0.08, 0.08, 0.08, 0.9 }, row = { 0.14, 0.12, 0.09, 0.9 },
+	control = { 0.22, 0.05, 0.03, 1 }, field = { 0.02, 0.02, 0.02, 0.95 }, border = { 0.7, 0.7, 0.7, 1 },
+	hover = { 1, 1, 1, 0.08 }, gold = { 1, 0.82, 0, 1 }, text = { 1, 1, 1, 1 }, muted = { 0.62, 0.62, 0.62, 1 },
+	off = { 0.25, 0.23, 0.2, 1 }, switchOn = { 0.45, 0.33, 0.04, 1 },
+}
+function T.UseTheme(name)
+	if name ~= "classic" then return end
+	T.theme = "classic"
+	for key, c in pairs(CLASSIC) do for i = 1, 4 do T[key][i] = c[i] end end
+	local friz = "Fonts\\FRIZQT__.TTF"
+	T.font.regular, T.font.medium, T.font.semibold = friz, friz, friz
+	T.BAR = "Interface\\TargetingFrame\\UI-StatusBar"
+end
+
+-- classic frames: tooltip border, or the big dialog border for windows (radius >= 10)
+local function Backdrop(frame, fill, border, dialog)
+	if not frame.SetBackdrop then
+		Mixin(frame, BackdropTemplateMixin)
+		frame:HookScript("OnSizeChanged", frame.OnBackdropSizeChanged)
+	end
+	if dialog then
+		frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", tile = true, tileSize = 32, edgeSize = 32,
+			insets = { left = 11, right = 12, top = 12, bottom = 11 } })
+		frame:SetBackdropColor(1, 1, 1, 1)
+		frame:SetBackdropBorderColor(1, 1, 1, 1)
+	else
+		frame:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 } })
+		frame:SetBackdropColor(unpack(fill))
+		frame:SetBackdropBorderColor(unpack(border))
+	end
+end
 
 -- the accent at a given alpha (tints, borders, gradients)
 function T.Accent(a) return { T.gold[1], T.gold[2], T.gold[3], a or 1 } end
@@ -95,6 +136,10 @@ end
 
 -- filled rounded box with a 1px border (border box underneath, fill box inset by 1)
 function T.Box(frame, fill, border, radius, layer)
+	if T.theme == "classic" then
+		Backdrop(frame, fill or T.card, border or T.border, (radius or 6) >= 10)
+		return frame
+	end
 	frame.dpwsBorder = T.Rounded(frame, border or T.border, radius or 6, layer, -8, 0)
 	frame.dpwsFill = T.Rounded(frame, fill or T.card, (radius or 6) - 1, layer, -7, 1)
 	return frame
@@ -102,6 +147,10 @@ end
 
 -- square fill + 1px border (for in-game panels)
 function T.Panel(frame, color, border)
+	if T.theme == "classic" then
+		Backdrop(frame, color or { 0, 0, 0, 0.8 }, border == false and { 0, 0, 0, 0 } or border or T.border)
+		return frame
+	end
 	if frame.dpwsBg then
 		frame.dpwsBg:SetColorTexture(unpack(color or T.window))
 		return frame

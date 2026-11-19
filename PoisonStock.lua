@@ -280,14 +280,17 @@ table.insert(ns.loginHooks, function()
 	button:Hide()
 
 	local ev = CreateFrame("Frame")
-	for _, e in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_CLOSE",
+	for _, e in ipairs({ "TRADE_SKILL_SHOW", "TRADE_SKILL_LIST_UPDATE", "TRADE_SKILL_CLOSE", "NEW_RECIPE_LEARNED",
 		"CRAFT_SHOW", "CRAFT_UPDATE", "CRAFT_CLOSE", "BAG_UPDATE_DELAYED" }) do
 		pcall(ev.RegisterEvent, ev, e)
 	end
 	ev:SetScript("OnEvent", function(_, event)
 		if event == "CRAFT_SHOW" then craftOpen = true elseif event == "CRAFT_CLOSE" then craftOpen = false end
 		if event == "TRADE_SKILL_CLOSE" or event == "CRAFT_CLOSE" then wipe(handles)
-		elseif event ~= "BAG_UPDATE_DELAYED" then xpcall(Learn, geterrorhandler()) end
+		elseif event ~= "BAG_UPDATE_DELAYED" then
+			xpcall(Learn, geterrorhandler())
+			if ns.PoisonStockPageRefresh then ns.PoisonStockPageRefresh() end
+		end
 		UpdateButton()
 	end)
 	UpdateButton()

@@ -30,7 +30,7 @@ local function Mode(key) return ns.db.combo[key] or "combat" end
 
 local function MakeStatusBar(r, g, b)
 	local s = CreateFrame("StatusBar", nil, bar)
-	s:SetStatusBarTexture(ns.Theme.WHITE) -- flat
+	s:SetStatusBarTexture(ns.Theme.BAR) -- flat (classic: Blizzard bar)
 	s:SetStatusBarColor(r, g, b)
 	local bg = s:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()

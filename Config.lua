@@ -177,6 +177,12 @@ local function BuildPoisonStockPage(parent)
 			-- an empty menu draws broken: say why instead
 			if not any then root:CreateButton("All your poisons are already added"):SetEnabled(false) end
 		end)
+		-- rebuild the list on every open: recipes learned while the settings were open must show up
+		local open = add:GetScript("OnMouseDown")
+		add:SetScript("OnMouseDown", function(self, ...)
+			if not self:IsMenuOpen() then self:GenerateMenu() end
+			if open then return open(self, ...) end
+		end)
 	end)
 	local card, rowsTop = P.card, P.card.y -- the card shrinks to the poisons listed
 	for i = 1, MAX_ROWS do
@@ -232,6 +238,7 @@ local function BuildPoisonStockPage(parent)
 		add:GenerateMenu()
 	end
 	P:Refresher(Refresh)
+	ns.PoisonStockPageRefresh = function() if parent:IsVisible() then Refresh() end end
 	P:EndCard()
 	local tip = P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
 	tip:ClearAllPoints()
@@ -580,6 +587,7 @@ local function BuildAlliesPage(parent)
 	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
 	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
 	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
+	P:Toggle("Hide friendly players in cities and inns", function() return s.hideInCities end, function(v) s.hideInCities = v; Redraw() end)
 	local list = ns.db.alliesList
 	local function RefreshList() if ns.AlliesList then ns.AlliesList.Update() end end
 	P:Card("Nearby allies list")
@@ -886,6 +894,18 @@ local function CreateWindow()
 	local version = T.Text(header, "regular", 12, T.muted)
 	version:SetPoint("RIGHT", close, "LEFT", -12, 0)
 	version:SetText("v" .. ((C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("TinkersBelt", "Version") or "?"))
+	local theme = T.NewDropdown(header, 130)
+	theme:SetPoint("RIGHT", version, "LEFT", -14, 0)
+	theme:SetupMenu(function(_, root)
+		root:CreateTitle("Theme")
+		for _, o in ipairs({ { "modern", "Modern" }, { "classic", "Classic WoW" } }) do
+			root:CreateRadio(o[2], function() return (ns.adb.theme or "modern") == o[1] end, function()
+				if (ns.adb.theme or "modern") == o[1] then return end
+				ns.adb.theme = o[1] ~= "modern" and o[1] or nil
+				ns.RequestReload("theme changes after a reload")
+			end)
+		end
+	end)
 	local rule = f:CreateTexture(nil, "ARTWORK")
 	rule:SetColorTexture(1, 1, 1, 0.07)
 	rule:SetPoint("TOPLEFT", 0, -HEADER)

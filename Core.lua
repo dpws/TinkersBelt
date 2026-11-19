@@ -269,6 +269,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		adb.allies = adb.allies or { enabled = false, size = 13, guild = true }
 		adb.layout = adb.layout or { snap = true, grid = true, size = 32 }
 		ns.adb = adb
+		ns.Theme.UseTheme(adb.theme) -- before any UI is built
 	elseif event == "PLAYER_LOGIN" then
 		-- one module failing must not stop the others; the error still reaches BugSack
 		for _, hook in ipairs(ns.loginHooks) do xpcall(hook, geterrorhandler()) end

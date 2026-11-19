@@ -279,7 +279,7 @@ table.insert(ns.loginHooks, function()
 	panel:SetClampedToScreen(true)
 	snd = CreateFrame("StatusBar", nil, panel)
 	snd:SetPoint("TOPLEFT")
-	snd:SetStatusBarTexture(T.WHITE)
+	snd:SetStatusBarTexture(T.BAR)
 	snd:SetStatusBarColor(0.95, 0.75, 0.2) -- Slice and Dice gold
 	snd:SetMinMaxValues(0, 1)
 	local bg = snd:CreateTexture(nil, "BACKGROUND")
