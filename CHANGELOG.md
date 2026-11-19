@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 - 2026-11-19
+
+### New
+- Classic WoW theme: pick "Classic WoW" from the Theme menu at the top of the settings for the game's own frames, gold text and red buttons. Modern stays the default.
+- Friendly Names can hide friendly players in cities and inns.
+- New Tinker's Belt icon in the AddOns list and a new minimap button.
+
+### Fixed
+- Newly learned poisons now show up in the "Add poison" list.
+
 ## 0.1.0 - 2026-11-17
 
 First release of Tinker's Belt. Type `/tb` in game to open the settings.

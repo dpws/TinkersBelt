@@ -36,11 +36,11 @@ code { font: 500 13px var(--mono); background: var(--code-bg); padding: 1px 6px;
 .meta b { color: var(--fg); font-weight: 600; }
 .lead { font-size: 17px; max-width: 60ch; }
 .get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
-button.dl { font: 600 15px var(--body); background: var(--brass); color: var(--brass-ink); border: 0; border-radius: 8px; padding: 12px 22px; cursor: pointer; }
-button.dl:hover { filter: brightness(1.08); }
-button.dl:focus-visible { outline: 3px solid var(--brass-soft); outline-offset: 2px; }
-button.dl:disabled { opacity: 0.6; cursor: default; }
-.status { color: var(--muted); font-size: 13px; min-height: 1.6em; }
+a.dl { font: 600 15px var(--body); background: var(--brass); color: var(--brass-ink); border-radius: 8px; padding: 12px 22px; text-decoration: none; }
+a.dl:hover { filter: brightness(1.08); }
+a.dl:focus-visible { outline: 3px solid var(--brass-soft); outline-offset: 2px; }
+.status { color: var(--muted); font-size: 13px; }
+.status a { color: var(--brass); }
 
 section { display: grid; gap: 16px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
@@ -66,14 +66,14 @@ ol.steps li::before { content: counter(s); font: 700 15px var(--display); width:
     <h1 class="sr">Tinker's Belt</h1>
     <p class="lead">Small quality-of-life tools for World of Warcraft: Forever, with a full rogue kit. Type <code>/tb</code> in game to open the settings.</p>
     <div class="meta">
-      <span>Version <b id="ver">0.1.0</b></span>
-      <span>Released <b>17 Nov 2026</b></span>
+      <span>Version <b id="ver">0.2.0</b></span>
+      <span>Released <b>19 Nov 2026</b></span>
       <span>Client <b>WoW Forever</b> (interface 16001)</span>
-      <span>Size <b>572 KB</b></span>
+      <span>Size <b>603 KB</b></span>
     </div>
     <div class="get">
-      <button class="dl" id="dl" type="button">Download TinkersBelt-0.1.0.zip</button>
-      <span class="status" id="status" role="status"></span>
+      <a class="dl" href="https://github.com/dpws/TinkersBelt/releases/download/v0.2.0/TinkersBelt-0.2.0.zip" target="_blank" rel="noopener">Download TinkersBelt-0.2.0.zip</a>
+      <span class="status">From GitHub, no account needed. <a href="https://github.com/dpws/TinkersBelt/releases" target="_blank" rel="noopener">All versions</a></span>
     </div>
   </div>
 
@@ -92,6 +92,23 @@ ol.steps li::before { content: counter(s); font: 700 15px var(--display); width:
 
   <section aria-labelledby="changes">
     <h2 id="changes">Changelog</h2>
+    <article class="release">
+      <header><strong>0.2.0</strong><span>19 Nov 2026</span></header>
+      <div class="group">
+        <h3>New</h3>
+        <ul>
+          <li><b>Classic WoW theme:</b> pick "Classic WoW" from the Theme menu at the top of the settings for the game's own frames, gold text and red buttons. Modern stays the default.</li>
+          <li><b>Friendly Names:</b> can hide friendly players in cities and inns.</li>
+          <li><b>New look:</b> Tinker's Belt icon in the AddOns list and a new minimap button.</li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Fixed</h3>
+        <ul>
+          <li>Newly learned poisons now show up in the "Add poison" list.</li>
+        </ul>
+      </div>
+    </article>
     <article class="release">
       <header><strong>0.1.0</strong><span>17 Nov 2026 · first release</span></header>
       <div class="group">
@@ -126,44 +143,3 @@ ol.steps li::before { content: counter(s); font: 700 15px var(--display); width:
     </article>
   </section>
 </div>
-
-<script>
-const FILE = "TinkersBelt-0.1.0.zip";
-// artifacts can't serve .zip, so the zip ships base64-encoded beside the page and is rebuilt here
-const SOURCE = FILE + ".b64.txt";
-const btn = document.getElementById("dl");
-const status = document.getElementById("status");
-let downloads = null;
-btn.disabled = true;
-status.textContent = "Getting the download ready…";
-window.claude?.use?.("downloads").then(d => {
-  downloads = d;
-  btn.disabled = !d;
-  status.textContent = d ? "" : "Downloads aren't available in this view. Open this page on claude.ai to download.";
-}).catch(() => { status.textContent = "Downloads aren't available in this view. Open this page on claude.ai to download."; });
-if (!window.claude?.use) status.textContent = "Open this page on claude.ai to download.";
-
-btn.addEventListener("click", async () => {
-  if (!downloads) return;
-  btn.disabled = true;
-  status.textContent = "Preparing…";
-  try {
-    const res = await fetch(SOURCE);
-    if (!res.ok) throw { message: "The file couldn't be loaded (" + res.status + "). Try again in a moment." };
-    const bin = atob((await res.text()).trim());
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const blob = new Blob([bytes]);
-    status.textContent = "Confirm the save in the prompt.";
-    await downloads.save({ filename: FILE, data: blob });
-    status.textContent = "Saved. Now follow the install steps below.";
-  } catch (e) {
-    const code = e && e.code;
-    status.textContent = code === "declined" ? "Download cancelled."
-      : code === "rate_limited" ? "A save prompt is already open. Finish it, then try again."
-      : (e && e.message) || "The download didn't work. Try again.";
-  } finally {
-    btn.disabled = false;
-  }
-});
-</script>
