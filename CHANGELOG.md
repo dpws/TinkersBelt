@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-11-19
+
+### New
+- Shaman: weapon imbue bar (Rockbiter, Flametongue, Frostbrand, Windfury) with reminders before it runs out.
+- Shaman: totem bar with each element's time left, an alert when a totem is killed, right-click to destroy, and Lightning Shield charges.
+- Shaman: totem sets (Solo, Group, PvP) dropped one totem per click, and a warning when a totem item is missing from your bags.
+- Shaman: cooldown icons for shocks, Grounding Totem, Stormstrike, Nature's Swiftness, Reincarnation and more.
+
 ## 0.2.0 - 2026-11-19
 
 ### New
