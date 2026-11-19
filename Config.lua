@@ -827,6 +827,12 @@ local toolSelectors = {} -- tool name -> function showing that tool
 local SIDEBAR, HEADER, FOOTER = 210, 104, 30
 
 local function CloseBox(parent, onClick)
+	if T.theme == "classic" then -- the game's red X
+		local close = CreateFrame("Button", nil, parent, "UIPanelCloseButton")
+		close:SetSize(32, 32)
+		close:SetScript("OnClick", onClick)
+		return close
+	end
 	local close = CreateFrame("Button", nil, parent)
 	close:SetSize(30, 30)
 	T.Box(close, T.control, T.border, 6)

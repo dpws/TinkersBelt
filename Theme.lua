@@ -189,7 +189,7 @@ end
 
 -- restyle an existing UIPanelButtonTemplate button (secure/template buttons we can't replace)
 function T.Button(b)
-	if b.dpwsSkinned then return end
+	if b.dpwsSkinned or T.theme == "classic" then return end -- classic keeps the game's red button
 	b.dpwsSkinned = true
 	for _, r in ipairs({ b:GetRegions() }) do
 		if r:GetObjectType() == "Texture" then r:SetAlpha(0) end
@@ -211,6 +211,18 @@ end
 
 -- flat button; kind "accent" = gold fill with dark text
 function T.NewButton(parent, text, w, h, kind)
+	if T.theme == "classic" then
+		-- the game's own red panel button (accent ones too: classic has only the red kind)
+		local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+		b:SetSize(w or 120, h or 26)
+		b:SetText(text or "")
+		local fs = b:GetFontString()
+		if fs then
+			local _, size = fs:GetFont()
+			fs:SetFont(T.font.medium, math.min(size or 12, 12), "")
+		end
+		return b
+	end
 	local b = CreateFrame("Button", nil, parent)
 	b:SetSize(w or 120, h or 26)
 	local accent = kind == "accent"
