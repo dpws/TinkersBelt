@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 - 2026-11-20
+
+### New
+- Buff buttons beside party frames work with any party frame addon (ElvUI, Cell, Grid2, VuhDo, Shadowed Unit Frames...).
+- The settings window shows the addon version next to the title.
+
+### Changed
+- Shorter hints in the settings.
+- Mana Ticks and Buffs sit under your class's name instead of "Caster"; buff switches have short names (Blessings, Auras...).
+- My extra buffs grows and shrinks with the buffs you add.
+
+### Fixed
+- The buff reminder now really buffs nearby players outside your group.
+- Buff buttons beside party frames no longer show on top of the talent, mail and other windows.
+
 ## 0.3.1 - 2026-11-20
 
 ### Changed
