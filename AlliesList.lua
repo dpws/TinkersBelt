@@ -89,6 +89,7 @@ end
 
 local frame, title, rows = nil, nil, {}
 local PARTY_BG = { 0.25, 0.38, 0.85, 0.45 } -- party-chat blue
+local PARTY_BG_CLASSIC = { 1, 0.82, 0, 0.28 } -- WoW gold
 local ROW_H, WIDTH = 22, 250
 
 local function MakeRow(i)
@@ -163,7 +164,8 @@ local function Update()
 			if color then r.name:SetTextColor(color.r, color.g, color.b) end
 			r.tags:SetText((e.friend and "|cff6dcfc4<3|r " or "") .. (e.sameGuild and "|cff4dcc66G|r" or ""))
 			r.range:SetText(ns.AllyRangeText(e.range))
-			r.bg:SetColor(e.grouped and PARTY_BG or T.row) -- your party / raid stands out
+			-- your party / raid stands out: party-chat blue, or classic gold in the Classic theme
+			r.bg:SetColor(e.grouped and (T.theme == "classic" and PARTY_BG_CLASSIC or PARTY_BG) or T.row)
 			-- by the player's nameplate unit, not by name (/targetexact missed some names); the list
 			-- refreshes every second, so the token still points at this player when clicked
 			r:SetAttribute("unit", e.unit)
