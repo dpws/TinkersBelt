@@ -583,8 +583,18 @@ local function Update()
 		local b = buttons[i] or ReminderButton(i)
 		buttons[i] = b
 		b.spell, b.needy = need.spell, need.units
-		b:SetAttribute("spell", need.spell)
-		b:SetAttribute("unit", need.units[1])
+		local unit = need.units[1]
+		-- the game ignores casts on nameplate units from addon buttons (nearby players outside your group):
+		-- target them by full name (two words on Forever), cast, then go back to your target
+		local ok, full = pcall(GetUnitName, unit, true)
+		if unit:find("^nameplate") and ok and full and not (issecretvalue and issecretvalue(full)) then
+			b:SetAttribute("type", "macro")
+			b:SetAttribute("macrotext", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(full, need.spell))
+		else
+			b:SetAttribute("type", "spell")
+			b:SetAttribute("spell", need.spell)
+			b:SetAttribute("unit", unit)
+		end
 		b.icon:SetTexture(SpellIcon(need.spell))
 		b.count:SetText(#need.units > 1 and #need.units or "")
 		b:ClearAllPoints()
