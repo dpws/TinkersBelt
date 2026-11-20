@@ -56,7 +56,7 @@ local function Collect()
 	for _, unit in ipairs(ns.NamePlateUnits()) do
 		pcall(function() -- a plate whose values are hidden from addons is skipped
 			if not (UnitIsPlayer(unit) and UnitIsFriend("player", unit)) or UnitIsUnit(unit, "player") then return end
-			local name = UnitName(unit) -- first name: what /targetexact needs
+			local name = UnitName(unit) -- first word only on Forever: sorting, not targeting
 			local full = GetUnitName(unit, true)
 			local _, class = UnitClass(unit)
 			if Secret(name) or Secret(full) or Secret(class) then return end
@@ -126,10 +126,8 @@ local function MakeRow(i)
 	-- /tb allies click: log every step of a click on a row
 	local function Log(step, mouse)
 		if not L.debug then return end
-		local unit = r:GetAttribute("unit")
-		L.Log(("allies click: row %d %s %s type1=%s type2=%s unit=%s exists=%s name=%s target=%s"):format(i, step,
-			tostring(mouse), tostring(r:GetAttribute("type1")), tostring(r:GetAttribute("type2")), tostring(unit),
-			tostring(unit and UnitExists(unit)), tostring(unit and UnitName(unit)), tostring(UnitName("target"))))
+		L.Log(("allies click: row %d %s %s macro1=%q target=%s"):format(i, step, tostring(mouse),
+			tostring(r:GetAttribute("macrotext1")), tostring(GetUnitName("target", true))))
 	end
 	r:HookScript("OnMouseDown", function(_, mouse) Log("mousedown", mouse) end)
 	r:HookScript("OnMouseUp", function(_, mouse) Log("mouseup", mouse) end)
@@ -166,12 +164,16 @@ local function Update()
 			r.range:SetText(ns.AllyRangeText(e.range))
 			-- your party / raid stands out: party-chat blue, or classic gold in the Classic theme
 			r.bg:SetColor(e.grouped and (T.theme == "classic" and PARTY_BG_CLASSIC or PARTY_BG) or T.row)
-			-- by the player's nameplate unit, not by name (/targetexact missed some names); the list
-			-- refreshes every second, so the token still points at this player when clicked
-			r:SetAttribute("unit", e.unit)
-			r:SetAttribute("type1", "target")
-			r:SetAttribute("type2", buff and "spell" or nil)
-			r:SetAttribute("spell2", buff)
+			-- by full name: Forever names are two words ("Lava Craft"), and the game refuses to target
+			-- by nameplate unit from an addon button (tested: click arrives, target stays empty)
+			r:SetAttribute("type1", "macro")
+			r:SetAttribute("macrotext1", "/targetexact " .. e.full)
+			if buff then
+				r:SetAttribute("type2", "macro")
+				r:SetAttribute("macrotext2", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(e.full, buff))
+			else
+				r:SetAttribute("type2", nil)
+			end
 			r.invite:SetShown(not e.grouped and CanInvite())
 			r.invite:SetScript("OnClick", function()
 				(C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit)(e.full)
@@ -199,9 +201,8 @@ ns.slashCommands["allies click"] = function()
 		Say(("allies click: ActionButtonUseKeyDown=%s"):format(tostring(GetCVar and GetCVar("ActionButtonUseKeyDown"))))
 		for i, r in ipairs(rows) do
 			if r:IsShown() then
-				local unit = r:GetAttribute("unit")
-				Say(("allies click: row %d level=%s mouse=%s unit=%s exists=%s name=%s"):format(i, r:GetFrameLevel(),
-					tostring(r:IsMouseEnabled()), tostring(unit), tostring(unit and UnitExists(unit)), tostring(unit and UnitName(unit))))
+				Say(("allies click: row %d level=%s mouse=%s macro1=%q"):format(i, r:GetFrameLevel(),
+					tostring(r:IsMouseEnabled()), tostring(r:GetAttribute("macrotext1"))))
 			end
 		end
 	end)
