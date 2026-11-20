@@ -43,4 +43,24 @@ check("skip remembered if taken", ns.BuffPickFree({ "Might", "Wisdom" }, "Might"
 check("remembered if free", ns.BuffPickFree({ "Might", "Wisdom" }, "Wisdom", taken) == "Wisdom")
 check("all taken: nothing", ns.BuffPickFree({ "Might" }, nil, taken) == nil)
 
+-- unit frame search: biggest visible frame with exactly that unit, not ours, not tiny
+local function Fr(unit, w, h, opts)
+	opts = opts or {}
+	return { dpwsNotUnitFrame = opts.ours, IsForbidden = function() return opts.forbidden end,
+		IsVisible = function() return not opts.hidden end, GetAttribute = function() return unit end,
+		GetWidth = function() return w end, GetHeight = function() return h end }
+end
+local function Walk(list)
+	return function(prev)
+		if not prev then return list[1] end
+		for i, x in ipairs(list) do if x == prev then return list[i + 1] end end
+	end
+end
+local elv, small, ours, hidden, target = Fr("party1", 120, 40), Fr("party1", 16, 16), Fr("party1", 200, 200, { ours = true }),
+	Fr("party1", 300, 300, { hidden = true }), Fr("target", 300, 60)
+check("finds the frame addon's party frame", ns.PickUnitFrame(Walk({ small, ours, hidden, target, elv }), "party1") == elv)
+check("no frame: nil", ns.PickUnitFrame(Walk({ small, ours, target }), "party1") == nil)
+local big = Fr("player", 200, 50)
+check("biggest wins", ns.PickUnitFrame(Walk({ Fr("player", 40, 20), elv, big }), "player") == big)
+
 print("buffs: " .. passed .. " passed")

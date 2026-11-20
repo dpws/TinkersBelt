@@ -91,6 +91,24 @@ ns.BUFF_SPELLS = {
 	},
 }
 
+-- Any unit frame addon (ElvUI, Cell, Grid2, VuhDo, Shadowed Unit Frames...) marks its frames with a "unit"
+-- attribute. From all frames (nextFrame(prev) walks them, like EnumerateFrames), pick the biggest visible
+-- one showing exactly this unit (exact token: no target/focus/nameplate frames that happen to show them).
+function ns.PickUnitFrame(nextFrame, unit)
+	local best, bestArea = nil, 0
+	local f = nextFrame()
+	while f do
+		local ok, u, area = pcall(function()
+			if f.dpwsNotUnitFrame or f:IsForbidden() or not f:IsVisible() then return end
+			return f:GetAttribute("unit"), f:GetWidth() * f:GetHeight()
+		end)
+		-- at least ~30x20: skips small buttons other addons tag with a unit
+		if ok and u == unit and area >= 600 and area > bestArea then best, bestArea = f, area end
+		f = nextFrame(f)
+	end
+	return best
+end
+
 if not CreateFrame then return end -- offline test stops here
 
 -- Buff Reminder: buttons for your buffs that are missing (or about to run out) on you or your group;
@@ -231,6 +249,7 @@ local wasMissing = {} -- self buffs missing at the last scan (for the "dropped" 
 
 local function ReminderButton(i)
 	local b = CreateFrame("Button", "DpwsBuffReminder" .. i, panel, "SecureActionButtonTemplate")
+	b.dpwsNotUnitFrame = true -- has a unit attribute, but isn't a unit frame
 	b:SetSize(SIZE, SIZE)
 	b:RegisterForClicks("AnyUp")
 	b:SetAttribute("useOnKeyDown", false)
@@ -268,7 +287,9 @@ end
 ---------------------------------------------------------------------------
 -- buttons beside party frames
 
--- the unit frame shown for unit: DandersFrames, Blizzard compact party frames, Blizzard party/player frames
+-- the unit frame shown for unit: DandersFrames, Blizzard compact party frames, Blizzard party frames,
+-- any other frame addon, then the Blizzard player frame
+local found, lastScan = {}, {} -- unit -> frame from the search of all frames; unit -> time of that search
 local function FindFrame(unit)
 	local function Match(f, u)
 		return f and u and f:IsVisible() and not Secret(u) and UnitExists(u) and UnitIsUnit(u, unit)
@@ -292,6 +313,15 @@ local function FindFrame(unit)
 			local f = PartyFrame["MemberFrame" .. i]
 			if f and Match(f, f.unit) then return f end
 		end
+	end
+	-- other frame addons: the last frame found, or a search of all frames (at most every 5s per unit)
+	local cached = found[unit]
+	if cached and cached:IsVisible() and cached:GetAttribute("unit") == unit then return cached end
+	local now = GetTime()
+	if (lastScan[unit] or 0) < now - 5 then
+		lastScan[unit] = now
+		found[unit] = ns.PickUnitFrame(EnumerateFrames, unit)
+		if found[unit] then return found[unit] end
 	end
 	if unit == "player" and PlayerFrame and PlayerFrame:IsVisible() then return PlayerFrame end
 end
@@ -368,6 +398,7 @@ end
 
 local function StripButton(strip, i)
 	local b = CreateFrame("Button", nil, strip, "SecureActionButtonTemplate")
+	b.dpwsNotUnitFrame = true
 	b:RegisterForClicks("AnyUp")
 	b:SetAttribute("useOnKeyDown", false)
 	b:SetAttribute("type1", "spell") -- left only: right-click picks this member's blessing
