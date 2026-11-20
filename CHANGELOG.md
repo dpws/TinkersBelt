@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-11-20
+
+### Changed
+- Nearby allies: your party and raid members stand out with a blue row (soft gold in the Classic theme).
+
+### Fixed
+- Nearby allies: clicking a row targets the player again, and right-click casts your buff on them (Forever's two-word names weren't matched).
+
 ## 0.3.0 - 2026-11-19
 
 ### New
