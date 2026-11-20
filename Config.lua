@@ -82,7 +82,7 @@ local function BuildBarSwitchPage(parent)
 		P:Finish()
 		return
 	end
-	P:Note("Pick which page each bar shows while in a state. Put spells on that page by dragging them onto the bar while the state is active. Green bars are visible now, gray ones are hidden and free to borrow.")
+	P:Note("Page per bar and state. Drag spells onto a bar while the state is active. Green = visible, gray = hidden.")
 	P:Toggle("Highlight bar numbers on screen", function() return highlightsOn end, function(v) SetHighlights(v) end)
 	-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
 	if _G.MelloUIActionBar2Button1 then
@@ -144,7 +144,7 @@ local function BuildPoisonsPage(parent)
 		function(v) p.scale = v / 100; Rescale() end)
 	P:Slider(word == "imbue" and "Imbue icon" or "Poison icon", 50, 200, 10, "%", function() return (p.poisonScale or 1) * 100 end,
 		function(v) p.poisonScale = v / 100; Rescale() end)
-	P:Note(("On the bar: left-click applies the chosen %s, right-click chooses it. Use Unlock panels to move the bar."):format(word))
+	P:Note(("Left-click: apply %s. Right-click: choose."):format(word))
 	P:Finish()
 end
 
@@ -211,8 +211,8 @@ local function BuildPoisonStockPage(parent)
 	Refresh = function()
 		local learned = 0
 		for _ in pairs(ns.db.poisonRecipes or {}) do learned = learned + 1 end
-		status:SetText(learned > 0 and ("%d poison recipes known. Amount = how many to keep in bags."):format(learned)
-			or "|cffffcc00Open your Poisons window once so the addon learns the recipes (until then nothing is bought).|r")
+		status:SetText(learned > 0 and ("%d recipes known. Amount = keep in bags."):format(learned)
+			or "|cffffcc00Open your Poisons window once to learn recipes.|r")
 		local ids = {}
 		for id in pairs(p.stock) do ids[#ids + 1] = id end
 		table.sort(ids)
@@ -242,7 +242,7 @@ local function BuildPoisonStockPage(parent)
 	P:Refresher(Refresh)
 	ns.PoisonStockPageRefresh = function() if parent:IsVisible() then Refresh() end end
 	P:EndCard()
-	local tip = P:Note("A small craft button shows next to the poison bar when something is short and you have the materials: left-click opens Poisons, click again to craft; right-click picks a poison. Ingredients use the Auto Restock spending limit.")
+	local tip = P:Note("Craft button beside the bar when a poison is short. Left-click: open Poisons, again: craft. Right-click: pick. Uses the Auto Restock budget.")
 	tip:ClearAllPoints()
 	tip:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 2, -18)
 	P:Finish()
@@ -270,8 +270,7 @@ local function BuildRogueTimersPage(parent)
 				function(v) s.off[c.id] = not v; Relayout() end)
 		end
 	end
-	P:Note("Bright = ready, dark with a sweep = cooling down. Only spells you know are listed." ..
-		(rogue and "" or " Earth Shock stands for all three shocks (they share a cooldown).") .. " Use Unlock panels to move it.")
+	P:Note("Bright = ready, sweep = cooling down." .. (rogue and "" or " Earth Shock = all shocks."))
 	P:Finish()
 end
 
@@ -287,7 +286,7 @@ local function BuildTotemsPage(parent)
 	P:Toggle("Show the totem bar", function() return s.enabled end, function(v) s.enabled = v; Refresh() end)
 	P:Toggle("Sound with alerts (totem killed, totem item missing)", function() return s.sound end, function(v) s.sound = v end)
 	P:Slider("Size", 50, 200, 10, "%", function() return (s.scale or 1) * 100 end, function(v) s.scale = v / 100; Refresh() end)
-	P:Note("Earth, Fire, Water and Air show the totem that's down with its time left (an alert sounds if one is killed early); left-click drops that element's totem from the active set, right-click destroys it. A red tint = that element's totem item is missing from your bags. The last button is Lightning Shield with its charges. Use Unlock panels to move it.")
+	P:Note("Left-click: drop the set's totem. Right-click: destroy. Alert when one is killed early. Red = totem item missing. Last button: Lightning Shield charges.")
 	for i, setName in ipairs(ns.TOTEM_SET_NAMES) do
 		P:Card(setName .. " set")
 		for _, e in ipairs(ns.TOTEM_ELEMENTS) do
@@ -304,14 +303,14 @@ local function BuildTotemsPage(parent)
 			end, 260)
 		end
 	end
-	P:Note("The set button (left of the totems) drops the active set one totem per click: Earth, Fire, Water, Air. Right-click it to switch sets. It starts over after combat or 30 seconds.")
+	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s.")
 	P:Finish()
 end
 
 local function BuildLockboxPage(parent)
 	local P = T.Page(parent)
 	P:Card("How it works")
-	P:Note("When your bags hold a lockbox (or junkbox, locked chest) your Lockpicking skill can open, a button appears. Click it: it casts Pick Lock on the box; click again to open it. The number = boxes ready. Boxes your skill is too low for are skipped. Use Unlock panels to move the button.")
+	P:Note("Shows when you carry a lockbox you can pick. Click: Pick Lock, again: open. Number = boxes ready.")
 	P:Finish()
 end
 
@@ -323,7 +322,7 @@ local function BuildOpenerPage(parent)
 	P:Toggle("Show a Pick Pocket icon on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
 	P:Slider("Icon size", 12, 48, 1, "px", function() return s.iconSize or 18 end, function(v) s.iconSize = v end)
 	P:Slider("Icon spacing", 0, 20, 1, "px", function() return s.iconGap or 2 end, function(v) s.iconGap = v end)
-	P:Note("Icons show above humanoids that aren't fighting, no target needed (enemy nameplates must be on). Sap: any of them, players too. Pick Pocket: NPCs you haven't picked yet. Forever hides which mob is which from addons, so a picked mob is remembered only while it stays your target or keeps its nameplate, and beasts may get the icon too.")
+	P:Note("Above idle humanoids (enemy nameplates on). Sap: anyone. Pick Pocket: NPCs not yet picked; remembered only while targeted or on screen.")
 	P:Card("Weapon sets")
 	P:Toggle("Show the weapon set buttons", function() return s.weapons end,
 		function(v) s.weapons = v; if ns.Opener then ns.Opener.UpdateSets() end end)
@@ -348,7 +347,7 @@ local function BuildOpenerPage(parent)
 			P:Refresher(Show)
 		end)
 	end
-	P:Note("Equip your opener weapons (e.g. a dagger for Ambush) and save them as Opener, then your fight weapons as Fight. Two buttons appear: click to swap (works in combat too). Teal frame = the set you're wearing. Use Unlock panels to move them.")
+	P:Note("Save Opener and Fight weapons. Click a button to swap (works in combat). Teal = worn.")
 	P:Finish()
 end
 
@@ -369,7 +368,7 @@ local function BuildComboPage(parent)
 	for n = 1, 5 do
 		P:Sound(n == 1 and "1 point" or (n .. " points"), function() return c.sounds[n] end, function(key) c.sounds[n] = key end)
 	end
-	P:Note("A sound plays when your combo points rise to that amount. Use Unlock panels to move the bars.")
+	P:Note("Sound when combo points reach this amount.")
 	P:Finish()
 end
 
@@ -386,7 +385,7 @@ local function BuildManaPage(parent)
 	P:Card("Size")
 	P:Slider("Width", 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
 	P:Slider("Height", 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
-	P:Note("After you spend mana the bar fills up over the 5 seconds (no regen), with a countdown; full and glowing = regenerating. Hidden at full mana. Use Unlock panels to move it.")
+	P:Note("Fills over the 5-second rule after you spend mana. Hidden at full mana.")
 	P:Finish()
 end
 
@@ -503,7 +502,7 @@ local function BuildPvpSettingsPage(parent)
 	P:Card("Sounds")
 	P:Sound("Kill sound", function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end)
 	P:Sound("Death sound", function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end)
-	P:Note("Open world only (not battlegrounds, arenas or dungeons). A death counts for the last enemy player who targeted you within 10 seconds. Announcements use the Notifications panel.")
+	P:Note("Open world only. A death counts for the last enemy player who targeted you within 10s.")
 	P:Finish()
 end
 
@@ -516,7 +515,7 @@ local function BuildNearbyPage(parent)
 	P:Choice("Alert", { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } },
 		function() return s.alert end, function(v) s.alert = v end, 260)
 	P:Sound("Alert sound", function() return s.sound end, function(key) s.sound = key end)
-	P:Note("Players are found by their nameplates (turn on enemy nameplates with Ctrl+V), your target and mouseover. Stealthed players are not seen until they show up. Open world only. Use Unlock panels to move the list.")
+	P:Note("Seen via enemy nameplates (Ctrl+V), target and mouseover. Open world only.")
 	P:Finish()
 end
 
@@ -527,26 +526,40 @@ local function BuildBuffsPage(parent)
 	P:Card("Reminder")
 	P:Slider("Warn when less than", 1, 10, 1, "min", function() return s.warn or 3 end, function(v) s.warn = v; Refresh() end)
 	P:Toggle("Sound when a buff drops off you", function() return s.sound end, function(v) s.sound = v end)
+	-- one switch per buff kind; kinds with several spells (blessings, auras...) get a short group name
+	local KINDS = { blessing = "Blessings", aura = "Auras", armor = "Armor", aspect = "Aspects" }
 	local any = false
 	for _, e in ipairs(ns.Buffs and ns.Buffs.entries or {}) do
 		if e.def.reminder ~= false and not e.def.custom then
 			any = true
 			local key = e.def.key
-			P:Toggle("Remind: " .. table.concat(e.known, " / ") .. (e.def.self and "  (you)" or "  (you and group)"),
+			local label = #e.known > 1 and (KINDS[key] or e.known[1]) or e.known[1]
+			P:Toggle("Remind: " .. label .. (e.def.self and "" or " (group)"),
 				function() local off = s.off[key]; if off == nil then off = e.def.off end; return not off end,
 				function(v) s.off[key] = not v; Refresh() end)
 		end
 	end
-	if not any then P:Note("You don't know any buffs this tracks yet.") end
+	if not any then P:Note("No tracked buffs known yet.") end
+	P:Note("A button per missing buff. Click: cast on the first, hover: who. Updates after combat.")
 
+	P:Card("Party frames")
+	P:Toggle("Buff buttons beside party frames", function() return s.strips end, function(v) s.strips = v; Refresh() end)
+	P:Slider("Button size", 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
+	P:Note("Dim = has it, red = missing, minutes = running out. Click: cast. Paladins: right-click to pick a blessing. Not in raids.")
+	P:Card("Nearby players")
+	P:Toggle("Also buff nearby players outside your group", function() return s.nearby ~= false end, function(v) s.nearby = v; Refresh() end)
+	P:Note("After your group, nearest first. Needs Friendly Names. PvP-flagged players skipped unless you're flagged.")
+
+	-- last on the page: the card shrinks to the buffs listed
 	P:Card("My extra buffs")
-	local rows, RefreshList, MAX_ROWS = {}, nil, 6
+	local rows, MAX_ROWS = {}, 8
 	local function SpellId(text)
 		local id = tonumber(text:match("spell:(%d+)") or text:match("^%s*(%d+)%s*$"))
 		if id then return id end
 		local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(strtrim(text))
 		return info and info.spellID
 	end
+	local RefreshList
 	P:Custom(38, function(row)
 		local input = T.NewInput(row, 260)
 		input:SetPoint("LEFT")
@@ -569,6 +582,8 @@ local function BuildBuffsPage(parent)
 		if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
 		if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
 	end)
+	P:Note("Self buffs (auras, Righteous Fury, shields): type a name or Shift-click it in the spellbook.")
+	local card, rowsTop = P.card, P.card.y
 	for i = 1, MAX_ROWS do
 		P:Custom(30, function(row)
 			local x = { frame = row }
@@ -582,7 +597,6 @@ local function BuildBuffsPage(parent)
 			rows[i] = x
 		end)
 	end
-	P:Note("Any buff you cast on yourself (an aura, Righteous Fury, a shield...): type its name or Shift-click it in your spellbook. Reminded when it's missing; click the reminder to cast it.")
 	RefreshList = function()
 		local ids = {}
 		for id in pairs(s.custom) do ids[#ids + 1] = id end
@@ -601,18 +615,11 @@ local function BuildBuffsPage(parent)
 				end)
 			end
 		end
+		local shown = math.min(#ids, MAX_ROWS)
+		card:SetHeight(-rowsTop + shown * 30 + 10)
+		parent:SetHeight(math.max(-P.y + 8 - (MAX_ROWS - shown) * 30, 1)) -- scroll area follows
 	end
 	P:Refresher(RefreshList)
-
-	P:Card("Party frames")
-	P:Toggle("Buff buttons beside party frames", function() return s.strips end, function(v) s.strips = v; Refresh() end)
-	P:Slider("Button size", 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
-	P:Note("One button per buff you can cast, right of each party member's frame (DandersFrames or Blizzard). Dim = they have it, red border = missing, minutes = running out. Click to cast on that member. Paladins: each member shows only the blessing you last gave them; right-click it to pick another from icons (? = show all). Solo and in a party, not in raids.")
-	P:Card("Nearby players")
-	P:Toggle("Also buff nearby players outside your group", function() return s.nearby ~= false end, function(v) s.nearby = v; Refresh() end)
-	P:Note("They join the reminder after your group: each click buffs the next one in range. Needs Friendly Names on (that's how the addon sees them). PvP-flagged players are skipped while you're not flagged, so you don't get flagged.")
-	P:Card("About")
-	P:Note("The reminder shows a button for each of your buffs missing (or running out) on you or a group member in range; click casts it on the first one, hover lists everyone. Hidden when everyone is buffed; use Unlock panels to move it. Buttons can't change in combat, so it updates after combat.")
 	P:Finish()
 end
 
@@ -630,9 +637,9 @@ local function BuildAlliesPage(parent)
 	P:Card("Nearby allies list")
 	P:Toggle("Show the nearby allies list", function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
 	P:Slider("Rows", 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
-	P:Note("Closest first (exact for group members, otherwise ~10 / 28 / 40 yd or far). Left-click a row to target, right-click to cast your class buff, + to invite. Pauses in combat. Needs Friendly Names on; use Unlock panels to move it.")
+	P:Note("Closest first. Left-click: target, right-click: buff, +: invite. Paused in combat. Needs Friendly Names.")
 	P:Card("About")
-	P:Note("Above friendly players you see only their name in class colour (and guild) instead of the game's nameplate. To do this the addon turns friendly nameplates on and draws them invisible; turning this off restores your own nameplate setting. Also /tb allies.")
+	P:Note("Name labels instead of nameplates. Turning off restores your nameplate setting.")
 	P:Finish()
 end
 
@@ -656,7 +663,7 @@ local function BuildProfilesPage(parent)
 		save:SetScript("OnClick", DoSave)
 		input:SetScript("OnEnterPressed", DoSave)
 	end)
-	P:Note("Shared by all your characters of this class. Loading bars first saves your current bars as '(backup)'.")
+	P:Note("Shared by your characters of this class. Loading bars backs up the current ones first.")
 
 	P:Card("Saved profiles")
 	local rows, MAX_ROWS = {}, 8
@@ -771,7 +778,7 @@ local function BuildRestockPage(parent)
 	end
 	local more = P:Note("")
 	P:EndCard()
-	P:Note("Shift-click an item link into the box, or type an item ID. Poison ingredients for your Poison Stock are added automatically.")
+	P:Note("Shift-click an item or type its ID. Poison Stock ingredients are added automatically.")
 
 	Refresh = function()
 		local ids = {}
@@ -806,6 +813,15 @@ end
 
 -- Sidebar sections (General + class sections). toggle = header Enable switch; status = sidebar dot.
 local ICON = "Interface\\Icons\\"
+-- in the class section, and in the Shaman section for shamans
+local MANA_TOOL = { name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
+	desc = "The five second rule, then regeneration.",
+	status = function() return ns.db.mana.mode ~= "off" end }
+local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
+	desc = "Never forget a buff: on you, your group, and beside party frames.",
+	toggle = { function() return ns.db.buffs.enabled end,
+		function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } }
+
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield",
@@ -827,15 +843,9 @@ local GROUPS = {
 			desc = "Buy reagents and supplies automatically at vendors.",
 			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },
 	} },
-	{ name = "Caster", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, SHAMAN = true, PALADIN = true, HUNTER = true }, tools = {
-		{ name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
-			desc = "The five second rule, then regeneration.",
-			status = function() return ns.db.mana.mode ~= "off" end },
-		{ name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
-			desc = "Never forget a buff: on you, your group, and beside party frames.",
-			toggle = { function() return ns.db.buffs.enabled end,
-				function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } },
-	} },
+	-- named after your class (a paladin's buffs aren't "caster" tools); shamans get these in their own section
+	{ name = "@class", classes = { PRIEST = true, MAGE = true, WARLOCK = true, DRUID = true, PALADIN = true, HUNTER = true },
+		tools = { MANA_TOOL, BUFFS_TOOL } },
 	{ name = "Shaman", class = "SHAMAN", tools = {
 		{ name = "Weapon Imbues", build = BuildPoisonsPage, icon = ICON .. "Spell_Nature_RockBiter",
 			desc = "Weapon imbue bar with reminders before it runs out.",
@@ -848,6 +858,7 @@ local GROUPS = {
 		{ name = "Cooldowns", build = BuildRogueTimersPage, icon = ICON .. "Spell_Nature_EarthShock",
 			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.",
 			status = function() return (ns.db.rogueTimers.mode or "combat") ~= "off" end },
+		MANA_TOOL, BUFFS_TOOL,
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
@@ -1090,7 +1101,7 @@ local function CreateWindow()
 			and #group.tools > 0 then
 			local label = T.Text(listIn, "semibold", 10, T.muted)
 			label:SetPoint("TOPLEFT", 26, y)
-			label:SetText(group.name:upper())
+			label:SetText((group.name == "@class" and UnitClass("player") or group.name):upper())
 			y = y - 18
 			for _, tool in ipairs(group.tools) do
 				local nav = CreateFrame("Button", nil, listIn)
