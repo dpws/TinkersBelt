@@ -405,7 +405,7 @@ end
 local function GetStrip(unit)
 	if strips[unit] then return strips[unit] end
 	local s = CreateFrame("Frame", nil, UIParent)
-	s:SetFrameStrata("HIGH")
+	s:SetFrameStrata("LOW") -- re-layered onto its party frame when anchored
 	s:SetSize(1, 1)
 	s.unit = unit
 	s.buttons = {}
@@ -436,6 +436,9 @@ local function UpdateStrips(auraCache, combat)
 			if frame then
 				strip:ClearAllPoints()
 				strip:SetPoint("LEFT", frame, "RIGHT", 4, 0)
+				-- same layer as the party frame: game windows (talents, mail) cover it like they cover the frame
+				strip:SetFrameStrata(frame:GetFrameStrata())
+				strip:SetFrameLevel(frame:GetFrameLevel() + 5)
 			end
 		end
 		if strip:IsShown() then
