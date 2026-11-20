@@ -88,6 +88,7 @@ local function CanInvite()
 end
 
 local frame, title, rows = nil, nil, {}
+local PARTY_BG = { 0.25, 0.38, 0.85, 0.45 } -- party-chat blue
 local ROW_H, WIDTH = 22, 250
 
 local function MakeRow(i)
@@ -96,7 +97,7 @@ local function MakeRow(i)
 	r:SetPoint("TOPLEFT", 30, -28 - (i - 1) * (ROW_H + 2))
 	r:RegisterForClicks("AnyUp")
 	r:SetAttribute("useOnKeyDown", false)
-	T.Rounded(r, T.row, 4, "BACKGROUND", 0)
+	r.bg = T.Rounded(r, T.row, 4, "BACKGROUND", 0)
 	local hl = r:CreateTexture(nil, "HIGHLIGHT")
 	hl:SetAllPoints()
 	hl:SetColorTexture(1, 1, 1, 0.06)
@@ -121,6 +122,18 @@ local function MakeRow(i)
 		GameTooltip:Show()
 	end)
 	r:SetScript("OnLeave", GameTooltip_Hide)
+	-- /tb allies click: log every step of a click on a row
+	local function Log(step, mouse)
+		if not L.debug then return end
+		local unit = r:GetAttribute("unit")
+		print(("allies click: row %d %s %s type1=%s type2=%s unit=%s exists=%s name=%s target=%s"):format(i, step,
+			tostring(mouse), tostring(r:GetAttribute("type1")), tostring(r:GetAttribute("type2")), tostring(unit),
+			tostring(unit and UnitExists(unit)), tostring(unit and UnitName(unit)), tostring(UnitName("target"))))
+	end
+	r:HookScript("OnMouseDown", function(_, mouse) Log("mousedown", mouse) end)
+	r:HookScript("OnMouseUp", function(_, mouse) Log("mouseup", mouse) end)
+	r:SetScript("PreClick", function(_, mouse) Log("preclick", mouse) end)
+	r:SetScript("PostClick", function(_, mouse) Log("postclick", mouse) end)
 	return r
 end
 
@@ -150,6 +163,7 @@ local function Update()
 			if color then r.name:SetTextColor(color.r, color.g, color.b) end
 			r.tags:SetText((e.friend and "|cff6dcfc4<3|r " or "") .. (e.sameGuild and "|cff4dcc66G|r" or ""))
 			r.range:SetText(ns.AllyRangeText(e.range))
+			r.bg:SetColor(e.grouped and PARTY_BG or T.row) -- your party / raid stands out
 			-- by the player's nameplate unit, not by name (/targetexact missed some names); the list
 			-- refreshes every second, so the token still points at this player when clicked
 			r:SetAttribute("unit", e.unit)
@@ -170,6 +184,42 @@ local function Update()
 	frame:SetHeight(32 + math.max(n, 1) * (ROW_H + 2))
 end
 L.Update = Update
+
+ns.slashCommands = ns.slashCommands or {}
+ns.slashCommands["allies click"] = function()
+	L.debug = not L.debug
+	ns.Diagnose(function(Say)
+		Say("allies click: logging " .. (L.debug and "ON - now click a row (left and right), then send what chat shows" or "OFF"))
+		if not frame then return Say("allies click: list not created") end
+		Say(("allies click: list shown=%s strata=%s level=%s mouse=%s unlocked=%s combat=%s"):format(tostring(frame:IsShown()),
+			frame:GetFrameStrata(), frame:GetFrameLevel(), tostring(frame:IsMouseEnabled()), tostring(ns.unlocked), tostring(InCombatLockdown())))
+		Say(("allies click: ActionButtonUseKeyDown=%s"):format(tostring(GetCVar and GetCVar("ActionButtonUseKeyDown"))))
+		for i, r in ipairs(rows) do
+			if r:IsShown() then
+				local unit = r:GetAttribute("unit")
+				Say(("allies click: row %d level=%s mouse=%s unit=%s exists=%s name=%s"):format(i, r:GetFrameLevel(),
+					tostring(r:IsMouseEnabled()), tostring(unit), tostring(unit and UnitExists(unit)), tostring(unit and UnitName(unit))))
+			end
+		end
+	end)
+	-- for 10 seconds: print what's under the mouse whenever it changes (hover a row now)
+	if L.debug then
+		local last
+		C_Timer.NewTicker(0.5, function()
+			local foci = GetMouseFoci and GetMouseFoci() or { GetMouseFocus and GetMouseFocus() }
+			local names = {}
+			for _, fr in ipairs(foci) do
+				local ok, n = pcall(function() return fr:GetDebugName() end)
+				names[#names + 1] = ok and n or tostring(fr)
+			end
+			local text = table.concat(names, " | ")
+			if text ~= last then
+				last = text
+				print("allies click: under mouse: " .. text)
+			end
+		end, 20)
+	end
+end
 
 table.insert(ns.loginHooks, function()
 	local s = S()
