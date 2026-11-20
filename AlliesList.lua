@@ -150,17 +150,15 @@ local function Update()
 			if color then r.name:SetTextColor(color.r, color.g, color.b) end
 			r.tags:SetText((e.friend and "|cff6dcfc4<3|r " or "") .. (e.sameGuild and "|cff4dcc66G|r" or ""))
 			r.range:SetText(ns.AllyRangeText(e.range))
-			r:SetAttribute("type1", "macro")
-			r:SetAttribute("macrotext1", "/targetexact " .. e.name)
-			if buff then
-				r:SetAttribute("type2", "macro")
-				r:SetAttribute("macrotext2", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(e.name, buff))
-			else
-				r:SetAttribute("type2", nil)
-			end
+			-- by the player's nameplate unit, not by name (/targetexact missed some names); the list
+			-- refreshes every second, so the token still points at this player when clicked
+			r:SetAttribute("unit", e.unit)
+			r:SetAttribute("type1", "target")
+			r:SetAttribute("type2", buff and "spell" or nil)
+			r:SetAttribute("spell2", buff)
 			r.invite:SetShown(not e.grouped and CanInvite())
 			r.invite:SetScript("OnClick", function()
-				(C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit)(e.name)
+				(C_PartyInfo and C_PartyInfo.InviteUnit or InviteUnit)(e.full)
 			end)
 			r:Show()
 		else
