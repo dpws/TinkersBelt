@@ -947,11 +947,12 @@ local function CreateWindow()
 	end
 	local close = CloseBox(header, function() f:Hide() end)
 	close:SetPoint("TOPRIGHT", -18, -18)
-	local version = T.Text(header, "regular", 12, T.muted)
-	version:SetPoint("RIGHT", close, "LEFT", -12, 0)
+	-- version right after the title, on its baseline
+	local version = T.Text(header, "medium", 15, T.muted)
+	version:SetPoint("BOTTOMLEFT", title, "BOTTOMRIGHT", 10, 4)
 	version:SetText("v" .. ((C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("TinkersBelt", "Version") or "?"))
 	local theme = T.NewDropdown(header, 130)
-	theme:SetPoint("RIGHT", version, "LEFT", -14, 0)
+	theme:SetPoint("RIGHT", close, "LEFT", -12, 0)
 	theme:SetupMenu(function(_, root)
 		root:CreateTitle("Theme")
 		for _, o in ipairs({ { "modern", "Modern" }, { "classic", "Classic WoW" } }) do
