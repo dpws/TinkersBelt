@@ -52,8 +52,7 @@ local function ApplyPlate(unit)
 	local friendly = S().enabled and IsFriendlyPlayer(unit)
 	pcall(f.SetAlpha, f, friendly and 0 or 1)
 	local tag = Tag(plate)
-	-- in cities and inns (rested areas) the option shows nothing at all: plate stays invisible, no label
-	if not friendly or (S().hideInCities and IsResting()) then tag:Hide() return end
+	if not friendly then tag:Hide() return end
 	StyleTag(tag)
 	local filled = pcall(function()
 		local name = GetUnitName(unit, true)
@@ -132,8 +131,7 @@ end)
 local function Info(Say)
 	local s = S()
 	Say(("allies: enabled=%s ticker=%s combat=%s"):format(tostring(s.enabled), tostring(ticker ~= nil), tostring(InCombatLockdown())))
-	Say(("allies: show level=%s show guild=%s size=%s hide in cities=%s (resting=%s)"):format(tostring(s.level ~= false),
-		tostring(s.guild ~= false), tostring(s.size), tostring(s.hideInCities == true), tostring(IsResting())))
+	Say(("allies: show level=%s show guild=%s size=%s"):format(tostring(s.level ~= false), tostring(s.guild ~= false), tostring(s.size)))
 	for _, cv in ipairs(CVARS) do Say(("allies: %s=%s (saved original: %s)"):format(cv, tostring(GetCV(cv)), tostring(s.saved and s.saved[cv]))) end
 	local units = ns.NamePlateUnits()
 	local friendly, shown = 0, 0

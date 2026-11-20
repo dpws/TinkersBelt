@@ -631,12 +631,12 @@ local function BuildAlliesPage(parent)
 	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
 	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
 	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
-	P:Toggle("Hide friendly players in cities and inns", function() return s.hideInCities end, function(v) s.hideInCities = v; Redraw() end)
 	local list = ns.db.alliesList
 	local function RefreshList() if ns.AlliesList then ns.AlliesList.Update() end end
 	P:Card("Nearby allies list")
 	P:Toggle("Show the nearby allies list", function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
 	P:Slider("Rows", 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
+	P:Toggle("Hide the list in cities and inns", function() return list.hideInCities end, function(v) list.hideInCities = v; RefreshList() end)
 	P:Note("Closest first. Left-click: target, right-click: buff, +: invite. Paused in combat. Needs Friendly Names.")
 	P:Card("About")
 	P:Note("Name labels instead of nameplates. Turning off restores your nameplate setting.")

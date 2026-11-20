@@ -139,7 +139,8 @@ end
 local function Update()
 	if not frame then return end
 	local s = S()
-	local show = s.enabled and ns.adb.allies.enabled and not IsInInstance()
+	-- cities and inns (rested areas) are crowded: the list can stay hidden there
+	local show = s.enabled and ns.adb.allies.enabled and not IsInInstance() and not (s.hideInCities and IsResting())
 	if InCombatLockdown() then
 		title:SetText("Nearby allies  |cff8c96a3(paused in combat)|r")
 		return -- secure rows can't change in combat
