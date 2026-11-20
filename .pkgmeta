@@ -1,0 +1,12 @@
+# CurseForge packager: builds TinkersBelt-<tag>.zip for each pushed version tag (vX.Y.Z)
+package-as: TinkersBelt
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - docs
+  - tests
+  - publish.ps1
+  - CHANGELOG.md
