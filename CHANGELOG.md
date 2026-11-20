@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 - 2026-11-20
+## 0.3.2 - 2026-11-20
 
 ### New
 - Buff buttons beside party frames work with any party frame addon (ElvUI, Cell, Grid2, VuhDo, Shadowed Unit Frames...).
