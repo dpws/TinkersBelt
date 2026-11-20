@@ -89,7 +89,7 @@ end
 
 local frame, title, rows = nil, nil, {}
 local PARTY_BG = { 0.25, 0.38, 0.85, 0.45 } -- party-chat blue
-local PARTY_BG_CLASSIC = { 1, 0.82, 0, 0.28 } -- WoW gold
+local PARTY_BG_CLASSIC = { 1, 0.82, 0, 0.12 } -- WoW gold, faint
 local ROW_H, WIDTH = 22, 250
 
 local function MakeRow(i)
@@ -127,7 +127,7 @@ local function MakeRow(i)
 	local function Log(step, mouse)
 		if not L.debug then return end
 		local unit = r:GetAttribute("unit")
-		print(("allies click: row %d %s %s type1=%s type2=%s unit=%s exists=%s name=%s target=%s"):format(i, step,
+		L.Log(("allies click: row %d %s %s type1=%s type2=%s unit=%s exists=%s name=%s target=%s"):format(i, step,
 			tostring(mouse), tostring(r:GetAttribute("type1")), tostring(r:GetAttribute("type2")), tostring(unit),
 			tostring(unit and UnitExists(unit)), tostring(unit and UnitName(unit)), tostring(UnitName("target"))))
 	end
@@ -188,6 +188,7 @@ end
 L.Update = Update
 
 ns.slashCommands = ns.slashCommands or {}
+L.Log = print
 ns.slashCommands["allies click"] = function()
 	L.debug = not L.debug
 	ns.Diagnose(function(Say)
@@ -204,10 +205,19 @@ ns.slashCommands["allies click"] = function()
 			end
 		end
 	end)
-	-- for 10 seconds: print what's under the mouse whenever it changes (hover a row now)
+	-- for 10 seconds: log what's under the mouse whenever it changes, and every click on a row;
+	-- then show the whole log in the copy window
 	if L.debug then
-		local last
+		local last, ticks, lines = nil, 0, {}
+		L.Log = function(msg) print(msg); lines[#lines + 1] = msg end
 		C_Timer.NewTicker(0.5, function()
+			ticks = ticks + 1
+			if ticks == 20 then
+				L.debug = false
+				lines[#lines + 1] = "allies click: done (10 seconds)"
+				ns.ShowCopyWindow(table.concat(lines, "\n"))
+				return
+			end
 			local foci = GetMouseFoci and GetMouseFoci() or { GetMouseFocus and GetMouseFocus() }
 			local names = {}
 			for _, fr in ipairs(foci) do
@@ -217,7 +227,7 @@ ns.slashCommands["allies click"] = function()
 			local text = table.concat(names, " | ")
 			if text ~= last then
 				last = text
-				print("allies click: under mouse: " .. text)
+				L.Log("allies click: under mouse: " .. text)
 			end
 		end, 20)
 	end
