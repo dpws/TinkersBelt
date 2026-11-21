@@ -288,7 +288,7 @@ local function BuildTotemsPage(parent)
 	P:Toggle("Show the totem bar", function() return s.enabled end, function(v) s.enabled = v; Refresh() end)
 	P:Toggle("Sound with alerts (totem killed, totem item missing)", function() return s.sound end, function(v) s.sound = v end)
 	P:Slider("Size", 50, 200, 10, "%", function() return (s.scale or 1) * 100 end, function(v) s.scale = v / 100; Refresh() end)
-	P:Note("Left-click: drop the set's totem. Right-click: destroy. Alert when one is killed early. Red = totem item missing. Last button: Lightning Shield charges.")
+	P:Note("Left-click: place the set's totem. Right-click: remove it. Shift+click: choose the totem right on the bar. Alert when one is killed early. Red = totem item missing. Last button: Lightning Shield charges.")
 	for i, setName in ipairs(ns.TOTEM_SET_NAMES) do
 		P:Card(setName .. " set")
 		for _, e in ipairs(ns.TOTEM_ELEMENTS) do

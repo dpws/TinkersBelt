@@ -176,12 +176,37 @@ function M.Refresh()
 	Update()
 end
 
+-- Shift+click on an element: choose that element's totem for the active set
+local function OpenTotemMenu(owner, e)
+	MenuUtil.CreateContextMenu(owner, function(_, root)
+		local setName = ns.TOTEM_SET_NAMES[S().set or 1]
+		root:CreateTitle(("%s totem (%s set)"):format(e.name, setName))
+		local set = ActiveSet()
+		local function Pick(id)
+			set[e.key] = id
+			if InCombatLockdown() then print("Tinker's Belt: totem change applies after combat") end
+			M.Refresh()
+		end
+		root:CreateRadio("None", function() return set[e.key] == nil end, function() Pick(nil) end)
+		local any = false
+		for _, id in ipairs(e.spells) do
+			if Known(id) then
+				any = true
+				root:CreateRadio(("|T%s:16|t %s"):format(SpellIcon(id) or 134400, SpellName(id) or id),
+					function() return set[e.key] == id end, function() Pick(id) end)
+			end
+		end
+		if not any then root:CreateButton(("No %s totems learned yet"):format(e.name:lower())):SetEnabled(false) end
+	end)
+end
+
 local function MakeSlot(e, i)
 	local b = CreateFrame("Button", "DpwsTotem" .. e.name, bar, "SecureActionButtonTemplate")
 	Square(b)
 	b.e = e
 	b:SetPoint("LEFT", i * (SIZE + GAP), 0)
 	b:SetAttribute("type2", "destroytotem")
+	b:SetAttribute("shift-type1", "") -- Shift+click chooses the totem instead of placing it
 	b:SetAttribute("totem-slot", e.slot)
 	b.cd = CreateFrame("Cooldown", nil, b, "CooldownFrameTemplate")
 	b.cd:SetAllPoints(b.icon)
@@ -196,12 +221,20 @@ local function MakeSlot(e, i)
 	b:SetScript("PreClick", function(_, mouse)
 		if mouse == "RightButton" and states[e.key] then states[e.key].dismissed = true end
 	end)
+	b:SetScript("PostClick", function(self, mouse)
+		if mouse == "LeftButton" and IsShiftKeyDown() then OpenTotemMenu(self, e) end
+	end)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		local ok, have, name = pcall(GetTotemInfo, e.slot)
 		GameTooltip:AddLine(ok and have and not Secret(name) and name or (e.name .. " totem"))
+		local id = ActiveSet()[e.key]
+		local chosen = id and SpellName(id)
+		GameTooltip:AddLine(("%s set: %s"):format(ns.TOTEM_SET_NAMES[S().set or 1], chosen or "no totem chosen"), 1, 0.82, 0)
 		if missing[e.key] then GameTooltip:AddLine(("%s Totem item missing from your bags!"):format(e.name), 1, 0.3, 0.3) end
-		GameTooltip:AddLine("Left-click: drop this set's totem   Right-click: destroy", 0.6, 0.8, 1, true)
+		GameTooltip:AddLine(chosen and ("Left-click: place " .. chosen) or "Left-click: place (choose a totem first)", 1, 1, 1)
+		GameTooltip:AddLine("Right-click: remove the totem that's down", 1, 1, 1)
+		GameTooltip:AddLine("Shift+click: choose this element's totem", 1, 1, 1)
 		GameTooltip:Show()
 	end)
 	return b
