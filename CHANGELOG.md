@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 - 2026-11-21
+
+### New
+- Class macros in the macro builder: a curated set for every class (Class macros menu), in your client's language.
+- Every feature has an on/off switch in the settings sidebar.
+- Poison Stock buys ingredients only as full sets per poison (on by default; switch on the Poison Stock page).
+
+### Changed
+- Snapped panels stay on their grid line when they grow, shrink or change size.
+- Mana Ticks is now Mana Regen (Forever has no mana ticks).
+- Profiles is hidden for now; your saved profiles are kept.
+
 ## 0.4.0 - 2026-11-21
 
 ### New

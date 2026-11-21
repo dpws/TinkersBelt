@@ -2,7 +2,7 @@
 ## Title: Tinker's Belt
 ## Notes: Small quality-of-life tools. /tb
 ## Author: dpws
-## Version: 0.4.0
+## Version: 0.4.1
 ## SavedVariables: DpwsToolsDB
 ## SavedVariablesPerCharacter: DpwsToolsCharDB
 ## IconTexture: Interface\AddOns\TinkersBelt\media\icon

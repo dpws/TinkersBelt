@@ -4,8 +4,9 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 
 ## For everyone
 - **Buff reminders**: buttons for buffs missing on you, your group and nearby players; buff buttons beside party frames (Blizzard, DandersFrames, ElvUI, Cell, Grid2 and others).
-- **Macro builder**: build macros from blocks and switches with a live preview, start from templates, pick spells from your spellbook, and open your existing macros as blocks.
-- **Movable panels**: unlock to drag any panel, with a grid and live snapping.
+- **Macro builder**: build macros from blocks and switches with a live preview, start from templates or a curated set for your class, pick spells from your spellbook, and open your existing macros as blocks.
+- **Movable panels**: unlock to drag any panel, with a grid and live snapping; snapped panels stay on their line when they change size.
+- **Feature switches**: turn each tool on or off right in the settings list.
 - **PvP**: your score against each enemy player, per character and across all your characters, kill announcements and sounds, and a list of nearby enemies.
 - **Friendly names**: clean class-coloured labels instead of nameplates, plus a clickable nearby allies list.
 - **Auto restock**: buys reagents at vendors within a gold limit.
