@@ -73,7 +73,7 @@ function ns.ApplyBarSwitch()
 		for _, bar in ipairs(ns.BARS) do
 			local used = false
 			for state = 1, 4 do
-				local page = ns.db.barSwitch[state] and ns.db.barSwitch[state][bar.index]
+				local page = ns.On("barswitch") and ns.db.barSwitch[state] and ns.db.barSwitch[state][bar.index] or nil
 				handler:SetAttribute("map-" .. state .. "-" .. bar.index, page)
 				used = used or page ~= nil
 			end

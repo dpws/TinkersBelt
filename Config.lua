@@ -831,10 +831,19 @@ end
 
 -- Sidebar sections (General + class sections). toggle = header Enable switch; status = sidebar dot.
 local ICON = "Interface\\Icons\\"
+-- on/off for a whole feature (ns.On key); refresh redraws it
+local function Switch(key, refresh)
+	return { function() return ns.On(key) end, function(v) ns.SetOn(key, v); if refresh then refresh() end end }
+end
+local function RelayoutCombat()
+	if ns.Combo then ns.Combo.Layout() end
+	if ns.RogueTimers then ns.RogueTimers.Layout() end
+end
+
 -- in the class section, and in the Shaman section for shamans
 local MANA_TOOL = { name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
 	desc = "The five second rule, then regeneration.",
-	status = function() return ns.db.mana.mode ~= "off" end }
+	toggle = Switch("mana", function() if ns.Mana then ns.Mana.Layout() end end) }
 local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
 	desc = "Never forget a buff: on you, your group, and beside party frames.",
 	toggle = { function() return ns.db.buffs.enabled end,
@@ -843,10 +852,9 @@ local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spe
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield",
-			desc = "Your score against each enemy player and the latest kills and deaths." },
+			desc = "Your score against each enemy player and the latest kills and deaths.", toggle = Switch("pvp") },
 		{ name = "PvP Settings", build = BuildPvpSettingsPage, icon = ICON .. "INV_BannerPVP_01",
-			desc = "Tooltip score, announcements and sounds for open-world PvP.",
-			status = function() return ns.adb.pvpTooltip or ns.adb.pvpAnnounce end },
+			desc = "Tooltip score, announcements and sounds for open-world PvP.", toggle = Switch("pvp") },
 		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye",
 			desc = "Opposite-faction players seen around you.",
 			toggle = { function() return ns.adb.nearby.enabled end,
@@ -876,31 +884,25 @@ local GROUPS = {
 			toggle = { function() return ns.db.totems and ns.db.totems.enabled end,
 				function(v) if ns.db.totems then ns.db.totems.enabled = v; if ns.Totems then ns.Totems.Refresh() end end end } },
 		{ name = "Cooldowns", build = BuildRogueTimersPage, icon = ICON .. "Spell_Nature_EarthShock",
-			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.",
-			status = function() return (ns.db.rogueTimers.mode or "combat") ~= "off" end },
+			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.", toggle = Switch("combat", RelayoutCombat) },
 		MANA_TOOL, BUFFS_TOOL,
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
-			desc = "Which bars switch page while in Stealth.",
-			status = function() return next(ns.db.barSwitch) ~= nil end },
+			desc = "Which bars switch page while in Stealth.", toggle = Switch("barswitch", function() ns.ApplyBarSwitch() end) },
 		{ name = "Poisons", build = function(p) BuildPoisonsPage(p); BuildPoisonStockPage(p) end, icon = ICON .. "Ability_Poisons",
 			desc = "Weapon poison bar, reminders, and poisons kept in bags.",
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
 		{ name = "Combat Bars", build = function(p) BuildComboPage(p); BuildRogueTimersPage(p) end, icon = ICON .. "Ability_Rogue_Eviscerate",
-			desc = "Health, energy and combo point bars, Slice and Dice and cooldowns.",
-			status = function()
-				local c = ns.db.combo
-				return (ns.db.rogueTimers.mode or "combat") ~= "off" or (c.healthMode or "combat") ~= "off" or (c.energyMode or "combat") ~= "off" or (c.comboMode or "combat") ~= "off"
-			end },
+			desc = "Health, energy and combo point bars, Slice and Dice and cooldowns.", toggle = Switch("combat", RelayoutCombat) },
 		{ name = "Lockboxes", build = BuildLockboxPage, icon = ICON .. "INV_Box_04",
 			desc = "One button to pick and open your lockboxes.",
 			toggle = { function() return ns.db.lockbox.enabled end,
 				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
 		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "INV_Misc_Bag_11",
 			desc = "Sap / Pick Pocket icons on nameplates and opener weapon sets.",
-			status = function() local o = ns.db.opener return o.markers or o.sap ~= false or o.weapons end },
+			toggle = Switch("opener", function() if ns.Opener then ns.Opener.UpdateSets() end end) },
 	} },
 }
 
@@ -1057,19 +1059,16 @@ local function CreateWindow()
 
 	local playerClass = select(2, UnitClass("player"))
 	local navs, current = {}, nil
+	-- sidebar switches and the page header switch follow each feature's state; off = dimmed name
 	local function UpdateDots()
 		for _, n in ipairs(navs) do
-			local s = n.tool.status or (n.tool.toggle and n.tool.toggle[1])
-			if s then
-				local on = s()
-				n.dot:Show()
-				n.dot:SetVertexColor(unpack(on and T.green or { 0.45, 0.48, 0.53, 0.6 }))
-				n.dotHole:SetShown(not on)
-			else
-				n.dot:Hide()
-				n.dotHole:Hide()
+			if n.switch then
+				local on = n.tool.toggle[1]() and true or false
+				n.switch:SetChecked(on)
+				n.label:SetTextColor(unpack(on and T.text or T.muted))
 			end
 		end
+		if current and current.tool.toggle then headToggle:SetChecked(current.tool.toggle[1]()) end
 	end
 	local function Select(nav)
 		current = nav
@@ -1146,15 +1145,18 @@ local function CreateWindow()
 				nav.label = T.Text(nav, "medium", 14, T.text)
 				nav.label:SetPoint("LEFT", nav.icon, "RIGHT", 12, 0)
 				nav.label:SetText(tool.name)
-				nav.dot = nav:CreateTexture(nil, "OVERLAY")
-				nav.dot:SetTexture(T.CIRCLE)
-				nav.dot:SetSize(7, 7)
-				nav.dot:SetPoint("RIGHT", -12, 0)
-				nav.dotHole = nav:CreateTexture(nil, "OVERLAY", nil, 1) -- hollow dot when off
-				nav.dotHole:SetTexture(T.CIRCLE)
-				nav.dotHole:SetSize(4, 4)
-				nav.dotHole:SetPoint("CENTER", nav.dot)
-				nav.dotHole:SetVertexColor(unpack(T.window))
+				-- the feature's on/off switch, right in the list (clicking it doesn't open the page)
+				if tool.toggle then
+					nav.switch = T.NewToggle(nav, function(on)
+						tool.toggle[2](on)
+						if tool.toggle.reload and ns.RequestReload then ns.RequestReload(tool.toggle.reload) end
+						UpdateDots()
+					end)
+					nav.switch:SetScale(0.8)
+					nav.switch:SetPoint("RIGHT", -12, 0)
+					nav.label:SetPoint("RIGHT", nav.switch, "LEFT", -6, 0)
+					nav.label:SetWordWrap(false)
+				end
 				-- every page scrolls; the scrollbar only shows when the page is taller than the area
 				local W, H = 980 - SIDEBAR - 56, 740 - HEADER - FOOTER - 40 - 74
 				nav.page = CreateFrame("Frame", nil, content)

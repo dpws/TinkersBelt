@@ -159,7 +159,7 @@ local function ScanUnit(unit, now)
 end
 
 local function Scan()
-	if not ns.adb or not OpenWorld() then return end
+	if not ns.adb or not OpenWorld() or not ns.On("pvp") then return end
 	local now = GetTime()
 	local units = { "target", "focus", "mouseover" }
 	if C_NamePlate and C_NamePlate.GetNamePlates then
@@ -180,7 +180,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
 	if event == "PLAYER_TARGET_CHANGED" then return Seen("target") end
 	if event == "UPDATE_MOUSEOVER_UNIT" then return Seen("mouseover") end
 	if event == "NAME_PLATE_UNIT_ADDED" then return Seen(arg1) end
-	if not ns.adb or not OpenWorld() then return end
+	if not ns.adb or not OpenWorld() or not ns.On("pvp") then return end
 	if event == "PLAYER_DEAD" then
 		Scan() -- last look at who is around
 		local killer = ns.PvpKiller(lastHit, GetTime(), KILLER_WINDOW)
@@ -206,7 +206,7 @@ end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 
 local function OnTooltipUnit(tooltip)
-	if tooltip ~= GameTooltip or not ns.adb or not ns.adb.pvpTooltip then return end
+	if tooltip ~= GameTooltip or not ns.adb or not ns.adb.pvpTooltip or not ns.On("pvp") then return end
 	local _, unit = tooltip:GetUnit()
 	if not unit or Secret(unit) then return end
 	local ok, guid = pcall(function() return UnitIsPlayer(unit) and UnitGUID(unit) end)

@@ -26,7 +26,7 @@ local lastSpend, lastMana
 local lastPowerEvent = 0 -- mana change events stop once mana is full: the fallback when mana is hidden
 local bar, fill, text
 
-local function Mode() return ns.db.mana.mode or "always" end
+local function Mode() return ns.On("mana") and (ns.db.mana.mode or "always") or "off" end
 
 -- mana readable? (the engine can hide values from addons in combat)
 local function ReadMana()

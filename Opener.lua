@@ -47,7 +47,10 @@ ns.Opener = O
 local function S() return ns.db.opener end
 local function Secret(v) return issecretvalue and issecretvalue(v) end
 local SAP, PICK_POCKET = 6770, 921
-local function Show() return { sap = S().sap ~= false, pick = S().markers } end
+local function Show()
+	if not ns.On("opener") then return {} end
+	return { sap = S().sap ~= false, pick = S().markers }
+end
 local picked = {} -- GUIDs you picked this session
 local lastPick, lastLoss = "none", "none" -- for /tb opener
 local keepTarget = false -- your target was just picked: keep its plate marked while it stays your target
@@ -189,7 +192,7 @@ local function SapAuraEnd(unit)
 end
 
 local function UpdateSapTimers()
-	local now, on = GetTime(), S().sapTimer ~= false
+	local now, on = GetTime(), S().sapTimer ~= false and ns.On("opener")
 	for _, unit in ipairs(ns.NamePlateUnits()) do
 		local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
 		if plate then
@@ -323,7 +326,7 @@ function O.UpdateSets()
 	local any = false
 	for i, key in ipairs({ "opener", "fight" }) do
 		local b, set = setButtons[i], s.sets[key]
-		local on = set ~= nil and set.mh ~= nil
+		local on = set ~= nil and set.mh ~= nil and ns.On("opener")
 		any = any or on
 		if not InCombatLockdown() then
 			b:SetAttribute("macrotext", on and ns.WeaponMacro(set) or "")

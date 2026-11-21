@@ -61,6 +61,13 @@ end
 
 -- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps.
 -- Also returns that grid line.
+-- Whole features switched off from the settings sidebar (per character). Modules check ns.On(key).
+function ns.On(key) return not (ns.db and ns.db.off and ns.db.off[key]) end
+function ns.SetOn(key, on)
+	ns.db.off = ns.db.off or {}
+	ns.db.off[key] = (not on) or nil
+end
+
 -- returns the new start, the grid line, and which part snapped: 1 = start edge, 2 = middle, 3 = end edge
 function ns.SnapEdges(lo, len, size, c)
 	local best, line, part

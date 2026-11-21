@@ -26,7 +26,7 @@ ns.COMBAT_BAR_MODES = {
 	{ key = "combat", name = "Only in combat" },
 	{ key = "off", name = "Disabled" },
 }
-local function Mode(key) return ns.db.combo[key] or "combat" end
+local function Mode(key) return ns.On("combat") and (ns.db.combo[key] or "combat") or "off" end
 
 local function MakeStatusBar(r, g, b)
 	local s = CreateFrame("StatusBar", nil, bar)

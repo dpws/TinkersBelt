@@ -231,7 +231,7 @@ local function Update()
 		local ok, cp = pcall(GetComboPoints, "player", "target")
 		if ok and cp and not Secret(cp) and cp > 0 then cpSeen, cpSeenAt = cp, now end
 	end
-	local mode = s.mode or "combat"
+	local mode = ns.On("combat") and (s.mode or "combat") or "off"
 	-- "combat" also shows while Slice and Dice is up (often cast before the pull)
 	local show = ns.unlocked or mode == "always" or (mode == "combat" and (UnitAffectingCombat("player") or (SndOn() and SndUp())))
 	panel:SetShown(show)
