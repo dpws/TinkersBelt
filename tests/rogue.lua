@@ -43,4 +43,16 @@ check("russian humanoid", ns.HUMANOID["Гуманоид"])
 check("both hands", ns.WeaponMacro({ mh = { name = "Dagger" }, oh = { name = "Sword" } }) == "/equipslot 16 Dagger\n/equipslot 17 Sword")
 check("main hand only", ns.WeaponMacro({ mh = { name = "Dagger" } }) == "/equipslot 16 Dagger")
 
+-- Sap timer
+local mark = { start = 100, dur = ns.SAP_DURATION[2070] }
+check("Sap II lasts 35s", mark.dur == 35)
+check("counts down", ns.SapLeft(mark, 110, false, false) == 25)
+check("over when time is up", ns.SapLeft(mark, 136, false, false) == nil)
+check("broken: mob fighting", ns.SapLeft(mark, 110, true, false) == nil)
+check("dead mob: no timer", ns.SapLeft(mark, 110, false, true) == nil)
+check("the debuff's own end time wins", ns.SapLeft(mark, 110, false, false, 120) == 10)
+check("no mark: no timer", ns.SapLeft(nil, 110, false, false) == nil)
+local t = { stealthed = true, attackable = true, humanoid = true, sapped = true }
+check("sapped mob: no Sap icon", #ns.OpenerTags(t, { sap = true, pick = false }) == 0)
+
 print("rogue: " .. passed .. " passed")

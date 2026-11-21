@@ -13,9 +13,20 @@ function ns.OpenerTags(t, show)
 	if not (t.stealthed and t.attackable) or t.dead or t.combat then return {} end
 	show = show or { sap = true, pick = true }
 	local tags = {}
-	if show.sap and t.humanoid then tags[#tags + 1] = "Sap" end
+	if show.sap and t.humanoid and not t.sapped then tags[#tags + 1] = "Sap" end -- sapped: the timer shows instead
 	if show.pick and t.humanoid and not t.player and not t.picked then tags[#tags + 1] = "Pick Pocket" end
 	return tags
+end
+
+-- Sap length by rank (Sap I-III)
+ns.SAP_DURATION = { [6770] = 25, [2070] = 35, [11297] = 45 }
+
+-- seconds left on your Sap; mark = { start, dur } from your cast; auraExpires = the debuff's end when the game
+-- shows it. nil when it's over: time up, or the mob is fighting (damage broke it) or dead.
+function ns.SapLeft(mark, now, combat, dead, auraExpires)
+	if not mark or combat or dead then return nil end
+	local left = (auraExpires or (mark.start + mark.dur)) - now
+	return left > 0 and left or nil
 end
 
 -- macro that equips a weapon set: set = { mh = { name }, oh = { name } }
@@ -46,6 +57,12 @@ local function IsPickPocket(id)
 	if Secret(id) then return false end
 	return id == PICK_POCKET or (id ~= nil and C_Spell.GetSpellName(id) == C_Spell.GetSpellName(PICK_POCKET))
 end
+local function SapRank(id)
+	if Secret(id) or not id then return nil end
+	if ns.SAP_DURATION[id] then return ns.SAP_DURATION[id] end
+	if C_Spell.GetSpellName(id) == C_Spell.GetSpellName(SAP) then return 25 end -- unknown rank: shortest
+end
+local sapped = {} -- GUID -> { start, dur }: your Saps (plates also carry it, for hidden GUIDs)
 local humanCache = {} -- GUID -> humanoid (tooltip scans are slow)
 
 local sets, setButtons = nil, {}
@@ -141,7 +158,72 @@ local function PlateTag(plate)
 	return t
 end
 
+-- the countdown above a sapped plate (stacked over the opener icons)
+local function SapTimer(plate)
+	local t = plate.dpwsSapTimer
+	if t then return t end
+	t = CreateFrame("Frame", nil, plate)
+	t:SetSize(60, 20)
+	t:SetFrameLevel(plate:GetFrameLevel() + 50)
+	t.icon = t:CreateTexture(nil, "OVERLAY")
+	t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	t.icon:SetTexture(C_Spell.GetSpellTexture(SAP))
+	t.text = t:CreateFontString(nil, "OVERLAY")
+	t.text:SetPoint("LEFT", t.icon, "RIGHT", 3, 0)
+	plate.dpwsSapTimer = t
+	return t
+end
+
+-- the Sap debuff's end time on unit, when Forever lets addons read it
+local function SapAuraEnd(unit)
+	local get = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+	local name = C_Spell.GetSpellName(SAP)
+	if not get then return nil end
+	for i = 1, 40 do
+		local ok, a = pcall(get, unit, i, "HARMFUL|PLAYER")
+		if not ok or not a then return nil end
+		if not Secret(a.name) and a.name == name and not Secret(a.expirationTime) and (a.expirationTime or 0) > 0 then
+			return a.expirationTime
+		end
+	end
+end
+
+local function UpdateSapTimers()
+	local now, on = GetTime(), S().sapTimer ~= false
+	for _, unit in ipairs(ns.NamePlateUnits()) do
+		local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
+		if plate then
+			local guid = Read(UnitGUID, unit)
+			local mark = (guid and sapped[guid]) or plate.dpwsSap
+			local left = on and mark and ns.SapLeft(mark, now, Read(UnitAffectingCombat, unit), Read(UnitIsDead, unit),
+				SapAuraEnd(unit))
+			plate.dpwsSapLeft = left
+			if left then
+				local t = SapTimer(plate)
+				local size = S().iconSize or 18
+				t:ClearAllPoints()
+				-- above the opener icons when they show, else right on the plate
+				t:SetPoint("BOTTOM", plate, "TOP", 0, 2 + ((plate.dpwsOpener and plate.dpwsOpener:IsShown()) and size + 2 or 0))
+				t.icon:SetSize(size, size)
+				t.icon:SetPoint("LEFT")
+				t.text:SetFont(ns.Theme.font.semibold, math.max(math.floor(size * 0.8), 10), "OUTLINE")
+				t.text:SetText(math.ceil(left))
+				if left <= 5 then t.text:SetTextColor(1, 0.25, 0.2) else t.text:SetTextColor(1, 1, 1) end
+				t:SetWidth(size + 3 + t.text:GetStringWidth())
+				t:Show()
+			elseif plate.dpwsSapTimer then
+				plate.dpwsSapTimer:Hide()
+			end
+			if mark and not left then -- over: forget it
+				plate.dpwsSap = nil
+				if guid then sapped[guid] = nil end
+			end
+		end
+	end
+end
+
 local function UpdatePlates()
+	UpdateSapTimers()
 	if keepTarget then -- the picked target may have a new plate by now
 		local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
 		if plate and not plate.dpwsPicked then plate.dpwsPicked = Read(UnitName, "target") or true end
@@ -155,6 +237,7 @@ local function UpdatePlates()
 			local ok, tags = pcall(function()
 				local f = UnitFacts(BestToken(unit), true)
 				f.picked = f.picked or (plate and plate.dpwsPicked) or false
+				f.sapped = plate and plate.dpwsSapLeft ~= nil
 				return ns.OpenerTags(f, show)
 			end)
 			if plate and ok and #tags > 0 then
@@ -197,6 +280,10 @@ ns.slashCommands.opener = function()
 			Say("opener: tags=" .. table.concat(ns.OpenerTags(t, Show()), ", "))
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
 			Say(("opener: plate marked picked=%s"):format(tostring(plate and plate.dpwsPicked or false)))
+			local guid = Read(UnitGUID, "target")
+			Say(("opener: sap timer=%s mark on plate=%s by id=%s left=%s aura end=%s"):format(tostring(S().sapTimer ~= false),
+				tostring(plate and plate.dpwsSap ~= nil), tostring(guid and sapped[guid] ~= nil),
+				tostring(plate and plate.dpwsSapLeft), tostring(SapAuraEnd("target"))))
 			local pu = TargetPlateUnit()
 			if pu then
 				local p = UnitFacts(pu, Stealthed())
@@ -319,6 +406,14 @@ table.insert(ns.loginHooks, function()
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:SetScript("OnEvent", function(_, event, unit, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
+			local dur = SapRank(spellID)
+			if dur then
+				local mark = { start = GetTime(), dur = dur }
+				local guid = Read(UnitGUID, "target")
+				if guid then sapped[guid] = mark end
+				local plate = Read(C_NamePlate.GetNamePlateForUnit, "target")
+				if plate then plate.dpwsSap = mark end
+			end
 			if IsPickPocket(spellID) then
 				keepTarget, pickTime = true, GetTime()
 				lastPick = ("spell=%s mobID=%s name=%s plate=%s"):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
@@ -332,6 +427,10 @@ table.insert(ns.loginHooks, function()
 			end
 		elseif event == "NAME_PLATE_UNIT_REMOVED" then
 			local plate = Read(C_NamePlate.GetNamePlateForUnit, unit)
+			if plate then
+				plate.dpwsSap, plate.dpwsSapLeft = nil, nil
+				if plate.dpwsSapTimer then plate.dpwsSapTimer:Hide() end
+			end
 			-- plates get rebuilt (e.g. during Pick Lock): a plate with the same name back within 5s keeps the mark
 			if plate and type(plate.dpwsPicked) == "string" then gone[#gone + 1] = { name = plate.dpwsPicked, t = GetTime() } end
 			if plate and plate.dpwsPicked then
