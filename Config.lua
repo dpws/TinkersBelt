@@ -740,6 +740,22 @@ local function BuildProfilesPage(parent)
 	P:Finish()
 end
 
+local function BuildCleanerPage(parent)
+	local P = T.Page(parent)
+	local s = ns.db.cleaner
+	if not s then P:Note("Loading..."); return P:Finish() end
+	local function Refresh() if ns.BagCleaner then ns.BagCleaner.Update() end end
+	P:Card("When bags fill up")
+	P:Slider("Show when free slots are at most", 0, 5, 1, nil, function() return s.freeAt or 0 end,
+		function(v) s.freeAt = v; Refresh() end)
+	P:Slider("Stacks to list", 1, 10, 1, nil, function() return s.n or 5 end, function(v) s.n = v; Refresh() end)
+	local Q = {}
+	for q = 0, 3 do Q[#Q + 1] = { q, ns.BagCleaner and ns.BagCleaner.QUALITY_NAMES[q] or tostring(q) } end
+	P:Choice("Delete up to quality", Q, function() return s.maxQuality or 1 end, function(v) s.maxQuality = v; Refresh() end, 240)
+	P:Note("Cheapest whole stack first (vendor price x count). Click a row to delete that stack: it can't be undone. Items with no vendor price (quest items, keys, Hearthstone) are never listed.")
+	P:Finish()
+end
+
 local function BuildRestockPage(parent)
 	local r = ns.db.restock
 	local P = T.Page(parent)
@@ -868,6 +884,10 @@ local GROUPS = {
 			hidden = function() return ns.PROFILES_HIDDEN end },
 		{ name = "Macros", build = function(p) ns.BuildMacrosPage(p) end, icon = ICON .. "INV_Misc_Note_01",
 			desc = "Visual macro builder: blocks and switches, live preview." },
+		{ name = "Bag Cleaner", build = BuildCleanerPage, icon = ICON .. "INV_Misc_Bag_08",
+			desc = "When bags are full: the cheapest stacks, click to delete.",
+			toggle = { function() return ns.db.cleaner and ns.db.cleaner.enabled end,
+				function(v) if ns.db.cleaner then ns.db.cleaner.enabled = v; if ns.BagCleaner then ns.BagCleaner.Update() end end end } },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
 			desc = "Buy reagents and supplies automatically at vendors.",
 			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },

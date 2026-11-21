@@ -26,6 +26,7 @@ BagSlots.lua
 Profiles.lua
 Macros.lua
 Restock.lua
+BagCleaner.lua
 Mana.lua
 Buffs.lua
 RogueTimers.lua
