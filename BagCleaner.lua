@@ -4,11 +4,13 @@ local _, ns = ...
 -- Never deletes items without a vendor price (quest items, keys, Hearthstone...).
 
 -- the n cheapest stacks allowed to go. items = { { bag, slot, id, count, quality, price, name } }; price = vendor
--- price per item (0 / nil = no value: never listed); maxQuality: 0 poor .. 4 epic. Cheapest whole stack first.
-function ns.CleanerPick(items, maxQuality, n)
+-- price per item (0 / nil = no value: never listed); maxQuality: 0 poor .. 4 epic; keep = { [itemID] = true }
+-- protected items. Cheapest whole stack first.
+function ns.CleanerPick(items, maxQuality, n, keep)
 	local ok = {}
 	for _, it in ipairs(items) do
-		if it.price and it.price > 0 and it.quality and it.quality <= maxQuality and not it.locked then
+		if it.price and it.price > 0 and it.quality and it.quality <= maxQuality and not it.locked
+			and not (keep and keep[it.id]) then
 			it.value = it.price * (it.count or 1)
 			ok[#ok + 1] = it
 		end
@@ -29,6 +31,9 @@ local T = ns.Theme
 local C = {}
 ns.BagCleaner = C
 local function S() return ns.db.cleaner end
+-- protected items, account-wide: { [itemID] = name }
+local function Keep() ns.adb.cleanerKeep = ns.adb.cleanerKeep or {} return ns.adb.cleanerKeep end
+C.Keep = Keep
 local QUALITY_NAMES = { [0] = "Poor (grey)", "Common (white)", "Uncommon (green)", "Rare (blue)" }
 C.QUALITY_NAMES = QUALITY_NAMES
 
@@ -103,12 +108,24 @@ local function Row(i)
 	local hl = r:CreateTexture(nil, "HIGHLIGHT")
 	hl:SetAllPoints()
 	hl:SetColorTexture(1, 0.3, 0.2, 0.12) -- red tint: clicking deletes
-	r:SetScript("OnClick", function(self) Delete(self.item) end)
+	r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	r:SetScript("OnClick", function(self, mouse)
+		local it = self.item
+		if not it then return end
+		if mouse == "RightButton" then
+			Keep()[it.id] = it.name or true
+			print(("Tinker's Belt: %s is protected (undo on the Bag Cleaner page)"):format(it.link or it.name or "item"))
+			if C.OnKeepChanged then C.OnKeepChanged() end
+			return C.Update()
+		end
+		Delete(it)
+	end)
 	r:SetScript("OnEnter", function(self)
 		if not self.item then return end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetBagItem(self.item.bag, self.item.slot)
 		GameTooltip:AddLine("Click: delete this stack", 1, 0.4, 0.3)
+		GameTooltip:AddLine("Right-click: protect this item (never listed)", 0.4, 0.8, 1)
 		GameTooltip:Show()
 	end)
 	r:SetScript("OnLeave", GameTooltip_Hide)
@@ -124,7 +141,7 @@ function C.Update()
 	local s = S()
 	local free = FreeSlots()
 	local show = s.enabled and free <= (s.freeAt or 0)
-	list = show and ns.CleanerPick(Items(), s.maxQuality or 1, s.n or 5) or {}
+	list = show and ns.CleanerPick(Items(), s.maxQuality or 1, s.n or 5, Keep()) or {}
 	panel:SetShown((show and #list > 0) or ns.unlocked)
 	header:SetText(free == 0 and "Bags full: cheapest stacks" or ("%d free: cheapest stacks"):format(free))
 	for i = 1, math.max(#list, #rows) do

@@ -26,4 +26,8 @@ pick = ns.CleanerPick(items, 0, 5)
 check("greys only", #pick == 1 and pick[1].name == "Grey ring")
 check("n limits the list", #ns.CleanerPick(items, 2, 2) == 2)
 check("locked items skipped", ns.CleanerPick({ items[7] }, 4, 5)[1] == nil)
+local keep = { [42] = true }
+local withId = { { id = 42, name = "Kept", quality = 0, price = 1, count = 1 }, { id = 7, name = "Junk", quality = 0, price = 2, count = 1 } }
+pick = ns.CleanerPick(withId, 1, 5, keep)
+check("protected items never listed", #pick == 1 and pick[1].name == "Junk")
 print("cleaner: " .. passed .. " passed")

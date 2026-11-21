@@ -752,7 +752,51 @@ local function BuildCleanerPage(parent)
 	local Q = {}
 	for q = 0, 3 do Q[#Q + 1] = { q, ns.BagCleaner and ns.BagCleaner.QUALITY_NAMES[q] or tostring(q) } end
 	P:Choice("Delete up to quality", Q, function() return s.maxQuality or 1 end, function(v) s.maxQuality = v; Refresh() end, 240)
-	P:Note("Cheapest whole stack first (vendor price x count). Click a row to delete that stack: it can't be undone. Items with no vendor price (quest items, keys, Hearthstone) are never listed.")
+	P:Note("Cheapest whole stack first (vendor price x count). Click a row to delete that stack: it can't be undone. Right-click a row to protect that item. Items with no vendor price (quest items, keys, Hearthstone) are never listed.")
+
+	-- last on the page: the card shrinks to the items protected
+	P:Card("Protected items (all characters)")
+	local empty = P:Note("Nothing protected yet. Right-click a row in the Bag Cleaner panel.")
+	local card, rowsTop = P.card, P.card.y
+	local rows, MAX_ROWS = {}, 12
+	for i = 1, MAX_ROWS do
+		P:Custom(30, function(row)
+			local x = { frame = row }
+			x.icon = row:CreateTexture(nil, "ARTWORK")
+			x.icon:SetSize(20, 20)
+			x.icon:SetPoint("LEFT", 2, 0)
+			x.name = T.Text(row, "medium", 13)
+			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
+			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove:SetPoint("RIGHT")
+			rows[i] = x
+		end)
+	end
+	local function RefreshKeep()
+		local keep = ns.BagCleaner and ns.BagCleaner.Keep() or {}
+		local ids = {}
+		for id in pairs(keep) do ids[#ids + 1] = id end
+		table.sort(ids)
+		empty:SetShown(#ids == 0)
+		for i, x in ipairs(rows) do
+			local id = ids[i]
+			x.frame:SetShown(id ~= nil)
+			if id then
+				x.icon:SetTexture(C_Item.GetItemIconByID(id) or 134400)
+				x.name:SetText(C_Item.GetItemNameByID(id) or (type(keep[id]) == "string" and keep[id]) or ("item " .. id))
+				x.remove:SetScript("OnClick", function()
+					keep[id] = nil
+					if ns.BagCleaner then ns.BagCleaner.Update() end
+					RefreshKeep()
+				end)
+			end
+		end
+		local shown = math.min(#ids, MAX_ROWS)
+		card:SetHeight(-rowsTop + shown * 30 + 10)
+		parent:SetHeight(math.max(-P.y + 8 - (MAX_ROWS - shown) * 30, 1)) -- scroll area follows
+	end
+	if ns.BagCleaner then ns.BagCleaner.OnKeepChanged = function() if parent:IsVisible() then RefreshKeep() end end end
+	P:Refresher(RefreshKeep)
 	P:Finish()
 end
 
