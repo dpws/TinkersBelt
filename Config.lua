@@ -1001,6 +1001,33 @@ local function CloseBox(parent, onClick)
 	return close
 end
 
+-- After the key bindings open on our section: open it too (it starts folded). Reaches into the game's settings
+-- list, so it is careful: only a row titled "Tinker's Belt", only if not already open, silent if the layout differs.
+local function ExpandBindingSection()
+	local list = SettingsPanel and SettingsPanel.GetSettingsList and SettingsPanel:GetSettingsList()
+	local box = list and list.ScrollBox
+	if not (box and box.ForEachFrame) then return end
+	local function Title(frame)
+		for _, r in ipairs({ frame:GetRegions() }) do
+			if r.GetText and r:GetText() == BINDING_HEADER_TINKERSBELT then return true end
+		end
+		for _, child in ipairs({ frame:GetChildren() }) do
+			for _, r in ipairs({ child:GetRegions() }) do
+				if r.GetText and r:GetText() == BINDING_HEADER_TINKERSBELT then return true end
+			end
+		end
+	end
+	box:ForEachFrame(function(frame)
+		if not Title(frame) then return end
+		local init = frame.GetElementData and frame:GetElementData()
+		local data = init and (init.data or init)
+		local open = frame.expanded or (data and data.expanded) or (init and init.expanded)
+		if open then return end
+		local button = (frame.Button and frame.Button.Click and frame.Button) or (frame.Click and frame) or nil
+		if button then pcall(button.Click, button) end
+	end)
+end
+
 local function CreateWindow()
 	local f = CreateFrame("Frame", "DpwsToolsWindow", UIParent)
 	f:SetSize(980, 740)
@@ -1276,6 +1303,7 @@ local function CreateWindow()
 		if Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID then
 			-- second argument: scroll to the Tinker's Belt section (ignored if this client can't)
 			Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID, BINDING_HEADER_TINKERSBELT)
+			C_Timer.After(0.1, ExpandBindingSection)
 		elseif KeyBindingFrame_LoadUI then
 			KeyBindingFrame_LoadUI()
 			ShowUIPanel(KeyBindingFrame)
