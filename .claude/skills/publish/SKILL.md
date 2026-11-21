@@ -56,10 +56,17 @@ no file names or internals; merge commits that touch one feature into one line; 
 commits. Sections: New, Changed, Fixed (omit empty ones). First release: a short "what's in it" list of
 the tools instead of the full history.
 
+## 3b. Project description
+
+`docs/curseforge.md` is the CurseForge description (CurseForge's upload API can't change it); `README.md`
+is a copy. When the release adds or changes a feature, update the matching bullet (player wording, one
+line), copy it to `README.md`, and commit both with the release. In the report, give the user the whole
+file in a markdown block to paste into CurseForge > Manage Project > Description (Markdown editor).
+
 ## 4. Commit and tag
 
 ```bash
-git add TinkersBelt.toc CHANGELOG.md
+git add TinkersBelt.toc CHANGELOG.md docs/curseforge.md README.md
 git commit -m "release: v<version>"   # plus the session's Co-Authored-By line
 git tag v<version>
 

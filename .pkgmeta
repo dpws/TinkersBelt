@@ -10,3 +10,4 @@ ignore:
   - tests
   - publish.ps1
   - CHANGELOG.md
+  - README.md
