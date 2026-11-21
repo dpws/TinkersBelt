@@ -44,4 +44,15 @@ bags = { [1] = 0, [2] = 10, [10] = 1, [20] = 5 }
 job = ns.PoisonNextCraft({ [1] = 20, [2] = 10 }, recipes, count, { 1, 2 })
 check("short but no mats: nothing", job == nil)
 
+-- only full sets: a poison counts only if the vendor sells every ingredient it's short of
+bags = { [1] = 15, [2] = 6, [20] = 3 }
+local sells = { [20] = true, [30] = true } -- vials and weed, no dust
+need = ns.PoisonMaterialsNeed({ [1] = 20, [2] = 10 }, recipes, count, function(id) return sells[id] end)
+check("full sets: poison 1 skipped, no dust here", need[10] == nil)
+check("full sets: its vials skipped too (poison 2's 2 vials are in bags)", need[20] == nil)
+check("full sets: poison 2 still bought", need[30] == 6)
+bags = { [1] = 15, [10] = 10 }
+need = ns.PoisonMaterialsNeed({ [1] = 20 }, recipes, count, function(id) return id == 20 end)
+check("full sets: dust in bags, vendor has the vials: vials bought", need[20] == 5 and need[10] == nil)
+
 print("poison_stock: " .. passed .. " passed")

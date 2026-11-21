@@ -3,14 +3,25 @@ local _, ns = ...
 -- recipes: poisonID -> { reagents = { [itemID] = qty }, makes = n }; count(id) -> in bags
 
 -- Ingredients to buy so every stocked poison can be crafted back up to its amount.
-function ns.PoisonMaterialsNeed(stock, recipes, count)
+-- sold(id) (optional): only poisons whose missing ingredients this vendor all sells count, so you never
+-- buy half a set (vials without the dust).
+function ns.PoisonMaterialsNeed(stock, recipes, count, sold)
 	local need = {}
 	for id, target in pairs(stock) do
 		local recipe = recipes[id]
 		local missing = target - count(id)
 		if recipe and missing > 0 then
 			local crafts = math.ceil(missing / (recipe.makes or 1))
-			for r, q in pairs(recipe.reagents) do need[r] = (need[r] or 0) + crafts * q end
+			local complete = true
+			if sold then
+				-- shortcut: judged per poison; two poisons sharing a short ingredient are not netted against each other
+				for r, q in pairs(recipe.reagents) do
+					if crafts * q > count(r) and not sold(r) then complete = false end
+				end
+			end
+			if complete then
+				for r, q in pairs(recipe.reagents) do need[r] = (need[r] or 0) + crafts * q end
+			end
 		end
 	end
 	for r, n in pairs(need) do
@@ -57,12 +68,14 @@ end
 local function Recipes() return ns.db.poisonRecipes end -- per character: only what this rogue has learned
 local function Stock() return ns.db.poisons.stock end
 
--- the materials restock should buy (itemID -> target count), used by Restock.lua at vendors
-function S.MaterialTargets()
+-- the materials restock should buy (itemID -> target count), used by Restock.lua at vendors;
+-- sold(id) = this vendor sells it (used when "only full sets" is on)
+function S.MaterialTargets(sold)
 	local targets = {}
 	-- non-rogues (or before login) have no stock list: their restock must still work
 	if ns.db.poisons.buyMats == false or not Stock() or not Recipes() then return targets end
-	for id, n in pairs(ns.PoisonMaterialsNeed(Stock(), Recipes(), Count)) do targets[id] = Count(id) + n end
+	local onlyFull = ns.db.poisons.fullSets and sold or nil
+	for id, n in pairs(ns.PoisonMaterialsNeed(Stock(), Recipes(), Count, onlyFull)) do targets[id] = Count(id) + n end
 	return targets
 end
 

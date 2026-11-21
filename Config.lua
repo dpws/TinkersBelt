@@ -158,6 +158,8 @@ local function BuildPoisonStockPage(parent)
 	P:Card("Poisons to keep in bags")
 	local status = P:Note(" \n ") -- two lines reserved: the text is set later
 	P:Toggle("Buy ingredients", function() return p.buyMats ~= false end, function(v) p.buyMats = v end)
+	P:Toggle("Only full sets: skip a poison if the vendor lacks one of its ingredients", function() return p.fullSets end,
+		function(v) p.fullSets = v end)
 	local rows, MAX_ROWS = {}, 9
 	local add
 	P:Custom(38, function(row)

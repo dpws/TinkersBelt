@@ -91,15 +91,17 @@ local function Restock(verbose)
 	local items, n = {}, 0
 	if verbose and ns.PoisonStock then for _, line in ipairs(ns.PoisonStock.Describe()) do Say(line) end end
 	if r.enabled then for id, c in pairs(r.items) do items[id] = c end end
+	local goods = Goods()
+	local sold = {}
+	for _, g in ipairs(goods) do sold[g.id] = true end
 	if ns.PoisonStock then
-		for id, c in pairs(ns.PoisonStock.MaterialTargets()) do items[id] = math.max(items[id] or 0, c) end
+		for id, c in pairs(ns.PoisonStock.MaterialTargets(function(id) return sold[id] end)) do items[id] = math.max(items[id] or 0, c) end
 	end
 	for id, c in pairs(items) do
 		n = n + 1
 		Say(("wants %s: target %d, have %d"):format(ItemName(id), c, Count(id)))
 	end
 	if n == 0 then return Say(r.enabled and "shopping list is empty" or "auto restock is off and no poison ingredients needed") end
-	local goods = Goods()
 	Say(("vendor sells %d items (for gold)"):format(#goods))
 	local buys, total, over = ns.RestockPlan(items, Count, goods, r.budget)
 	if #buys == 0 then return Say("nothing to buy here (vendor doesn't sell them, or you have enough)") end
