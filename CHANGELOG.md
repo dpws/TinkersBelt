@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.5 - 2026-11-21
+
+### New
+- Key bindings for opening the settings, unlocking panels, casting the first missing buff, poisons and imbues, rogue weapon sets, poison crafting and lockboxes.
+- A Key bindings button in the settings sidebar (under Unlock panels) opens the Tinker's Belt key bindings.
+
+### Changed
+- All key bindings are in their own Tinker's Belt category, each named after its group (General, Weapons, Rogue, Shaman).
+
 ## 0.4.4 - 2026-11-21
 
 ### New

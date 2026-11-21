@@ -12,6 +12,7 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 - **Auto restock**: buys reagents at vendors within a gold limit.
 - **Bag Cleaner**: when your bags are full, lists the cheapest stacks to delete with a click; right-click protects an item.
 - **Themes**: Modern, or Classic WoW frames.
+- **Key bindings**: keys for buffs, poisons and imbues, weapon sets, lockboxes, totems and more (Key Bindings > Tinker's Belt).
 
 ## Rogues
 - Stealth action bar paging
