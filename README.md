@@ -23,7 +23,7 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 ## Shamans
 - Weapon imbue bar with reminders
 - Totem bar: timers, kill alerts, right-click to destroy, Lightning Shield charges
-- Totem sets (Solo / Group / PvP), one totem per click
+- Totem sets (Solo / Group / PvP), one totem per click; Shift+click a totem button to choose its totem
 - Cooldown icons (shocks, Grounding, Stormstrike...)
 
 ## Install

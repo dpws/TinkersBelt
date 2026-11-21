@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3 - 2026-11-21
+
+### New
+- Shamans: Shift+click a totem button to choose that element's totem for your active set; the tooltip lists what each click does.
+
 ## 0.4.2 - 2026-11-21
 
 ### New
