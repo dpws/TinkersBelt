@@ -225,7 +225,7 @@ ns.slashCommands["allies click"] = function()
 				L.Log(("allies click: game error: %s"):format(tostring(a2)))
 			else
 				local name = a3 and not (issecretvalue and issecretvalue(a3)) and C_Spell.GetSpellName(a3)
-				L.Log(("allies click: %s %s, target=%s"):format(event:lower():gsub("unit_spellcast_", "cast "), tostring(name),
+				L.Log(("allies click: %s %s, target=%s"):format((event:lower():gsub("unit_spellcast_", "cast ")), tostring(name),
 					tostring(GetUnitName("target", true))))
 			end
 		end)
