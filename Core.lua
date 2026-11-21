@@ -62,21 +62,21 @@ end
 -- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps.
 -- Also returns that grid line.
 -- Key Bindings > Tinker's Belt (Bindings.xml): category, headings and each binding's name
-BINDING_HEADER_TINKERSBELT = "Tinker's Belt"
-BINDING_HEADER_TINKERSBELT_GENERAL = "General"
-BINDING_HEADER_TINKERSBELT_WEAPONS = "Weapon poisons and imbues"
-BINDING_HEADER_TINKERSBELT_ROGUE = "Rogue"
-BINDING_HEADER_TINKERSBELT_TOTEMS = "Shaman"
+-- one category per group (Bindings.xml): the key binding screen has no headings inside a category
+BINDING_HEADER_TINKERSBELT_GENERAL = "Tinker's Belt: General"
+BINDING_HEADER_TINKERSBELT_WEAPONS = "Tinker's Belt: Weapons"
+BINDING_HEADER_TINKERSBELT_ROGUE = "Tinker's Belt: Rogue"
+BINDING_HEADER_TINKERSBELT_SHAMAN = "Tinker's Belt: Shaman"
 BINDING_NAME_TINKERSBELT_SETTINGS = "Open or close the settings"
 BINDING_NAME_TINKERSBELT_UNLOCK = "Unlock or lock panels"
 for name, text in pairs({
-	DpwsBuffReminder1 = "Cast the first missing buff (Buff Reminder)",
-	DpwsPoisonButtonMH = "Apply to main hand", DpwsPoisonButtonOH = "Apply to off hand",
+	DpwsBuffReminder1 = "Cast the first missing buff",
+	DpwsPoisonButtonMH = "Poison / imbue main hand", DpwsPoisonButtonOH = "Poison / imbue off hand",
 	DpwsWeaponSet1 = "Equip opener weapons", DpwsWeaponSet2 = "Equip fight weapons",
-	DpwsPoisonCraftButton = "Craft poisons (opens Poisons, then crafts)", DpwsLockboxButton = "Pick or open a lockbox",
-	DpwsTotemSetButton = "Drop the next totem of your set", DpwsTotemEarth = "Place your set's Earth totem",
-	DpwsTotemFire = "Place your set's Fire totem", DpwsTotemWater = "Place your set's Water totem",
-	DpwsTotemAir = "Place your set's Air totem",
+	DpwsPoisonCraftButton = "Craft poisons", DpwsLockboxButton = "Pick or open a lockbox",
+	DpwsTotemSetButton = "Drop the next totem of your set", DpwsTotemEarth = "Place your Earth totem",
+	DpwsTotemFire = "Place your Fire totem", DpwsTotemWater = "Place your Water totem",
+	DpwsTotemAir = "Place your Air totem",
 }) do _G["BINDING_NAME_CLICK " .. name .. ":LeftButton"] = text end
 -- what the two non-button bindings run
 function TinkersBelt_ToggleSettings() if ns.ToggleWindow then ns.ToggleWindow() end end
