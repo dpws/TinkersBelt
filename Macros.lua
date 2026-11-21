@@ -69,6 +69,84 @@ function ns.MacroText(m)
 	return table.concat(out, "\n")
 end
 
+-- Text -> blocks. Returns a model, or nil and the reason when the macro uses something the blocks can't show
+-- (other commands, unknown conditions...): then it stays text. Equivalent, not identical: "[a][b] X" becomes
+-- two options "[a] X; [b] X", so saving rewrites the text in the builder's own form.
+local SLASH = { ["/cast"] = "cast", ["/use"] = "use", ["/target"] = "target", ["/tar"] = "target", ["/focus"] = "focus",
+	["/cancelaura"] = "cancelaura", ["/startattack"] = "startattack", ["/stopattack"] = "stopattack",
+	["/stopcasting"] = "stopcasting" }
+local WORDS = {}
+for key, pair in pairs(PAIRS) do WORDS[pair[1]] = { key, true }; WORDS[pair[2]] = { key, false } end
+
+local function ParseConditions(text)
+	local o = {}
+	for token in text:gmatch("[^,]+") do
+		token = strtrim and strtrim(token) or token:match("^%s*(.-)%s*$")
+		local unit = token:match("^@(%w+)$") or token:match("^target=(%w+)$")
+		local mod = token:match("^mod:(%a+)$") or token:match("^modifier:(%a+)$")
+		local form = token:match("^form:(%d)$") or token:match("^stance:(%d)$")
+		if unit then o.unit = unit ~= "target" and unit or nil; o.explicitTarget = unit == "target" or nil
+		elseif mod and (mod == "shift" or mod == "ctrl" or mod == "alt") then o[mod] = true
+		elseif form then o.form = tonumber(form)
+		elseif token == "noform" or token == "nostance" then o.form = 0
+		elseif WORDS[token] then o[WORDS[token][1]] = WORDS[token][2]
+		else return nil, token end
+	end
+	return o
+end
+
+function ns.ParseMacro(text)
+	local m = { lines = {} }
+	for line in (text or ""):gmatch("[^\n]+") do
+		line = line:match("^%s*(.-)%s*$")
+		if line == "" then -- skip
+		elseif line:lower() == "#showtooltip" then m.tooltip = true
+		elseif line:sub(1, 1) == "#" then return nil, "a " .. line:match("^(#%S+)") .. " line"
+		else
+			local slash, rest = line:match("^(/%S+)%s*(.-)$")
+			local cmd = slash and SLASH[slash:lower()]
+			if not cmd then return nil, (slash or line) .. " lines" end
+			if CMD[cmd].bare then
+				if rest ~= "" then return nil, slash .. " with conditions" end
+				if cmd == "stopcasting" and #m.lines == 0 and not m.stopcasting then m.stopcasting = true
+				else m.lines[#m.lines + 1] = { cmd = cmd } end
+			else
+				local options = {}
+				if CMD[cmd].unitOnly then
+					-- only conditions: /target [@mouseover,harm][@focus]
+					if rest == "" or rest:gsub("%b[]", ""):match("%S") then return nil, slash .. " by name" end
+					for group in rest:gmatch("%[(.-)%]") do
+						local o, bad = ParseConditions(group)
+						if not o then return nil, "[" .. bad .. "]" end
+						if o.explicitTarget then o.unit = "target" end
+						o.explicitTarget = nil
+						options[#options + 1] = o
+					end
+				else
+					for clause in rest:gmatch("[^;]+") do
+						local conds, spell = clause:match("^%s*(.-)%s*([^%]]-)%s*$")
+						if not spell or spell == "" then return nil, "an empty clause" end
+						local groups = {}
+						for group in conds:gmatch("%[(.-)%]") do groups[#groups + 1] = group end
+						if conds:gsub("%b[]", ""):match("%S") then return nil, "text before a spell" end
+						if #groups == 0 then groups = { "" } end
+						for _, group in ipairs(groups) do
+							local o, bad = ParseConditions(group)
+							if not o then return nil, "[" .. bad .. "]" end
+							-- @target is the default target: the blocks show it as "Target"
+							o.explicitTarget = nil
+							o.spell = spell
+							options[#options + 1] = o
+						end
+					end
+				end
+				m.lines[#m.lines + 1] = { cmd = cmd, options = options }
+			end
+		end
+	end
+	return m
+end
+
 -- starting points; s = the spell already in the editor (kept), may be ""
 ns.MACRO_TEMPLATES = {
 	{ name = "Mouseover friend, else target", make = function(s)
@@ -123,6 +201,54 @@ local function SpellIcon(cmd, text)
 	return (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(text)) or QUESTION
 end
 
+-- your spellbook by tab: { { name, spells = { { name, icon } } } }; castable spells only, one entry per name (ranks)
+local function SpellBook()
+	local tabs = {}
+	local function Add(tab, name, icon, seen)
+		if name and not seen[name] then seen[name] = true; tab.spells[#tab.spells + 1] = { name = name, icon = icon } end
+	end
+	if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
+		local bank = Enum.SpellBookSpellBank.Player
+		for i = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+			local line = C_SpellBook.GetSpellBookSkillLineInfo(i)
+			local tab, seen = { name = line and line.name or ("Tab " .. i), spells = {} }, {}
+			for k = (line.itemIndexOffset or 0) + 1, (line.itemIndexOffset or 0) + (line.numSpellBookItems or 0) do
+				local info = C_SpellBook.GetSpellBookItemInfo(k, bank)
+				if info and not info.isPassive and info.itemType == Enum.SpellBookItemType.Spell then Add(tab, info.name, info.iconID, seen) end
+			end
+			if #tab.spells > 0 then tabs[#tabs + 1] = tab end
+		end
+	elseif GetNumSpellTabs then
+		for i = 1, GetNumSpellTabs() do
+			local tabName, _, offset, num = GetSpellTabInfo(i)
+			local tab, seen = { name = tabName, spells = {} }, {}
+			for k = offset + 1, offset + num do
+				if not IsPassiveSpell(k, "spell") then Add(tab, GetSpellBookItemName(k, "spell"), GetSpellBookItemTexture(k, "spell"), seen) end
+			end
+			if #tab.spells > 0 then tabs[#tabs + 1] = tab end
+		end
+	end
+	return tabs
+end
+
+-- usable items in your bags (ones with a "Use:" effect), one entry each
+local function BagItems()
+	local items, seen = {}, {}
+	if not (C_Container and C_Container.GetContainerNumSlots) then return items end
+	for bag = 0, 4 do
+		for slot = 1, C_Container.GetContainerNumSlots(bag) do
+			local info = C_Container.GetContainerItemInfo(bag, slot)
+			local id = info and info.itemID
+			if id and not seen[id] and C_Item.GetItemSpell(id) then
+				seen[id] = true
+				items[#items + 1] = { name = C_Item.GetItemNameByID(id) or info.itemName, icon = info.iconFileID }
+			end
+		end
+	end
+	table.sort(items, function(a, b) return (a.name or "") < (b.name or "") end)
+	return items
+end
+
 local function Chip(parent, text, w)
 	local b = CreateFrame("Button", nil, parent)
 	b:SetSize(w, 20)
@@ -157,7 +283,7 @@ local OPT_H, HEAD_H, ADD_H, EDIT_W = 86, 34, 28, 490
 function ns.BuildMacrosPage(page)
 	local W = page:GetWidth() > 0 and page:GetWidth() or 696
 	local cur = { tab = "account", scope = "account", model = { tooltip = true, lines = {} } }
-	local Relayout, UpdatePreview, RefreshList, Open, NewMacro
+	local Relayout, UpdatePreview, RefreshList, Open, NewMacro, Say
 	local focusedInput -- the spell box Shift-click should fill
 
 	-----------------------------------------------------------------------
@@ -273,8 +399,11 @@ function ns.BuildMacrosPage(page)
 		b.icon:SetSize(22, 22)
 		b.icon:SetPoint("TOPLEFT", 18, -2)
 		b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-		b.input = T.NewInput(b, 170)
+		b.input = T.NewInput(b, 150)
 		b.input:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
+		b.pick = T.NewDropdown(b, 28) -- "v": pick from your spellbook / bags
+		b.pick:SetPoint("LEFT", b.input, "RIGHT", 2, 0)
+		if b.pick.Text then b.pick.Text:SetText("") end
 		b.on = T.Text(b, "regular", 11, T.muted)
 		b.on:SetText("on")
 		b.unit = T.NewDropdown(b, 130)
@@ -366,8 +495,11 @@ function ns.BuildMacrosPage(page)
 	local mode = T.NewButton(ed, "Edit as text", 110, 24)
 	mode:SetScript("OnClick", function()
 		if cur.model.raw then
-			cur.model.raw = nil
-			if not cur.model.lines or #cur.model.lines == 0 then cur.model.lines = { { cmd = "cast", options = { {} } } } end
+			local parsed, why = ns.ParseMacro(cur.model.raw)
+			if not parsed then return Say("|cffff6060Can't turn this into blocks: " .. why .. ".|r") end
+			cur.model = parsed
+			if #cur.model.lines == 0 then cur.model.lines = { { cmd = "cast", options = { {} } } } end
+			Say("")
 		else
 			cur.model.raw = ns.MacroText(cur.model)
 		end
@@ -403,6 +535,29 @@ function ns.BuildMacrosPage(page)
 		local unitOnly = CMD[cmdKey].unitOnly
 		b.icon:SetShown(not unitOnly)
 		b.input:SetShown(not unitOnly)
+		b.pick:SetShown(not unitOnly)
+		b.pick:SetupMenu(function(_, root)
+			local function Pick(name)
+				o.spell = name
+				b.input:SetText(name)
+				b.icon:SetTexture(SpellIcon(cmdKey, name))
+				UpdatePreview()
+			end
+			if cmdKey == "use" then
+				local items = BagItems()
+				if #items == 0 then root:CreateButton("No usable items in your bags"):SetEnabled(false) end
+				for _, it in ipairs(items) do root:CreateButton(("|T%s:16|t %s"):format(it.icon or QUESTION, it.name), function() Pick(it.name) end) end
+			else
+				local tabs = SpellBook()
+				if #tabs == 0 then root:CreateButton("No spells found"):SetEnabled(false) end
+				for _, tab in ipairs(tabs) do
+					local sub = root:CreateButton(tab.name)
+					for _, sp in ipairs(tab.spells) do
+						sub:CreateButton(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function() Pick(sp.name) end)
+					end
+				end
+			end
+		end)
 		b.on:ClearAllPoints()
 		b.unit:ClearAllPoints()
 		if unitOnly then
@@ -410,7 +565,7 @@ function ns.BuildMacrosPage(page)
 			b.unit:SetPoint("TOPLEFT", 18, -2)
 		else
 			b.on:SetText("on")
-			b.on:SetPoint("LEFT", b.input, "RIGHT", 8, 0)
+			b.on:SetPoint("LEFT", b.pick, "RIGHT", 8, 0)
 			b.unit:SetPoint("LEFT", b.on, "RIGHT", 8, 0)
 		end
 	end
@@ -541,7 +696,7 @@ function ns.BuildMacrosPage(page)
 		if scroll and scroll.ScrollBar then scroll.ScrollBar:SetShown(hgt > scroll:GetHeight()) end
 	end
 
-	local function Say(msg) status:SetText(msg) end
+	Say = function(msg) status:SetText(msg) end
 
 	NewMacro = function()
 		cur.index = nil
@@ -560,12 +715,17 @@ function ns.BuildMacrosPage(page)
 		nameBox:SetText(name)
 		-- built here and unchanged since: blocks; otherwise its text
 		local saved = Models()[Key(cur.scope, name)]
+		local parsed, why = ns.ParseMacro(body)
 		if saved and ns.MacroText(saved) == body then
 			cur.model = Copy(saved)
+			Say("")
+		elseif parsed then
+			cur.model = parsed
+			Say(ns.MacroText(parsed) == body and "" or "Read into blocks; saving rewrites it in the builder's form.")
 		else
 			cur.model = { raw = body or "", lines = {} }
+			Say("Shown as text: blocks can't show " .. why .. ".")
 		end
-		Say("")
 		RefreshList()
 	end
 

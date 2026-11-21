@@ -34,4 +34,21 @@ end
 check("template keeps your spell", ns.MacroText(ns.MACRO_TEMPLATES[3].make("Power Word: Shield")),
 	"#showtooltip\n/cast [@player,mod:alt] Power Word: Shield; Power Word: Shield")
 
+-- text -> blocks -> text
+local function round(text) local m = ns.ParseMacro(text); return m and ns.MacroText(m) end
+check("parse: builder text comes back the same", round("#showtooltip\n/cast [@mouseover,help,nodead] Flash Heal; Flash Heal"),
+	"#showtooltip\n/cast [@mouseover,help,nodead] Flash Heal; Flash Heal")
+check("parse: stopcasting, opener, attack", round("/stopcasting\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack"),
+	"/stopcasting\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack")
+check("parse: [a][b] X becomes two options", round("/cast [@mouseover,harm][] Sap"), "/cast [@mouseover,harm] Sap; Sap")
+check("parse: target= and modifier: spellings", round("/cast [target=player,modifier:alt] Renew"), "/cast [@player,mod:alt] Renew")
+check("parse: @target shown as the default target", round("/cast [@target,harm] Sap"), "/cast [harm] Sap")
+check("parse: focus conditions", round("/focus [@mouseover,harm][@target]"), "/focus [@mouseover,harm][@target]")
+check("parse: noform", round("/cast [noform] Bear Form"), "/cast [form:0] Bear Form")
+check("parse: /say stays text", select(2, ns.ParseMacro("/say hi")), "/say lines")
+check("parse: unknown condition stays text", select(2, ns.ParseMacro("/cast [exists] Sap")), "[exists]")
+check("parse: /target by name stays text", select(2, ns.ParseMacro("/target Lava Craft")), "/target by name")
+check("parse: #show stays text", select(2, ns.ParseMacro("#show Sap\n/cast Sap")), "a #show line")
+check("parse: /startattack with conditions stays text", select(2, ns.ParseMacro("/startattack [harm]")), "/startattack with conditions")
+
 print("macros: " .. passed .. " passed")
