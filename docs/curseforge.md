@@ -28,7 +28,7 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 - Cooldown icons (shocks, Grounding, Stormstrike...)
 
 ## Languages
-English, German, French, Spanish (Spain and Latin America), Italian, Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional); the addon follows your game client. Spotted a wrong word? Open an issue on GitHub: https://github.com/dpws/TinkersBelt/issues
+English, German, French, Spanish (Spain and Latin America), Italian, Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional); the addon follows your game client, or pick one at the top of the settings. Spotted a wrong word? Open an issue on GitHub: https://github.com/dpws/TinkersBelt/issues
 
 ## Install
 Install with the CurseForge app, or extract the zip into `World of Warcraft\_forever_\Interface\AddOns\` so you get `AddOns\TinkersBelt\TinkersBelt.toc`, then restart the game.

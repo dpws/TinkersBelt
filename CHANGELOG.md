@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.7 - 2026-11-21
+
+### New
+- Language menu at the top of the settings: follow your game client, or pick any of the 11 languages.
+
+### Changed
+- Buttons and the macro builder's switches fit longer translations instead of spilling over.
+- Classic theme: the settings window has a solid background.
+- Korean and Chinese text uses a font that has their letters.
+
+### Fixed
+- Buffs on low-level players: the highest rank their level allows is cast (nearby allies, buff reminder, party frame buttons).
+- Small buttons (the + invite button) stay inside their window and are centred.
+
 ## 0.4.6 - 2026-11-21
 
 ### New
