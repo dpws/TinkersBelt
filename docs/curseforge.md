@@ -8,7 +8,6 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 - **Movable panels**: unlock to drag any panel, with a grid and live snapping.
 - **PvP**: your score against each enemy player, per character and across all your characters, kill announcements and sounds, and a list of nearby enemies.
 - **Friendly names**: clean class-coloured labels instead of nameplates, plus a clickable nearby allies list.
-- **Profiles**: save and load action bars and talents per class.
 - **Auto restock**: buys reagents at vendors within a gold limit.
 - **Themes**: Modern, or Classic WoW frames.
 

@@ -38,6 +38,10 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
+-- Profiles is hidden for now (2026-11-21): no settings page, no talent window button. Saved profiles are kept;
+-- set this to false to bring the feature back.
+ns.PROFILES_HIDDEN = true
+
 local SLOTS = 180
 local BACKUP = "(backup)"
 local P = {}
@@ -273,7 +277,7 @@ local f = CreateFrame("Frame")
 -- Forever shows talents in PlayerSpellsFrame (spellbook + talents window); PlayerTalentFrame on other clients
 local function Attach()
 	local frame = _G.PlayerSpellsFrame or _G.PlayerTalentFrame
-	if attached or not frame then return end
+	if ns.PROFILES_HIDDEN or attached or not frame then return end
 	-- own top-level frame (the window's inner panels were drawn over a child button); follows the window
 	local b = CreateFrame("Button", "DpwsProfilesTalentButton", UIParent, "UIPanelButtonTemplate")
 	b:SetSize(120, 22)

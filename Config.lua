@@ -864,7 +864,8 @@ local GROUPS = {
 			toggle = { function() return ns.adb.allies.enabled end,
 				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
-			desc = "Save and load action bars and talents, shared by your characters of this class." },
+			desc = "Save and load action bars and talents, shared by your characters of this class.",
+			hidden = function() return ns.PROFILES_HIDDEN end },
 		{ name = "Macros", build = function(p) ns.BuildMacrosPage(p) end, icon = ICON .. "INV_Misc_Note_01",
 			desc = "Visual macro builder: blocks and switches, live preview." },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
@@ -1118,11 +1119,14 @@ local function CreateWindow()
 	for _, group in ipairs(GROUPS) do
 		if (not group.class or group.class == playerClass) and (not group.classes or group.classes[playerClass])
 			and #group.tools > 0 then
+			-- tools switched off in the code (hidden = function) don't get a sidebar entry
+			local visible = {}
+			for _, t in ipairs(group.tools) do if not (t.hidden and t.hidden()) then visible[#visible + 1] = t end end
 			local label = T.Text(listIn, "semibold", 10, T.muted)
 			label:SetPoint("TOPLEFT", 26, y)
 			label:SetText((group.name == "@class" and UnitClass("player") or group.name):upper())
 			y = y - 18
-			for _, tool in ipairs(group.tools) do
+			for _, tool in ipairs(visible) do
 				local nav = CreateFrame("Button", nil, listIn)
 				nav:SetPoint("TOPLEFT", 12, y)
 				nav:SetSize(SIDEBAR - 24, 30)
