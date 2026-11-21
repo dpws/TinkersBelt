@@ -73,7 +73,7 @@ Push only `main` and tags; other branches stay local.
 
 The tag push runs `.github/workflows/release.yml` (BigWigs packager, `.pkgmeta`): it builds
 `TinkersBelt-v<version>.zip`, creates the GitHub release with `CHANGELOG.md` as notes, and uploads to
-CurseForge (project 1819230) when the repo secret `CF_API_KEY` is set. Don't build or upload by hand.
+CurseForge (project 1819230) when the repo secret `CF_API_TOKEN` is set. Don't build or upload by hand.
 
 ```bash
 gh run list --repo dpws/TinkersBelt --workflow release.yml --limit 1   # find the run for the tag
