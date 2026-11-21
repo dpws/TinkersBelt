@@ -920,10 +920,8 @@ local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spe
 
 local GROUPS = {
 	{ name = "General", tools = {
-		{ name = "PvP Kills", build = BuildPvpPage, icon = ICON .. "Ability_DualWield",
-			desc = "Your score against each enemy player and the latest kills and deaths.", toggle = Switch("pvp") },
-		{ name = "PvP Settings", build = BuildPvpSettingsPage, icon = ICON .. "INV_BannerPVP_01",
-			desc = "Tooltip score, announcements and sounds for open-world PvP.", toggle = Switch("pvp") },
+		{ name = "PvP", build = function(p) BuildPvpPage(p); BuildPvpSettingsPage(p) end, icon = ICON .. "Ability_DualWield",
+			desc = "Your score against enemy players, recent kills and deaths, and PvP settings.", toggle = Switch("pvp") },
 		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye",
 			desc = "Opposite-faction players seen around you.",
 			toggle = { function() return ns.adb.nearby.enabled end,
