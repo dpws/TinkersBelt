@@ -63,4 +63,20 @@ check("no frame: nil", ns.PickUnitFrame(Walk({ small, ours, target }), "party1")
 local big = Fr("player", 200, 50)
 check("biggest wins", ns.PickUnitFrame(Walk({ Fr("player", 40, 20), elv, big }), "player") == big)
 
+-- buff rank for a target's level (Classic: rank learn level - 10 <= target level)
+local AI = ns.BUFF_RANKS[1] -- Arcane Intellect: 1, 14, 28, 42, 56
+local all = function() return true end
+check("level 3 gets rank 1", ns.BuffRankPick(AI, 3, all) == 1459)
+check("level 5 gets rank 2 (learned 14: 14 - 10 = 4)", ns.BuffRankPick(AI, 5, all) == 1460)
+check("level 17 still rank 2", ns.BuffRankPick(AI, 17, all) == 1460)
+check("level 18 gets rank 3 (learned 28: 28 - 10 = 18)", ns.BuffRankPick(AI, 18, all) == 1461)
+local id, top = ns.BuffRankPick(AI, 60, all)
+check("level 60 gets your top rank", id == 10157 and top)
+local upTo3 = function(x) return x == 1459 or x == 1460 or x == 1461 end
+id, top = ns.BuffRankPick(AI, 60, upTo3)
+check("only ranks you know", id == 1461 and top)
+check("unknown level: your highest", ns.BuffRankPick(AI, nil, upTo3) == 1461)
+id, top = ns.BuffRankPick(ns.BUFF_RANKS[3], 5, all) -- Divine Spirit rank 1 needs level 20
+check("too low even for rank 1: rank 1 (the game explains)", id == 14752 and not top)
+
 print("buffs: " .. passed .. " passed")

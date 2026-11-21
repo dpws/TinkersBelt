@@ -110,7 +110,63 @@ function ns.PickUnitFrame(nextFrame, unit)
 	return best
 end
 
+-- Classic: a buff rank can't be cast on a target more than 10 levels below the level the rank is learned at
+-- ("target is too low level"). Ranks of the buffs you put on others: spell id, level learned, ...
+ns.BUFF_RANKS = {
+	{ 1459, 1, 1460, 14, 1461, 28, 10156, 42, 10157, 56 }, -- Arcane Intellect
+	{ 1243, 1, 1244, 12, 1245, 24, 2791, 36, 10937, 48, 10938, 60 }, -- Power Word: Fortitude
+	{ 14752, 30, 14818, 40, 14819, 50, 27841, 60 }, -- Divine Spirit
+	{ 976, 30, 10957, 42, 10958, 56 }, -- Shadow Protection
+	{ 1126, 1, 5232, 10, 6756, 20, 5234, 30, 8907, 40, 9884, 50, 9885, 60 }, -- Mark of the Wild
+	{ 467, 6, 782, 14, 1075, 24, 8914, 34, 9756, 44, 9910, 54 }, -- Thorns
+	{ 19740, 4, 19834, 12, 19835, 22, 19836, 32, 19837, 42, 19838, 52, 25291, 60 }, -- Blessing of Might
+	{ 19742, 14, 19850, 24, 19852, 34, 19853, 44, 19854, 54, 25290, 60 }, -- Blessing of Wisdom
+	{ 19977, 40, 19978, 50, 19979, 60 }, -- Blessing of Light
+	{ 20911, 30, 20912, 40, 20913, 50, 20914, 60 }, -- Blessing of Sanctuary
+}
+
+-- the highest rank you know that a target of `level` can receive (level nil = unknown: highest you know);
+-- returns its id and whether it is your highest known rank. ranks = one BUFF_RANKS list, known(id) -> bool
+function ns.BuffRankPick(ranks, level, known)
+	local best, top
+	for i = 1, #ranks, 2 do
+		local id, learned = ranks[i], ranks[i + 1]
+		if known(id) then
+			top = id
+			if not level or learned - 10 <= level then best = id end
+		end
+	end
+	if not best then -- even your lowest rank is too high for them: the lowest you know (the game says why)
+		for i = 1, #ranks, 2 do if known(ranks[i]) then best = ranks[i] break end end
+	end
+	return best, best == top
+end
+
 if not CreateFrame then return end -- offline test stops here
+
+-- what to /cast for a buff `name` on a target of `level`: the plain name (= your highest rank), or
+-- "Name(Rank 2)" in the client's own wording when the target is too low for your highest rank
+local rankLists -- spell name -> BUFF_RANKS list
+function ns.BuffCast(name, level)
+	if not name then return name end
+	if not rankLists then
+		rankLists = {}
+		for _, list in ipairs(ns.BUFF_RANKS) do
+			local n = C_Spell.GetSpellName(list[1])
+			if n then rankLists[n] = list end
+		end
+	end
+	local list = rankLists[name]
+	if not list or type(level) ~= "number" or level <= 0 or (issecretvalue and issecretvalue(level)) then return name end
+	local id, isTop = ns.BuffRankPick(list, level, function(x) return IsPlayerSpell(x) or (IsSpellKnown and IsSpellKnown(x)) end)
+	if not id or isTop then return name end
+	local rank = C_Spell.GetSpellSubtext and C_Spell.GetSpellSubtext(id)
+	return (rank and rank ~= "") and ("%s(%s)"):format(name, rank) or name
+end
+local function Level(unit)
+	local ok, l = pcall(UnitLevel, unit)
+	if ok and not (issecretvalue and issecretvalue(l)) then return l end
+end
 
 -- Buff Reminder: buttons for your buffs that are missing (or about to run out) on you or your group;
 -- click = cast on the next one who needs it. Plus buff buttons beside each party frame.
@@ -503,7 +559,7 @@ local function UpdateStrips(auraCache, combat)
 						b = b or StripButton(strip, k)
 						strip.buttons[k] = b
 						b.spell, b.entry = CastName(e), e
-						b:SetAttribute("spell", b.spell)
+						b:SetAttribute("spell", ns.BuffCast(b.spell, Level(strip.unit))) -- a rank their level allows
 						b:SetSize(size, size)
 						b:ClearAllPoints()
 						b:SetPoint("LEFT", strip, "LEFT", x * (size + 2), 0)
@@ -629,10 +685,10 @@ local function Update()
 		local ok, full = pcall(GetUnitName, unit, true)
 		if unit:find("^nameplate") and ok and full and not (issecretvalue and issecretvalue(full)) then
 			b:SetAttribute("type", "macro")
-			b:SetAttribute("macrotext", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(full, need.spell))
+			b:SetAttribute("macrotext", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(full, ns.BuffCast(need.spell, Level(unit))))
 		else
 			b:SetAttribute("type", "spell")
-			b:SetAttribute("spell", need.spell)
+			b:SetAttribute("spell", ns.BuffCast(need.spell, Level(unit))) -- a rank their level allows
 			b:SetAttribute("unit", unit)
 		end
 		b.icon:SetTexture(SpellIcon(need.spell))

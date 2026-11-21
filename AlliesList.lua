@@ -191,7 +191,9 @@ local function Update()
 			r:SetAttribute("macrotext1", "/targetexact " .. e.full)
 			if buff then
 				r:SetAttribute("type2", "macro")
-				r:SetAttribute("macrotext2", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(e.full, buff))
+				-- a rank their level allows: higher ranks can't go on low-level players
+				local cast = ns.BuffCast and ns.BuffCast(buff, e.level) or buff
+				r:SetAttribute("macrotext2", ("/targetexact %s\n/cast %s\n/targetlasttarget"):format(e.full, cast))
 			else
 				r:SetAttribute("type2", nil)
 			end
