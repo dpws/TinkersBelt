@@ -127,8 +127,9 @@ local function MakeRow(i)
 	-- /tb allies click: log every step of a click on a row
 	local function Log(step, mouse)
 		if not L.debug then return end
-		L.Log(("allies click: row %d %s %s macro1=%q target=%s"):format(i, step, tostring(mouse),
-			tostring(r:GetAttribute("macrotext1")), tostring(GetUnitName("target", true))))
+		local macro = r:GetAttribute(mouse == "RightButton" and "macrotext2" or "macrotext1")
+		L.Log(("allies click: row %d %s %s macro=%q target=%s"):format(i, step, tostring(mouse),
+			tostring(macro), tostring(GetUnitName("target", true))))
 	end
 	r:HookScript("OnMouseDown", function(_, mouse) Log("mousedown", mouse) end)
 	r:HookScript("OnMouseUp", function(_, mouse) Log("mouseup", mouse) end)
@@ -203,8 +204,8 @@ ns.slashCommands["allies click"] = function()
 		Say(("allies click: ActionButtonUseKeyDown=%s"):format(tostring(GetCVar and GetCVar("ActionButtonUseKeyDown"))))
 		for i, r in ipairs(rows) do
 			if r:IsShown() then
-				Say(("allies click: row %d level=%s mouse=%s macro1=%q"):format(i, r:GetFrameLevel(),
-					tostring(r:IsMouseEnabled()), tostring(r:GetAttribute("macrotext1"))))
+				Say(("allies click: row %d left=%q right=%q"):format(i,
+					tostring(r:GetAttribute("macrotext1")), tostring(r:GetAttribute("macrotext2"))))
 			end
 		end
 	end)
@@ -213,10 +214,26 @@ ns.slashCommands["allies click"] = function()
 	if L.debug then
 		local last, ticks, lines = nil, 0, {}
 		L.Log = function(msg) print(msg); lines[#lines + 1] = msg end
+		-- what the game says about your casts and any red error text while logging
+		local spy = L.spy or CreateFrame("Frame")
+		L.spy = spy
+		spy:RegisterEvent("UI_ERROR_MESSAGE")
+		for _, e in ipairs({ "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED",
+			"UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_STOP" }) do spy:RegisterUnitEvent(e, "player") end
+		spy:SetScript("OnEvent", function(_, event, a1, a2, a3)
+			if event == "UI_ERROR_MESSAGE" then
+				L.Log(("allies click: game error: %s"):format(tostring(a2)))
+			else
+				local name = a3 and not (issecretvalue and issecretvalue(a3)) and C_Spell.GetSpellName(a3)
+				L.Log(("allies click: %s %s, target=%s"):format(event:lower():gsub("unit_spellcast_", "cast "), tostring(name),
+					tostring(GetUnitName("target", true))))
+			end
+		end)
 		C_Timer.NewTicker(0.5, function()
 			ticks = ticks + 1
 			if ticks == 20 then
 				L.debug = false
+				spy:UnregisterAllEvents()
 				lines[#lines + 1] = "allies click: done (10 seconds)"
 				ns.ShowCopyWindow(table.concat(lines, "\n"))
 				return
