@@ -28,7 +28,7 @@ P.SLOTS = {
 -- Shamans get the same bar for weapon imbues: spells instead of poison items (rank 1 IDs, cast by name =
 -- highest rank). P.imbue is set at login.
 P.IMBUES = { 8017, 8024, 8033, 8232 } -- Rockbiter, Flametongue, Frostbrand, Windfury Weapon
-local function Word() return P.imbue and "imbue" or "poison" end
+local function Word() return P.imbue and Loc["imbue"] or Loc["poison"] end
 
 local bar
 local buttons, states = {}, {}

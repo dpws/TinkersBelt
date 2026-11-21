@@ -270,7 +270,7 @@ local function OpenMenu(owner)
 			sub:CreateButton(Loc["Load both"], function() P.LoadBoth(name) end)
 		end
 		root:CreateDivider()
-		root:CreateButton(Loc["Save / manage...Loc["], function() ns.OpenWindow("]Profiles") end)
+		root:CreateButton(Loc["Save / manage..."], function() ns.OpenWindow("Profiles") end)
 	end)
 end
 
@@ -299,7 +299,7 @@ f:SetScript("OnEvent", Attach)
 -- /tb frames: which talent-like windows are open (to find the talent window on this client)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.frames = function()
-	print((Loc["Tinker's Belt: profiles button attached: %s"]):format(attached and Loc["yes"] or "no"))
+	print((Loc["Tinker's Belt: profiles button attached: %s"]):format(attached and Loc["yes"] or Loc["no"]))
 	if attached then
 		local x, y = attached:GetCenter()
 		print((Loc["  button visible: %s, position: %s, %s (screen %d x %d)"]):format(tostring(attached:IsVisible()),

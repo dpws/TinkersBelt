@@ -824,7 +824,7 @@ local function BuildRestockPage(parent)
 		input:SetPoint("LEFT")
 		local add = T.NewButton(row, Loc["Add"], 64, 26)
 		add:SetPoint("LEFT", input, "RIGHT", 8, 0)
-		local preset = T.NewButton(row, Loc["Add "] .. UnitClass("player") .. " preset", 170, 26, "accent")
+		local preset = T.NewButton(row, (Loc["Add %s preset"]):format(UnitClass("player")), 170, 26, "accent")
 		preset:SetPoint("RIGHT")
 		preset:SetScript("OnClick", function()
 			if not ns.AddRestockPreset() then print(Loc["Tinker's Belt: no preset for your class, add items yourself"]) end
