@@ -1221,6 +1221,8 @@ local function CreateWindow()
 						UpdateDots()
 					end)
 					nav.switch:SetScale(0.8)
+					T.Tip(nav.switch, function() return tool.name .. ": " .. (tool.toggle[1]() and "on" or "off") end,
+						"Click to turn it " .. "on or off")
 					nav.switch:SetPoint("RIGHT", -12, 0)
 					nav.label:SetPoint("RIGHT", nav.switch, "LEFT", -6, 0)
 					nav.label:SetWordWrap(false)

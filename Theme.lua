@@ -209,6 +209,18 @@ end
 ---------------------------------------------------------------------------
 -- Controls
 
+-- a hover tooltip for a control: title (and text) are strings or functions returning them
+function T.Tip(frame, title, text)
+	frame:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine(type(title) == "function" and title() or title)
+		local t = type(text) == "function" and text() or text
+		if t then GameTooltip:AddLine(t, 1, 1, 1, true) end
+		GameTooltip:Show()
+	end)
+	frame:HookScript("OnLeave", GameTooltip_Hide)
+end
+
 -- flat button; kind "accent" = gold fill with dark text
 function T.NewButton(parent, text, w, h, kind)
 	if T.theme == "classic" then

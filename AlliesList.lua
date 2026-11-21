@@ -113,6 +113,7 @@ local function MakeRow(i)
 	-- invite: a plain button left of the row (outside the secure row)
 	r.invite = T.NewButton(frame, "+", 20, 20)
 	r.invite:SetPoint("RIGHT", r, "LEFT", -4, 0)
+	T.Tip(r.invite, "Invite to group")
 	r:SetScript("OnEnter", function(self)
 		if not self.entry then return end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")

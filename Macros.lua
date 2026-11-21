@@ -495,6 +495,14 @@ local CHIP_ROWS = {
 	{ { "Stealth", "stealth", true, 58 }, { "No stealth", "stealth", false, 74 }, { "Dead", "dead", true, 44 },
 		{ "Alive", "dead", false, 46 } },
 }
+local CHIP_TIPS = {
+	Friend = "[help]: only if that unit is friendly", Enemy = "[harm]: only if that unit is an enemy",
+	Shift = "[mod:shift]: only while Shift is held", Ctrl = "[mod:ctrl]: only while Ctrl is held",
+	Alt = "[mod:alt]: only while Alt is held", ["In combat"] = "[combat]: only in combat",
+	["No combat"] = "[nocombat]: only out of combat", Stealth = "[stealth]: only while stealthed or prowling",
+	["No stealth"] = "[nostealth]: only while not stealthed", Dead = "[dead]: only if that unit is dead",
+	Alive = "[nodead]: only if that unit is alive",
+}
 local function ChipOn(o, spec)
 	if spec[3] == nil then return o[spec[2]] == true end
 	return o[spec[2]] == spec[3]
@@ -584,6 +592,8 @@ function ns.BuildMacrosPage(page)
 	nameHint:SetText("Name")
 	local scopeA, scopeC = Chip(ed, "Account", 70), Chip(ed, "Character", 80)
 	scopeA:SetPoint("LEFT", nameBox, "RIGHT", 10, 0)
+	T.Tip(scopeA, "Account macro", "Shared by all your characters")
+	T.Tip(scopeC, "Character macro", "Only this character")
 	scopeC:SetPoint("LEFT", scopeA, "RIGHT", 6, 0)
 	local scopeLabel = T.Text(ed, "regular", 12, T.muted)
 	scopeLabel:SetPoint("LEFT", nameBox, "RIGHT", 12, 0)
@@ -625,6 +635,8 @@ function ns.BuildMacrosPage(page)
 	end)
 	local tipChip, stopChip = Chip(ed, "Spell tooltip", 88), Chip(ed, "Stop casting first", 116)
 	tipChip:SetPoint("LEFT", tmpl, "RIGHT", 10, 0)
+	T.Tip(tipChip, "Spell tooltip", "#showtooltip: the button shows the spell's icon and tooltip")
+	T.Tip(stopChip, "Stop casting first", "/stopcasting first: interrupts what you're casting")
 	stopChip:SetPoint("LEFT", tipChip, "RIGHT", 6, 0)
 	tipChip:SetScript("OnClick", function() cur.model.tooltip = not cur.model.tooltip or nil; Relayout() end)
 	-- which spell the tooltip and icon show: automatic (the one that would cast), a spell of this macro, or any
@@ -696,11 +708,16 @@ function ns.BuildMacrosPage(page)
 				local c = Chip(b, spec[1], spec[4])
 				c:SetPoint("TOPLEFT", x, -32 - (r - 1) * 26)
 				c.spec = spec
+				T.Tip(c, spec[1], CHIP_TIPS[spec[1]] .. ". Click again to turn it off.")
 				x = x + spec[4] + 4
 				b.chips[#b.chips + 1] = c
 			end
 		end
 		b.form = T.NewDropdown(b, 110)
+		T.Tip(b.form, "Form / stance", "[form:N]: only in that form or stance (1 = first on your stance bar)")
+		T.Tip(b.pick, "Pick a spell", "From your spellbook (Use item lines: from your bags)")
+		T.Tip(b.unit, "Cast on", "Who this option casts on")
+		T.Tip(b.rm, "Remove this option")
 		b.form:SetPoint("TOPLEFT", 18 + 58 + 74 + 44 + 46 + 16, -54)
 		-- drag a spell or item from the spellbook / bags into the box
 		b.input:SetScript("OnReceiveDrag", function(self)
@@ -740,6 +757,11 @@ function ns.BuildMacrosPage(page)
 		c.up = T.NewButton(c, "^", 24, 22)
 		c.up:SetPoint("RIGHT", c.down, "LEFT", -4, 0)
 		c.add = T.NewButton(c, "+ or", 60, 22)
+		T.Tip(c.cmd, "Command", "What this line does")
+		T.Tip(c.up, "Move line up")
+		T.Tip(c.down, "Move line down")
+		T.Tip(c.del, "Delete this line")
+		T.Tip(c.add, "Add a fallback", "Another option, used when the ones above don't match")
 		cards[i] = c
 		return c
 	end
