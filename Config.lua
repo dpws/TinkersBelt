@@ -305,7 +305,7 @@ local function BuildTotemsPage(parent)
 			end, 260)
 		end
 	end
-	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s. Keys: Esc > Options > Keybindings > Tinker's Belt: Shaman.")
+	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s. Keys: Esc > Options > Keybindings > Tinker's Belt.")
 	P:Finish()
 end
 
@@ -1267,7 +1267,7 @@ local function CreateWindow()
 
 	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
 	lock:SetPoint("BOTTOMLEFT", 20, 52)
-	-- under it: the game's key binding screen (the addon's keys are in the "Tinker's Belt: ..." categories)
+	-- under it: the game's key binding screen (the addon's keys are in the "Tinker's Belt" category)
 	local keys = T.NewButton(side, "Key bindings", SIDEBAR - 40, 26)
 	keys:SetPoint("BOTTOMLEFT", 20, 18)
 	keys:SetScript("OnClick", function()
@@ -1280,7 +1280,7 @@ local function CreateWindow()
 			ShowUIPanel(KeyBindingFrame)
 		end
 	end)
-	T.Tip(keys, "Key bindings", "Opens the game's key bindings. Tinker's Belt keys are in the \"Tinker's Belt: ...\" categories.")
+	T.Tip(keys, "Key bindings", "Opens the game's key bindings. Tinker's Belt keys are in the \"Tinker's Belt\" category.")
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
 	-- unlocking hides this window so the panels are free to move; locking (here or on the layout bar) brings it back
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked) end)

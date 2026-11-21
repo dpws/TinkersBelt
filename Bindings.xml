@@ -1,22 +1,21 @@
 <Bindings>
-	<!-- Tinker's Belt key bindings. The key binding screen shows categories but not headings inside an addon's
-	     category, so each group is its own category: "Tinker's Belt: General", ": Weapons", ": Rogue", ": Shaman"
-	     (names in Core.lua). CLICK bindings press one of the addon's buttons. -->
-	<Binding name="TINKERSBELT_SETTINGS" category="BINDING_HEADER_TINKERSBELT_GENERAL">TinkersBelt_ToggleSettings()</Binding>
-	<Binding name="TINKERSBELT_UNLOCK" category="BINDING_HEADER_TINKERSBELT_GENERAL">TinkersBelt_ToggleUnlock()</Binding>
-	<Binding name="CLICK DpwsBuffReminder1:LeftButton" category="BINDING_HEADER_TINKERSBELT_GENERAL"/>
+	<!-- Tinker's Belt key bindings, all in one "Tinker's Belt" category (names in Core.lua, grouped by a
+	     "General:", "Rogue:"... prefix). CLICK bindings press one of the addon's buttons. -->
+	<Binding name="TINKERSBELT_SETTINGS" category="BINDING_HEADER_TINKERSBELT">TinkersBelt_ToggleSettings()</Binding>
+	<Binding name="TINKERSBELT_UNLOCK" category="BINDING_HEADER_TINKERSBELT">TinkersBelt_ToggleUnlock()</Binding>
+	<Binding name="CLICK DpwsBuffReminder1:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
 
-	<Binding name="CLICK DpwsPoisonButtonMH:LeftButton" category="BINDING_HEADER_TINKERSBELT_WEAPONS"/>
-	<Binding name="CLICK DpwsPoisonButtonOH:LeftButton" category="BINDING_HEADER_TINKERSBELT_WEAPONS"/>
+	<Binding name="CLICK DpwsPoisonButtonMH:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsPoisonButtonOH:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
 
-	<Binding name="CLICK DpwsWeaponSet1:LeftButton" category="BINDING_HEADER_TINKERSBELT_ROGUE"/>
-	<Binding name="CLICK DpwsWeaponSet2:LeftButton" category="BINDING_HEADER_TINKERSBELT_ROGUE"/>
-	<Binding name="CLICK DpwsPoisonCraftButton:LeftButton" category="BINDING_HEADER_TINKERSBELT_ROGUE"/>
-	<Binding name="CLICK DpwsLockboxButton:LeftButton" category="BINDING_HEADER_TINKERSBELT_ROGUE"/>
+	<Binding name="CLICK DpwsWeaponSet1:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsWeaponSet2:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsPoisonCraftButton:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsLockboxButton:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
 
-	<Binding name="CLICK DpwsTotemSetButton:LeftButton" category="BINDING_HEADER_TINKERSBELT_SHAMAN"/>
-	<Binding name="CLICK DpwsTotemEarth:LeftButton" category="BINDING_HEADER_TINKERSBELT_SHAMAN"/>
-	<Binding name="CLICK DpwsTotemFire:LeftButton" category="BINDING_HEADER_TINKERSBELT_SHAMAN"/>
-	<Binding name="CLICK DpwsTotemWater:LeftButton" category="BINDING_HEADER_TINKERSBELT_SHAMAN"/>
-	<Binding name="CLICK DpwsTotemAir:LeftButton" category="BINDING_HEADER_TINKERSBELT_SHAMAN"/>
+	<Binding name="CLICK DpwsTotemSetButton:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsTotemEarth:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsTotemFire:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsTotemWater:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsTotemAir:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
 </Bindings>
