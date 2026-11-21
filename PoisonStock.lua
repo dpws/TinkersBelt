@@ -74,7 +74,7 @@ function S.MaterialTargets(sold)
 	local targets = {}
 	-- non-rogues (or before login) have no stock list: their restock must still work
 	if ns.db.poisons.buyMats == false or not Stock() or not Recipes() then return targets end
-	local onlyFull = ns.db.poisons.fullSets and sold or nil
+	local onlyFull = ns.db.poisons.fullSets ~= false and sold or nil -- on unless switched off
 	for id, n in pairs(ns.PoisonMaterialsNeed(Stock(), Recipes(), Count, onlyFull)) do targets[id] = Count(id) + n end
 	return targets
 end
