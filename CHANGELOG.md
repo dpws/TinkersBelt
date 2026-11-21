@@ -4,7 +4,7 @@
 
 ### New
 - Nearby allies: choose which buff right-click casts (Friendly Names page).
-- Shamans: key bindings for the totem set and each element's totem (Key Bindings > AddOns > Tinker's Belt).
+- Shamans: key bindings for the totem set and each element's totem (Key Bindings > Tinker's Belt).
 
 ### Changed
 - PvP Kills and PvP Settings are one PvP page: score, recent kills, then settings.

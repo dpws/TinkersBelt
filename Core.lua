@@ -61,6 +61,30 @@ end
 
 -- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps.
 -- Also returns that grid line.
+-- Key Bindings > Tinker's Belt (Bindings.xml): category, headings and each binding's name
+BINDING_HEADER_TINKERSBELT = "Tinker's Belt"
+BINDING_HEADER_TINKERSBELT_GENERAL = "General"
+BINDING_HEADER_TINKERSBELT_WEAPONS = "Weapon poisons and imbues"
+BINDING_HEADER_TINKERSBELT_ROGUE = "Rogue"
+BINDING_HEADER_TINKERSBELT_TOTEMS = "Totems"
+BINDING_NAME_TINKERSBELT_SETTINGS = "Open or close the settings"
+BINDING_NAME_TINKERSBELT_UNLOCK = "Unlock or lock panels"
+for name, text in pairs({
+	DpwsBuffReminder1 = "Cast the first missing buff (Buff Reminder)",
+	DpwsPoisonButtonMH = "Apply to main hand", DpwsPoisonButtonOH = "Apply to off hand",
+	DpwsWeaponSet1 = "Equip opener weapons", DpwsWeaponSet2 = "Equip fight weapons",
+	DpwsPoisonCraftButton = "Craft poisons (opens Poisons, then crafts)", DpwsLockboxButton = "Pick or open a lockbox",
+	DpwsTotemSetButton = "Drop the next totem of your set", DpwsTotemEarth = "Place your set's Earth totem",
+	DpwsTotemFire = "Place your set's Fire totem", DpwsTotemWater = "Place your set's Water totem",
+	DpwsTotemAir = "Place your set's Air totem",
+}) do _G["BINDING_NAME_CLICK " .. name .. ":LeftButton"] = text end
+-- what the two non-button bindings run
+function TinkersBelt_ToggleSettings() if ns.ToggleWindow then ns.ToggleWindow() end end
+function TinkersBelt_ToggleUnlock()
+	if InCombatLockdown() then return print("Tinker's Belt: panels can't be unlocked in combat") end
+	ns.SetUnlocked(not ns.unlocked)
+end
+
 -- Whole features switched off from the settings sidebar (per character). Modules check ns.On(key).
 function ns.On(key) return not (ns.db and ns.db.off and ns.db.off[key]) end
 function ns.SetOn(key, on)

@@ -1,6 +1,18 @@
 <Bindings>
 	<!-- Tinker's Belt key bindings: their own category in Key Bindings (like Movement or Dungeon Journal),
-	     named by BINDING_HEADER_TINKERSBELT; headers group them inside it. Each one presses an addon button. -->
+	     named by BINDING_HEADER_TINKERSBELT; headers group them inside it. CLICK ones press an addon button. -->
+	<Binding name="TINKERSBELT_SETTINGS" header="TINKERSBELT_GENERAL" category="BINDING_HEADER_TINKERSBELT">TinkersBelt_ToggleSettings()</Binding>
+	<Binding name="TINKERSBELT_UNLOCK" category="BINDING_HEADER_TINKERSBELT">TinkersBelt_ToggleUnlock()</Binding>
+	<Binding name="CLICK DpwsBuffReminder1:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+
+	<Binding name="CLICK DpwsPoisonButtonMH:LeftButton" header="TINKERSBELT_WEAPONS" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsPoisonButtonOH:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+
+	<Binding name="CLICK DpwsWeaponSet1:LeftButton" header="TINKERSBELT_ROGUE" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsWeaponSet2:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsPoisonCraftButton:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+	<Binding name="CLICK DpwsLockboxButton:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
+
 	<Binding name="CLICK DpwsTotemSetButton:LeftButton" header="TINKERSBELT_TOTEMS" category="BINDING_HEADER_TINKERSBELT"/>
 	<Binding name="CLICK DpwsTotemEarth:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
 	<Binding name="CLICK DpwsTotemFire:LeftButton" category="BINDING_HEADER_TINKERSBELT"/>
