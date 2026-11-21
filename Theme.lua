@@ -268,6 +268,11 @@ function T.NewButton(parent, text, w, h, kind)
 		if fs then
 			local _, size = fs:GetFont()
 			fs:SetFont(T.font.medium, math.min(size or 12, 12), "")
+			-- the game's button places its text for full-size buttons; centre it so small ones ("+") look right
+			fs:ClearAllPoints()
+			fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+			fs:SetJustifyH("CENTER")
+			fs:SetJustifyV("MIDDLE")
 		end
 		FitText(b, 24)
 		return b
