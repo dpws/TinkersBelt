@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 local T = ns.Theme
 
 ns.STATE_LABELS = {
@@ -41,7 +42,7 @@ local function PageLabel(page)
 		if bar.page == page then return BarLabel(bar) end
 	end
 	if page == 1 then return Colored("Bar 1", true) end
-	return Colored(("Bar 1, page %d"):format(page), false)
+	return Colored((Loc["Bar 1, page %d"]):format(page), false)
 end
 
 -- on-screen overlays showing the number of each visible bar
@@ -78,15 +79,15 @@ local function BuildBarSwitchPage(parent)
 	local P = T.Page(parent)
 	local labels = ns.STATE_LABELS[select(2, UnitClass("player"))]
 	if not labels then
-		P:Note("No stance states for this class.")
+		P:Note(Loc["No stance states for this class."])
 		P:Finish()
 		return
 	end
-	P:Note("Page per bar and state. Drag spells onto a bar while the state is active. Green = visible, gray = hidden.")
-	P:Toggle("Highlight bar numbers on screen", function() return highlightsOn end, function(v) SetHighlights(v) end)
+	P:Note(Loc["Page per bar and state. Drag spells onto a bar while the state is active. Green = visible, gray = hidden."])
+	P:Toggle(Loc["Highlight bar numbers on screen"], function() return highlightsOn end, function(v) SetHighlights(v) end)
 	-- MelloUI's own bars replace Blizzard bars 2-8, which are the ones this addon switches
 	if _G.MelloUIActionBar2Button1 then
-		P:Note("MelloUI's own action bars are active: bar switching won't affect them.", T.red)
+		P:Note(Loc["MelloUI's own action bars are active: bar switching won't affect them."], T.red)
 	end
 	for state = 1, 4 do
 		if labels[state] then
@@ -94,7 +95,7 @@ local function BuildBarSwitchPage(parent)
 			for _, bar in ipairs(ns.BARS) do
 				local function Get() return ns.db.barSwitch[state] and ns.db.barSwitch[state][bar.index] end
 				local d, row = P:Dropdown(BarLabel(bar), function(root)
-					root:CreateRadio("None", function() return Get() == nil end, function()
+					root:CreateRadio(Loc["None"], function() return Get() == nil end, function()
 						ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
 						ns.db.barSwitch[state][bar.index] = nil
 						if not next(ns.db.barSwitch[state]) then ns.db.barSwitch[state] = nil end
@@ -104,7 +105,7 @@ local function BuildBarSwitchPage(parent)
 						root:CreateRadio(PageLabel(page), function() return Get() == page end, function()
 							ns.db.barSwitch[state] = ns.db.barSwitch[state] or {}
 							ns.db.barSwitch[state][bar.index] = page
-							if InCombatLockdown() then print("Tinker's Belt: change applies after combat") end
+							if InCombatLockdown() then print(Loc["Tinker's Belt: change applies after combat"]) end
 							ns.ApplyBarSwitch()
 						end)
 					end
@@ -130,21 +131,21 @@ local function BuildPoisonsPage(parent)
 	local P = T.Page(parent)
 	local class = select(2, UnitClass("player"))
 	if class ~= "ROGUE" and class ~= "SHAMAN" then
-		P:Note("The poison bar is for rogues (and the weapon imbue bar for shamans).")
+		P:Note(Loc["The poison bar is for rogues (and the weapon imbue bar for shamans)."])
 		return P:Finish()
 	end
 	local word = class == "SHAMAN" and "imbue" or "poison"
 	local p = ns.db.poisons
 	local function Rescale() if ns.Poisons then ns.Poisons.ApplyScale() end end
-	P:Card("Reminders")
-	P:Toggle("Play sound with warnings", function() return p.sound end, function(v) p.sound = v end)
-	P:Slider("Warn when less than", 1, 15, 1, "min", function() return p.warnMinutes end, function(v) p.warnMinutes = v end)
-	P:Card("Size")
-	P:Slider("Weapon icons", 50, 200, 10, "%", function() return (p.scale or 1) * 100 end,
+	P:Card(Loc["Reminders"])
+	P:Toggle(Loc["Play sound with warnings"], function() return p.sound end, function(v) p.sound = v end)
+	P:Slider(Loc["Warn when less than"], 1, 15, 1, "min", function() return p.warnMinutes end, function(v) p.warnMinutes = v end)
+	P:Card(Loc["Size"])
+	P:Slider(Loc["Weapon icons"], 50, 200, 10, "%", function() return (p.scale or 1) * 100 end,
 		function(v) p.scale = v / 100; Rescale() end)
 	P:Slider(word == "imbue" and "Imbue icon" or "Poison icon", 50, 200, 10, "%", function() return (p.poisonScale or 1) * 100 end,
 		function(v) p.poisonScale = v / 100; Rescale() end)
-	P:Note(("Left-click: apply %s. Right-click: choose."):format(word))
+	P:Note((Loc["Left-click: apply %s. Right-click: choose."]):format(word))
 	P:Finish()
 end
 
@@ -155,17 +156,17 @@ local function BuildPoisonStockPage(parent)
 	local P = T.Page(parent)
 	local Refresh
 
-	P:Card("Poisons to keep in bags")
+	P:Card(Loc["Poisons to keep in bags"])
 	local status = P:Note(" \n ") -- two lines reserved: the text is set later
-	P:Toggle("Buy ingredients", function() return p.buyMats ~= false end, function(v) p.buyMats = v end)
-	P:Toggle("Only full sets: skip a poison if the vendor lacks one of its ingredients", function() return p.fullSets ~= false end,
+	P:Toggle(Loc["Buy ingredients"], function() return p.buyMats ~= false end, function(v) p.buyMats = v end)
+	P:Toggle(Loc["Only full sets: skip a poison if the vendor lacks one of its ingredients"], function() return p.fullSets ~= false end,
 		function(v) p.fullSets = v end)
 	local rows, MAX_ROWS = {}, 9
 	local add
 	P:Custom(38, function(row)
 		add = T.NewDropdown(row, 260)
 		add:SetPoint("LEFT")
-		add:SetDefaultText("Add poison...")
+		add:SetDefaultText(Loc["Add poison..."])
 		add:SetupMenu(function(_, root)
 			-- once recipes are known, offer only poisons this character can craft
 			local known = ns.db.poisonRecipes
@@ -179,7 +180,7 @@ local function BuildPoisonStockPage(parent)
 				end
 			end
 			-- an empty menu draws broken: say why instead
-			if not any then root:CreateButton("All your poisons are already added"):SetEnabled(false) end
+			if not any then root:CreateButton(Loc["All your poisons are already added"]):SetEnabled(false) end
 		end)
 		-- rebuild the list on every open: recipes learned while the settings were open must show up
 		local open = add:GetScript("OnMouseDown")
@@ -199,7 +200,7 @@ local function BuildPoisonStockPage(parent)
 			r.name:SetPoint("LEFT", r.icon, "RIGHT", 10, 0)
 			r.name:SetWidth(260)
 			r.name:SetWordWrap(false)
-			r.remove = T.NewButton(row, "Remove", 76, 24)
+			r.remove = T.NewButton(row, Loc["Remove"], 76, 24)
 			r.remove:SetPoint("RIGHT")
 			r.count = T.NewInput(row, 56, true)
 			r.count:SetPoint("RIGHT", r.remove, "LEFT", -10, 0)
@@ -213,7 +214,7 @@ local function BuildPoisonStockPage(parent)
 	Refresh = function()
 		local learned = 0
 		for _ in pairs(ns.db.poisonRecipes or {}) do learned = learned + 1 end
-		status:SetText(learned > 0 and ("%d recipes known. Amount = keep in bags."):format(learned)
+		status:SetText(learned > 0 and (Loc["%d recipes known. Amount = keep in bags."]):format(learned)
 			or "|cffffcc00Open your Poisons window once to learn recipes.|r")
 		local ids = {}
 		for id in pairs(p.stock) do ids[#ids + 1] = id end
@@ -224,7 +225,7 @@ local function BuildPoisonStockPage(parent)
 			if id then
 				r.icon:SetTexture(ItemIcon(id))
 				r.name:SetText(ItemName(id))
-				r.have:SetText(("have %d"):format(ItemCount(id)))
+				r.have:SetText((Loc["have %d"]):format(ItemCount(id)))
 				r.count:SetText(p.stock[id])
 				local function Save()
 					local n = tonumber(r.count:GetText())
@@ -244,7 +245,7 @@ local function BuildPoisonStockPage(parent)
 	P:Refresher(Refresh)
 	ns.PoisonStockPageRefresh = function() if parent:IsVisible() then Refresh() end end
 	P:EndCard()
-	local tip = P:Note("Craft button beside the bar when a poison is short. Left-click: open Poisons, again: craft. Right-click: pick. Uses the Auto Restock budget.")
+	local tip = P:Note(Loc["Craft button beside the bar when a poison is short. Left-click: open Poisons, again: craft. Right-click: pick. Uses the Auto Restock budget."])
 	tip:ClearAllPoints()
 	tip:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 2, -18)
 	P:Finish()
@@ -258,12 +259,12 @@ local function BuildRogueTimersPage(parent)
 	local P = T.Page(parent)
 	local rogue = select(2, UnitClass("player")) == "ROGUE"
 	P:Card(rogue and "Slice and Dice and cooldowns" or "Cooldown icons")
-	P:Choice("Show", MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
-	if rogue then P:Toggle("Slice and Dice bar", function() return s.snd end, function(v) s.snd = v; Relayout() end) end
-	P:Slider("Icon size", 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
-	P:Slider("Countdown text size", 6, 24, 1, "px", function() return s.textSize or math.max(math.floor((s.size or 28) * 0.36), 8) end,
+	P:Choice(Loc["Show"], MODES, function() return s.mode or "combat" end, function(v) s.mode = v end, 240)
+	if rogue then P:Toggle(Loc["Slice and Dice bar"], function() return s.snd end, function(v) s.snd = v; Relayout() end) end
+	P:Slider(Loc["Icon size"], 18, 48, 1, "px", function() return s.size or 28 end, function(v) s.size = v; Relayout() end)
+	P:Slider(Loc["Countdown text size"], 6, 24, 1, "px", function() return s.textSize or math.max(math.floor((s.size or 28) * 0.36), 8) end,
 		function(v) s.textSize = v; Relayout() end)
-	P:Card("Cooldowns to show")
+	P:Card(Loc["Cooldowns to show"])
 	for _, c in ipairs(rogue and ns.ROGUE_CDS or ns.SHAMAN_CDS) do
 		local name = C_Spell.GetSpellName(c.id)
 		if name and IsPlayerSpell(c.id) then
@@ -272,7 +273,7 @@ local function BuildRogueTimersPage(parent)
 				function(v) s.off[c.id] = not v; Relayout() end)
 		end
 	end
-	P:Note("Bright = ready, sweep = cooling down." .. (rogue and "" or " Earth Shock = all shocks."))
+	P:Note(Loc["Bright = ready, sweep = cooling down."] .. (rogue and "" or Loc[" Earth Shock = all shocks."]))
 	P:Finish()
 end
 
@@ -280,21 +281,21 @@ local function BuildTotemsPage(parent)
 	local P = T.Page(parent)
 	local s = ns.db.totems
 	if select(2, UnitClass("player")) ~= "SHAMAN" or not s then
-		P:Note("The totem bar is for shamans.")
+		P:Note(Loc["The totem bar is for shamans."])
 		return P:Finish()
 	end
 	local function Refresh() if ns.Totems then ns.Totems.Refresh() end end
-	P:Card("Totem bar")
-	P:Toggle("Show the totem bar", function() return s.enabled end, function(v) s.enabled = v; Refresh() end)
-	P:Toggle("Sound with alerts (totem killed, totem item missing)", function() return s.sound end, function(v) s.sound = v end)
-	P:Slider("Size", 50, 200, 10, "%", function() return (s.scale or 1) * 100 end, function(v) s.scale = v / 100; Refresh() end)
-	P:Note("Left-click: place the set's totem. Right-click: remove it. Shift+click: choose the totem right on the bar. Alert when one is killed early. Red = totem item missing. Last button: Lightning Shield charges.")
+	P:Card(Loc["Totem bar"])
+	P:Toggle(Loc["Show the totem bar"], function() return s.enabled end, function(v) s.enabled = v; Refresh() end)
+	P:Toggle(Loc["Sound with alerts (totem killed, totem item missing)"], function() return s.sound end, function(v) s.sound = v end)
+	P:Slider(Loc["Size"], 50, 200, 10, "%", function() return (s.scale or 1) * 100 end, function(v) s.scale = v / 100; Refresh() end)
+	P:Note(Loc["Left-click: place the set's totem. Right-click: remove it. Shift+click: choose the totem right on the bar. Alert when one is killed early. Red = totem item missing. Last button: Lightning Shield charges."])
 	for i, setName in ipairs(ns.TOTEM_SET_NAMES) do
-		P:Card(setName .. " set")
+		P:Card((Loc["%s set"]):format(Loc[setName]))
 		for _, e in ipairs(ns.TOTEM_ELEMENTS) do
-			P:Dropdown(e.name, function(root)
+			P:Dropdown(Loc[e.name], function(root)
 				local set = s.sets[i]
-				root:CreateRadio("None", function() return set[e.key] == nil end, function() set[e.key] = nil; Refresh() end)
+				root:CreateRadio(Loc["None"], function() return set[e.key] == nil end, function() set[e.key] = nil; Refresh() end)
 				for _, id in ipairs(e.spells) do
 					local name = C_Spell.GetSpellName(id)
 					if name and IsPlayerSpell(id) then
@@ -305,29 +306,29 @@ local function BuildTotemsPage(parent)
 			end, 260)
 		end
 	end
-	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s. Keys: Esc > Options > Keybindings > Tinker's Belt.")
+	P:Note(Loc["Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s. Keys: Esc > Options > Keybindings > Tinker's Belt."])
 	P:Finish()
 end
 
 local function BuildLockboxPage(parent)
 	local P = T.Page(parent)
-	P:Card("How it works")
-	P:Note("Shows when you carry a lockbox you can pick. Click: Pick Lock, again: open. Number = boxes ready.")
+	P:Card(Loc["How it works"])
+	P:Note(Loc["Shows when you carry a lockbox you can pick. Click: Pick Lock, again: open. Number = boxes ready."])
 	P:Finish()
 end
 
 local function BuildOpenerPage(parent)
 	local s = ns.db.opener
 	local P = T.Page(parent)
-	P:Card("Target markers")
-	P:Toggle("Show a Sap icon on sappable enemies while stealthed", function() return s.sap ~= false end, function(v) s.sap = v end)
-	P:Toggle("Show a Pick Pocket icon on enemy nameplates while stealthed", function() return s.markers end, function(v) s.markers = v end)
-	P:Toggle("Sap timer on sapped enemies", function() return s.sapTimer ~= false end, function(v) s.sapTimer = v end)
-	P:Slider("Icon size", 12, 48, 1, "px", function() return s.iconSize or 18 end, function(v) s.iconSize = v end)
-	P:Slider("Icon spacing", 0, 20, 1, "px", function() return s.iconGap or 2 end, function(v) s.iconGap = v end)
-	P:Note("Above idle humanoids (enemy nameplates on). Sap: anyone. Pick Pocket: NPCs not yet picked; remembered only while targeted or on screen.")
-	P:Card("Weapon sets")
-	P:Toggle("Show the weapon set buttons", function() return s.weapons end,
+	P:Card(Loc["Target markers"])
+	P:Toggle(Loc["Show a Sap icon on sappable enemies while stealthed"], function() return s.sap ~= false end, function(v) s.sap = v end)
+	P:Toggle(Loc["Show a Pick Pocket icon on enemy nameplates while stealthed"], function() return s.markers end, function(v) s.markers = v end)
+	P:Toggle(Loc["Sap timer on sapped enemies"], function() return s.sapTimer ~= false end, function(v) s.sapTimer = v end)
+	P:Slider(Loc["Icon size"], 12, 48, 1, "px", function() return s.iconSize or 18 end, function(v) s.iconSize = v end)
+	P:Slider(Loc["Icon spacing"], 0, 20, 1, "px", function() return s.iconGap or 2 end, function(v) s.iconGap = v end)
+	P:Note(Loc["Above idle humanoids (enemy nameplates on). Sap: anyone. Pick Pocket: NPCs not yet picked; remembered only while targeted or on screen."])
+	P:Card(Loc["Weapon sets"])
+	P:Toggle(Loc["Show the weapon set buttons"], function() return s.weapons end,
 		function(v) s.weapons = v; if ns.Opener then ns.Opener.UpdateSets() end end)
 	for _, set in ipairs({ { "opener", "Opener" }, { "fight", "Fight" } }) do
 		P:Custom(34, function(row)
@@ -335,7 +336,7 @@ local function BuildOpenerPage(parent)
 			label:SetPoint("LEFT")
 			label:SetWidth(380)
 			label:SetWordWrap(false)
-			local save = T.NewButton(row, "Save current weapons", 170, 26)
+			local save = T.NewButton(row, Loc["Save current weapons"], 170, 26)
 			save:SetPoint("RIGHT")
 			local function Show()
 				local w = s.sets[set[1]]
@@ -350,7 +351,7 @@ local function BuildOpenerPage(parent)
 			P:Refresher(Show)
 		end)
 	end
-	P:Note("Save Opener and Fight weapons. Click a button to swap (works in combat). Teal = worn.")
+	P:Note(Loc["Save Opener and Fight weapons. Click a button to swap (works in combat). Teal = worn."])
 	P:Finish()
 end
 
@@ -360,18 +361,18 @@ local function BuildComboPage(parent)
 	local MODES = {}
 	for _, m in ipairs(ns.COMBAT_BAR_MODES or {}) do MODES[#MODES + 1] = { m.key, m.name } end
 	local P = T.Page(parent)
-	P:Card("Bars")
+	P:Card(Loc["Bars"])
 	for _, row in ipairs({ { "Health", "healthMode" }, { "Energy", "energyMode" }, { "Combo points", "comboMode" } }) do
 		P:Choice(row[1], MODES, function() return c[row[2]] or "combat" end, function(v) c[row[2]] = v; Relayout() end, 240)
 	end
-	P:Card("Size")
-	P:Slider("Width", 60, 400, 10, "px", function() return c.width end, function(v) c.width = v; Relayout() end)
-	P:Slider("Height", 6, 40, 1, "px", function() return c.height end, function(v) c.height = v; Relayout() end)
-	P:Card("Combo point sounds")
+	P:Card(Loc["Size"])
+	P:Slider(Loc["Width"], 60, 400, 10, "px", function() return c.width end, function(v) c.width = v; Relayout() end)
+	P:Slider(Loc["Height"], 6, 40, 1, "px", function() return c.height end, function(v) c.height = v; Relayout() end)
+	P:Card(Loc["Combo point sounds"])
 	for n = 1, 5 do
 		P:Sound(n == 1 and "1 point" or (n .. " points"), function() return c.sounds[n] end, function(key) c.sounds[n] = key end)
 	end
-	P:Note("Sound when combo points reach this amount.")
+	P:Note(Loc["Sound when combo points reach this amount."])
 	P:Finish()
 end
 
@@ -382,13 +383,13 @@ local function BuildManaPage(parent)
 	local m = ns.db.mana
 	local function Relayout() if ns.Mana then ns.Mana.Layout() end end
 	local P = T.Page(parent)
-	P:Card("Display")
-	P:Choice("Show", { { "always", "Always" }, { "combat", "Only in combat" }, { "off", "Disabled" } },
+	P:Card(Loc["Display"])
+	P:Choice(Loc["Show"], { { "always", "Always" }, { "combat", "Only in combat" }, { "off", "Disabled" } },
 		function() return m.mode or "always" end, function(v) m.mode = v end, 240)
-	P:Card("Size")
-	P:Slider("Width", 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
-	P:Slider("Height", 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
-	P:Note("Fills over the 5-second rule after you spend mana. Hidden at full mana.")
+	P:Card(Loc["Size"])
+	P:Slider(Loc["Width"], 60, 400, 10, "px", function() return m.width end, function(v) m.width = v; Relayout() end)
+	P:Slider(Loc["Height"], 4, 30, 1, "px", function() return m.height end, function(v) m.height = v; Relayout() end)
+	P:Note(Loc["Fills over the 5-second rule after you spend mana. Hidden at full mana."])
 	P:Finish()
 end
 
@@ -399,17 +400,17 @@ local function BuildPvpPage(parent)
 	local a = ns.adb
 	local P = T.Page(parent)
 	local stats, reset
-	P:Card("Score")
+	P:Card(Loc["Score"])
 	P:Custom(36, function(row)
 		stats = T.Text(row, "medium", 13)
 		stats:SetPoint("LEFT", 2, 0)
-		reset = T.NewButton(row, "Reset all scores", 170, 26)
+		reset = T.NewButton(row, Loc["Reset all scores"], 170, 26)
 		reset:SetPoint("RIGHT")
 	end)
 	local who -- nil = all your characters, else one character's full name
 	local ShowPage
-	P:Dropdown("Character", function(root)
-		root:CreateRadio("All characters", function() return who == nil end, function() who = nil; P.refreshAll() end)
+	P:Dropdown(Loc["Character"], function(root)
+		root:CreateRadio(Loc["All characters"], function() return who == nil end, function() who = nil; P.refreshAll() end)
 		for _, name in ipairs(ns.PvpCharacters(a.pvpLog)) do
 			root:CreateRadio(name, function() return who == name end, function() who = name; P.refreshAll() end)
 		end
@@ -420,11 +421,11 @@ local function BuildPvpPage(parent)
 			local s = ns.PvpScoreFor(e, who)
 			if s then players, k, d = players + 1, k + s.k, d + s.d end
 		end
-		stats:SetText(("%d players tracked.  Total %s"):format(players, ns.PvpScoreText({ k = k, d = d })))
+		stats:SetText((Loc["%d players tracked.  Total %s"]):format(players, ns.PvpScoreText({ k = k, d = d })))
 	end
 	-- two clicks to reset: no popup dialog
 	local armed = false
-	local function ResetText() reset:SetText(armed and "Click again to reset" or "Reset all scores") end
+	local function ResetText() reset:SetText(armed and Loc["Click again to reset"] or Loc["Reset all scores"]) end
 	reset:SetScript("OnClick", function()
 		if armed then
 			wipe(a.pvp)
@@ -440,7 +441,7 @@ local function BuildPvpPage(parent)
 	P:Refresher(function() armed = false; ResetText() end)
 
 	-- history: newest first
-	P:Card("Latest kills and deaths")
+	P:Card(Loc["Latest kills and deaths"])
 	local PER_PAGE = 13
 	local COLS = { { "When", 0 }, { "", 90 }, { "Name", 150 }, { "Class", 330 }, { "Lvl", 420 }, { "Character", 460 } }
 	local function Cells(row, font, color)
@@ -470,11 +471,11 @@ local function BuildPvpPage(parent)
 	end
 	local page, prev, nextB, pageText = 1
 	P:Custom(36, function(row)
-		prev = T.NewButton(row, "< Newer", 100, 24)
+		prev = T.NewButton(row, Loc["< Newer"], 100, 24)
 		prev:SetPoint("LEFT")
 		pageText = T.Text(row, "medium", 12, T.muted)
 		pageText:SetPoint("LEFT", prev, "RIGHT", 16, 0)
-		nextB = T.NewButton(row, "Older >", 100, 24)
+		nextB = T.NewButton(row, Loc["Older >"], 100, 24)
 		nextB:SetPoint("LEFT", pageText, "RIGHT", 16, 0)
 	end)
 	ShowPage = function()
@@ -487,18 +488,18 @@ local function BuildPvpPage(parent)
 				local color = e.class and RAID_CLASS_COLORS[e.class]
 				local className = e.class and (LOCALIZED_CLASS_NAMES_MALE[e.class] or e.class) or "?"
 				cells[1]:SetText(date("%m-%d %H:%M", e.t))
-				cells[2]:SetText(e.kind == "k" and "|cff4dcc66Killed|r" or "|cfff25a4dDied|r")
+				cells[2]:SetText(e.kind == "k" and Loc["|cff4dcc66Killed|r"] or Loc["|cfff25a4dDied|r"])
 				cells[3]:SetText(e.name or "?")
 				cells[4]:SetText(color and ("|c%s%s|r"):format(color.colorStr, className) or className)
 				cells[5]:SetText((e.level and e.level > 0) and e.level or "??")
 				local mc = e.meClass and RAID_CLASS_COLORS[e.meClass]
-				cells[6]:SetText(e.me and (mc and ("|c%s%s|r"):format(mc.colorStr, e.me) or e.me) or "|cff8c96a3?|r")
+				cells[6]:SetText(e.me and (mc and ("|c%s%s|r"):format(mc.colorStr, e.me) or e.me) or Loc["|cff8c96a3?|r"])
 			else
 				for _, fs in ipairs(cells) do fs:SetText("") end
 			end
 		end
-		if #log == 0 then rows[1][3]:SetText("No kills or deaths yet") end
-		pageText:SetText(("Page %d / %d"):format(page, pages))
+		if #log == 0 then rows[1][3]:SetText(Loc["No kills or deaths yet"]) end
+		pageText:SetText((Loc["Page %d / %d"]):format(page, pages))
 		prev:SetEnabled(page > 1)
 		nextB:SetEnabled(page < pages)
 	end
@@ -514,26 +515,26 @@ end
 local function BuildPvpSettingsPage(parent)
 	local a = ns.adb
 	local P = T.Page(parent)
-	P:Card("Tooltip and announcements")
-	P:Toggle("Show PvP score on player tooltips", function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end)
-	P:Toggle("Announce kills and deaths (name, level, class, score)", function() return a.pvpAnnounce end, function(v) a.pvpAnnounce = v end)
-	P:Card("Sounds")
-	P:Sound("Kill sound", function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end)
-	P:Sound("Death sound", function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end)
-	P:Note("Open world only. A death counts for the last enemy player who targeted you within 10s.")
+	P:Card(Loc["Tooltip and announcements"])
+	P:Toggle(Loc["Show PvP score on player tooltips"], function() return a.pvpTooltip end, function(v) a.pvpTooltip = v end)
+	P:Toggle(Loc["Announce kills and deaths (name, level, class, score)"], function() return a.pvpAnnounce end, function(v) a.pvpAnnounce = v end)
+	P:Card(Loc["Sounds"])
+	P:Sound(Loc["Kill sound"], function() return a.pvpKillSound end, function(key) a.pvpKillSound = key end)
+	P:Sound(Loc["Death sound"], function() return a.pvpDeathSound end, function(key) a.pvpDeathSound = key end)
+	P:Note(Loc["Open world only. A death counts for the last enemy player who targeted you within 10s."])
 	P:Finish()
 end
 
 local function BuildNearbyPage(parent)
 	local s = ns.adb.nearby
 	local P = T.Page(parent)
-	P:Card("List")
-	P:Slider("Remove after not seen for", 15, 300, 15, "sec", function() return s.timeout end, function(v) s.timeout = v end)
-	P:Card("Alert")
-	P:Choice("Alert", { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } },
+	P:Card(Loc["List"])
+	P:Slider(Loc["Remove after not seen for"], 15, 300, 15, "sec", function() return s.timeout end, function(v) s.timeout = v end)
+	P:Card(Loc["Alert"])
+	P:Choice(Loc["Alert"], { { "off", "Off" }, { "all", "Every new enemy" }, { "killers", "Only players who killed me" } },
 		function() return s.alert end, function(v) s.alert = v end, 260)
-	P:Sound("Alert sound", function() return s.sound end, function(key) s.sound = key end)
-	P:Note("Seen via enemy nameplates (Ctrl+V), target and mouseover. Open world only.")
+	P:Sound(Loc["Alert sound"], function() return s.sound end, function(key) s.sound = key end)
+	P:Note(Loc["Seen via enemy nameplates (Ctrl+V), target and mouseover. Open world only."])
 	P:Finish()
 end
 
@@ -541,9 +542,9 @@ local function BuildBuffsPage(parent)
 	local s = ns.db.buffs
 	local function Refresh() if ns.Buffs then ns.Buffs.Update() end end
 	local P = T.Page(parent)
-	P:Card("Reminder")
-	P:Slider("Warn when less than", 1, 10, 1, "min", function() return s.warn or 3 end, function(v) s.warn = v; Refresh() end)
-	P:Toggle("Sound when a buff drops off you", function() return s.sound end, function(v) s.sound = v end)
+	P:Card(Loc["Reminder"])
+	P:Slider(Loc["Warn when less than"], 1, 10, 1, "min", function() return s.warn or 3 end, function(v) s.warn = v; Refresh() end)
+	P:Toggle(Loc["Sound when a buff drops off you"], function() return s.sound end, function(v) s.sound = v end)
 	-- one switch per buff kind; kinds with several spells (blessings, auras...) get a short group name
 	local KINDS = { blessing = "Blessings", aura = "Auras", armor = "Armor", aspect = "Aspects" }
 	local any = false
@@ -552,24 +553,24 @@ local function BuildBuffsPage(parent)
 			any = true
 			local key = e.def.key
 			local label = #e.known > 1 and (KINDS[key] or e.known[1]) or e.known[1]
-			P:Toggle("Remind: " .. label .. (e.def.self and "" or " (group)"),
+			P:Toggle((e.def.self and Loc["Remind: %s"] or Loc["Remind: %s (group)"]):format(Loc[label]),
 				function() local off = s.off[key]; if off == nil then off = e.def.off end; return not off end,
 				function(v) s.off[key] = not v; Refresh() end)
 		end
 	end
-	if not any then P:Note("No tracked buffs known yet.") end
-	P:Note("A button per missing buff. Click: cast on the first, hover: who. Updates after combat.")
+	if not any then P:Note(Loc["No tracked buffs known yet."]) end
+	P:Note(Loc["A button per missing buff. Click: cast on the first, hover: who. Updates after combat."])
 
-	P:Card("Party frames")
-	P:Toggle("Buff buttons beside party frames", function() return s.strips end, function(v) s.strips = v; Refresh() end)
-	P:Slider("Button size", 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
-	P:Note("Dim = has it, red = missing, minutes = running out. Click: cast. Paladins: right-click to pick a blessing. Not in raids.")
-	P:Card("Nearby players")
-	P:Toggle("Also buff nearby players outside your group", function() return s.nearby ~= false end, function(v) s.nearby = v; Refresh() end)
-	P:Note("After your group, nearest first. Needs Friendly Names. PvP-flagged players skipped unless you're flagged.")
+	P:Card(Loc["Party frames"])
+	P:Toggle(Loc["Buff buttons beside party frames"], function() return s.strips end, function(v) s.strips = v; Refresh() end)
+	P:Slider(Loc["Button size"], 12, 32, 1, "px", function() return s.size or 18 end, function(v) s.size = v; Refresh() end)
+	P:Note(Loc["Dim = has it, red = missing, minutes = running out. Click: cast. Paladins: right-click to pick a blessing. Not in raids."])
+	P:Card(Loc["Nearby players"])
+	P:Toggle(Loc["Also buff nearby players outside your group"], function() return s.nearby ~= false end, function(v) s.nearby = v; Refresh() end)
+	P:Note(Loc["After your group, nearest first. Needs Friendly Names. PvP-flagged players skipped unless you're flagged."])
 
 	-- last on the page: the card shrinks to the buffs listed
-	P:Card("My extra buffs")
+	P:Card(Loc["My extra buffs"])
 	local rows, MAX_ROWS = {}, 8
 	local function SpellId(text)
 		local id = tonumber(text:match("spell:(%d+)") or text:match("^%s*(%d+)%s*$"))
@@ -581,11 +582,11 @@ local function BuildBuffsPage(parent)
 	P:Custom(38, function(row)
 		local input = T.NewInput(row, 260)
 		input:SetPoint("LEFT")
-		local add = T.NewButton(row, "Add", 64, 26)
+		local add = T.NewButton(row, Loc["Add"], 64, 26)
 		add:SetPoint("LEFT", input, "RIGHT", 8, 0)
 		local function DoAdd()
 			local id = SpellId(input:GetText() or "")
-			if id then s.custom[id] = true else ns.Notify("No spell found: " .. (input:GetText() or "")) end
+			if id then s.custom[id] = true else ns.Notify(Loc["No spell found: "] .. (input:GetText() or "")) end
 			input:SetText("")
 			input:ClearFocus()
 			if ns.Buffs then ns.Buffs.Reload() end
@@ -600,7 +601,7 @@ local function BuildBuffsPage(parent)
 		if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", InsertLink) end
 		if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", InsertLink) end
 	end)
-	P:Note("Self buffs (auras, Righteous Fury, shields): type a name or Shift-click it in the spellbook.")
+	P:Note(Loc["Self buffs (auras, Righteous Fury, shields): type a name or Shift-click it in the spellbook."])
 	local card, rowsTop = P.card, P.card.y
 	for i = 1, MAX_ROWS do
 		P:Custom(30, function(row)
@@ -610,7 +611,7 @@ local function BuildBuffsPage(parent)
 			x.icon:SetPoint("LEFT", 2, 0)
 			x.name = T.Text(row, "medium", 13)
 			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
-			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove = T.NewButton(row, Loc["Remove"], 76, 24)
 			x.remove:SetPoint("RIGHT")
 			rows[i] = x
 		end)
@@ -644,40 +645,40 @@ end
 local function BuildAlliesPage(parent)
 	local s = ns.adb.allies
 	local P = T.Page(parent)
-	P:Card("Label")
+	P:Card(Loc["Label"])
 	local function Redraw() if ns.Allies then ns.Allies.Refresh() end end
-	P:Slider("Name size", 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
-	P:Toggle("Show level before the name", function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
-	P:Toggle("Show guild under the name", function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
+	P:Slider(Loc["Name size"], 9, 20, 1, "px", function() return s.size or 13 end, function(v) s.size = v; Redraw() end)
+	P:Toggle(Loc["Show level before the name"], function() return s.level ~= false end, function(v) s.level = v; Redraw() end)
+	P:Toggle(Loc["Show guild under the name"], function() return s.guild ~= false end, function(v) s.guild = v; Redraw() end)
 	local list = ns.db.alliesList
 	local function RefreshList() if ns.AlliesList then ns.AlliesList.Update() end end
-	P:Card("Nearby allies list")
-	P:Toggle("Show the nearby allies list", function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
-	P:Slider("Rows", 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
-	P:Dropdown("Right-click casts", function(root)
+	P:Card(Loc["Nearby allies list"])
+	P:Toggle(Loc["Show the nearby allies list"], function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
+	P:Slider(Loc["Rows"], 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
+	P:Dropdown(Loc["Right-click casts"], function(root)
 		local choices = ns.AlliesList and ns.AlliesList.BuffChoices() or {}
-		root:CreateRadio("Class default", function() return list.buff == nil end, function() list.buff = nil; RefreshList() end)
+		root:CreateRadio(Loc["Class default"], function() return list.buff == nil end, function() list.buff = nil; RefreshList() end)
 		for _, id in ipairs(choices) do
 			root:CreateRadio(("|T%s:16|t %s"):format(C_Spell.GetSpellTexture(id) or 134400, C_Spell.GetSpellName(id) or id),
 				function() return list.buff == id end, function() list.buff = id; RefreshList() end)
 		end
-		if #choices == 0 then root:CreateButton("No buffs for others known yet"):SetEnabled(false) end
+		if #choices == 0 then root:CreateButton(Loc["No buffs for others known yet"]):SetEnabled(false) end
 	end, 260)
-	P:Toggle("Hide the list in cities and inns", function() return list.hideInCities end, function(v) list.hideInCities = v; RefreshList() end)
-	P:Note("Closest first. Left-click: target, right-click: buff, +: invite. Paused in combat. Needs Friendly Names.")
-	P:Card("About")
-	P:Note("Name labels instead of nameplates. Turning off restores your nameplate setting.")
+	P:Toggle(Loc["Hide the list in cities and inns"], function() return list.hideInCities end, function(v) list.hideInCities = v; RefreshList() end)
+	P:Note(Loc["Closest first. Left-click: target, right-click: buff, +: invite. Paused in combat. Needs Friendly Names."])
+	P:Card(Loc["About"])
+	P:Note(Loc["Name labels instead of nameplates. Turning off restores your nameplate setting."])
 	P:Finish()
 end
 
 local function BuildProfilesPage(parent)
 	local P = T.Page(parent)
-	P:Card("Save current bars and talents")
+	P:Card(Loc["Save current bars and talents"])
 	P:Custom(38, function(row)
 		local input = T.NewInput(row, 260)
 		input:SetPoint("LEFT")
 		input:SetMaxLetters(32)
-		local save = T.NewButton(row, "Save", 90, 26, "accent")
+		local save = T.NewButton(row, Loc["Save"], 90, 26, "accent")
 		save:SetPoint("LEFT", input, "RIGHT", 10, 0)
 		local function DoSave()
 			local name = strtrim(input:GetText() or "")
@@ -685,14 +686,14 @@ local function BuildProfilesPage(parent)
 			ns.Profiles.Save(name)
 			input:SetText("")
 			input:ClearFocus()
-			print(("Tinker's Belt: saved profile '%s'"):format(name))
+			print((Loc["Tinker's Belt: saved profile '%s'"]):format(name))
 		end
 		save:SetScript("OnClick", DoSave)
 		input:SetScript("OnEnterPressed", DoSave)
 	end)
-	P:Note("Shared by your characters of this class. Loading bars backs up the current ones first.")
+	P:Note(Loc["Shared by your characters of this class. Loading bars backs up the current ones first."])
 
-	P:Card("Saved profiles")
+	P:Card(Loc["Saved profiles"])
 	local rows, MAX_ROWS = {}, 8
 	for i = 1, MAX_ROWS do
 		P:Custom(40, function(row)
@@ -703,13 +704,13 @@ local function BuildProfilesPage(parent)
 			r.name:SetWordWrap(false)
 			r.info = T.Text(row, "regular", 11, T.muted)
 			r.info:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -3)
-			r.delete = T.NewButton(row, "Delete", 70, 24)
+			r.delete = T.NewButton(row, Loc["Delete"], 70, 24)
 			r.delete:SetPoint("RIGHT")
-			r.both = T.NewButton(row, "Both", 64, 24)
+			r.both = T.NewButton(row, Loc["Both"], 64, 24)
 			r.both:SetPoint("RIGHT", r.delete, "LEFT", -8, 0)
-			r.talents = T.NewButton(row, "Talents", 70, 24)
+			r.talents = T.NewButton(row, Loc["Talents"], 70, 24)
 			r.talents:SetPoint("RIGHT", r.both, "LEFT", -8, 0)
-			r.bars = T.NewButton(row, "Bars", 64, 24)
+			r.bars = T.NewButton(row, Loc["Bars"], 64, 24)
 			r.bars:SetPoint("RIGHT", r.talents, "LEFT", -8, 0)
 			rows[i] = r
 		end)
@@ -725,12 +726,12 @@ local function BuildProfilesPage(parent)
 			if name then
 				local p = ns.Profiles.Get(name)
 				r.name:SetText(name)
-				r.info:SetText(("by %s, %s"):format(p.by or "?", date("%Y-%m-%d %H:%M", p.at or 0)))
+				r.info:SetText((Loc["by %s, %s"]):format(p.by or "?", date("%Y-%m-%d %H:%M", p.at or 0)))
 				r.bars:SetScript("OnClick", function() ns.Profiles.LoadBars(name) end)
 				r.talents:SetScript("OnClick", function() ns.Profiles.LoadTalents(name) end)
 				r.both:SetScript("OnClick", function() ns.Profiles.LoadBoth(name) end)
 				-- two clicks to delete: no popup dialog
-				r.delete:SetText(armedDelete == name and "Sure?" or "Delete")
+				r.delete:SetText(armedDelete == name and Loc["Sure?"] or Loc["Delete"])
 				r.delete:SetScript("OnClick", function()
 					if armedDelete == name then
 						armedDelete = nil
@@ -742,7 +743,7 @@ local function BuildProfilesPage(parent)
 				end)
 			end
 		end
-		empty:SetText(#names == 0 and "No profiles yet." or (#names > MAX_ROWS and ("+%d more"):format(#names - MAX_ROWS) or ""))
+		empty:SetText(#names == 0 and Loc["No profiles yet."] or (#names > MAX_ROWS and (Loc["+%d more"]):format(#names - MAX_ROWS) or ""))
 	end
 	ns.OnProfilesChanged = function() if parent:IsVisible() then Refresh() end end
 	P:Refresher(function() armedDelete = nil; Refresh() end)
@@ -752,20 +753,20 @@ end
 local function BuildCleanerPage(parent)
 	local P = T.Page(parent)
 	local s = ns.db.cleaner
-	if not s then P:Note("Loading..."); return P:Finish() end
+	if not s then P:Note(Loc["Loading..."]); return P:Finish() end
 	local function Refresh() if ns.BagCleaner then ns.BagCleaner.Update() end end
-	P:Card("When bags fill up")
-	P:Slider("Show when free slots are at most", 0, 5, 1, nil, function() return s.freeAt or 0 end,
+	P:Card(Loc["When bags fill up"])
+	P:Slider(Loc["Show when free slots are at most"], 0, 5, 1, nil, function() return s.freeAt or 0 end,
 		function(v) s.freeAt = v; Refresh() end)
-	P:Slider("Stacks to list", 1, 10, 1, nil, function() return s.n or 5 end, function(v) s.n = v; Refresh() end)
+	P:Slider(Loc["Stacks to list"], 1, 10, 1, nil, function() return s.n or 5 end, function(v) s.n = v; Refresh() end)
 	local Q = {}
 	for q = 0, 3 do Q[#Q + 1] = { q, ns.BagCleaner and ns.BagCleaner.QUALITY_NAMES[q] or tostring(q) } end
-	P:Choice("Delete up to quality", Q, function() return s.maxQuality or 1 end, function(v) s.maxQuality = v; Refresh() end, 240)
-	P:Note("Cheapest whole stack first (vendor price x count). Click a row to delete that stack: it can't be undone. Right-click a row to protect that item. Items with no vendor price (quest items, keys, Hearthstone) are never listed.")
+	P:Choice(Loc["Delete up to quality"], Q, function() return s.maxQuality or 1 end, function(v) s.maxQuality = v; Refresh() end, 240)
+	P:Note(Loc["Cheapest whole stack first (vendor price x count). Click a row to delete that stack: it can't be undone. Right-click a row to protect that item. Items with no vendor price (quest items, keys, Hearthstone) are never listed."])
 
 	-- last on the page: the card shrinks to the items protected
-	P:Card("Protected items (all characters)")
-	local empty = P:Note("Nothing protected yet. Right-click a row in the Bag Cleaner panel.")
+	P:Card(Loc["Protected items (all characters)"])
+	local empty = P:Note(Loc["Nothing protected yet. Right-click a row in the Bag Cleaner panel."])
 	local card, rowsTop = P.card, P.card.y
 	local rows, MAX_ROWS = {}, 12
 	for i = 1, MAX_ROWS do
@@ -776,7 +777,7 @@ local function BuildCleanerPage(parent)
 			x.icon:SetPoint("LEFT", 2, 0)
 			x.name = T.Text(row, "medium", 13)
 			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
-			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove = T.NewButton(row, Loc["Remove"], 76, 24)
 			x.remove:SetPoint("RIGHT")
 			rows[i] = x
 		end)
@@ -812,21 +813,21 @@ end
 local function BuildRestockPage(parent)
 	local r = ns.db.restock
 	local P = T.Page(parent)
-	P:Card("Budget")
-	P:Slider("Spend at most per vendor visit", 1, 50, 1, "g", function() return math.floor(r.budget / 10000) end,
+	P:Card(Loc["Budget"])
+	P:Slider(Loc["Spend at most per vendor visit"], 1, 50, 1, "g", function() return math.floor(r.budget / 10000) end,
 		function(v) r.budget = v * 10000 end)
 
-	P:Card("Shopping list")
+	P:Card(Loc["Shopping list"])
 	local rows, Refresh, MAX_ROWS = {}, nil, 8
 	P:Custom(38, function(row)
 		local input = T.NewInput(row, 240)
 		input:SetPoint("LEFT")
-		local add = T.NewButton(row, "Add", 64, 26)
+		local add = T.NewButton(row, Loc["Add"], 64, 26)
 		add:SetPoint("LEFT", input, "RIGHT", 8, 0)
-		local preset = T.NewButton(row, "Add " .. UnitClass("player") .. " preset", 170, 26, "accent")
+		local preset = T.NewButton(row, Loc["Add "] .. UnitClass("player") .. " preset", 170, 26, "accent")
 		preset:SetPoint("RIGHT")
 		preset:SetScript("OnClick", function()
-			if not ns.AddRestockPreset() then print("Tinker's Belt: no preset for your class, add items yourself") end
+			if not ns.AddRestockPreset() then print(Loc["Tinker's Belt: no preset for your class, add items yourself"]) end
 			Refresh()
 		end)
 		local function DoAdd()
@@ -856,7 +857,7 @@ local function BuildRestockPage(parent)
 			x.name:SetPoint("LEFT", x.icon, "RIGHT", 10, 0)
 			x.name:SetWidth(300)
 			x.name:SetWordWrap(false)
-			x.remove = T.NewButton(row, "Remove", 76, 24)
+			x.remove = T.NewButton(row, Loc["Remove"], 76, 24)
 			x.remove:SetPoint("RIGHT")
 			x.count = T.NewInput(row, 60, true)
 			x.count:SetPoint("RIGHT", x.remove, "LEFT", -10, 0)
@@ -865,7 +866,7 @@ local function BuildRestockPage(parent)
 	end
 	local more = P:Note("")
 	P:EndCard()
-	P:Note("Shift-click an item or type its ID. Poison Stock ingredients are added automatically.")
+	P:Note(Loc["Shift-click an item or type its ID. Poison Stock ingredients are added automatically."])
 
 	Refresh = function()
 		local ids = {}
@@ -888,7 +889,7 @@ local function BuildRestockPage(parent)
 				x.remove:SetScript("OnClick", function() r.items[id] = nil; Refresh() end)
 			end
 		end
-		more:SetText(#ids > MAX_ROWS and ("+%d more (remove some to see them)"):format(#ids - MAX_ROWS) or
+		more:SetText(#ids > MAX_ROWS and (Loc["+%d more (remove some to see them)"]):format(#ids - MAX_ROWS) or
 			(#ids == 0 and "No items yet: add your class preset or your own items." or ""))
 	end
 	P:Refresher(Refresh)
@@ -911,36 +912,36 @@ end
 
 -- in the class section, and in the Shaman section for shamans
 local MANA_TOOL = { name = "Mana Regen", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
-	desc = "The five second rule, then regeneration.",
+	desc = Loc["The five second rule, then regeneration."],
 	toggle = Switch("mana", function() if ns.Mana then ns.Mana.Layout() end end) }
 local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
-	desc = "Never forget a buff: on you, your group, and beside party frames.",
+	desc = Loc["Never forget a buff: on you, your group, and beside party frames."],
 	toggle = { function() return ns.db.buffs.enabled end,
 		function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } }
 
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP", build = function(p) BuildPvpPage(p); BuildPvpSettingsPage(p) end, icon = ICON .. "Ability_DualWield",
-			desc = "Your score against enemy players, recent kills and deaths, and PvP settings.", toggle = Switch("pvp") },
+			desc = Loc["Your score against enemy players, recent kills and deaths, and PvP settings."], toggle = Switch("pvp") },
 		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye",
-			desc = "Opposite-faction players seen around you.",
+			desc = Loc["Opposite-faction players seen around you."],
 			toggle = { function() return ns.adb.nearby.enabled end,
 				function(v) ns.adb.nearby.enabled = v; if ns.RefreshNearby then ns.RefreshNearby() end end } },
 		{ name = "Friendly Names", build = BuildAlliesPage, icon = ICON .. "Spell_Holy_PrayerOfHealing02",
-			desc = "Clean name labels above friendly players: class colour and guild, no nameplate.",
+			desc = Loc["Clean name labels above friendly players: class colour and guild, no nameplate."],
 			toggle = { function() return ns.adb.allies.enabled end,
 				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
-			desc = "Save and load action bars and talents, shared by your characters of this class.",
+			desc = Loc["Save and load action bars and talents, shared by your characters of this class."],
 			hidden = function() return ns.PROFILES_HIDDEN end },
 		{ name = "Macros", build = function(p) ns.BuildMacrosPage(p) end, icon = ICON .. "INV_Misc_Note_01",
-			desc = "Visual macro builder: blocks and switches, live preview." },
+			desc = Loc["Visual macro builder: blocks and switches, live preview."] },
 		{ name = "Bag Cleaner", build = BuildCleanerPage, icon = ICON .. "INV_Misc_Bag_08",
-			desc = "When bags are full: the cheapest stacks, click to delete.",
+			desc = Loc["When bags are full: the cheapest stacks, click to delete."],
 			toggle = { function() return ns.db.cleaner and ns.db.cleaner.enabled end,
 				function(v) if ns.db.cleaner then ns.db.cleaner.enabled = v; if ns.BagCleaner then ns.BagCleaner.Update() end end end } },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
-			desc = "Buy reagents and supplies automatically at vendors.",
+			desc = Loc["Buy reagents and supplies automatically at vendors."],
 			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },
 	} },
 	-- named after your class (a paladin's buffs aren't "caster" tools); shamans get these in their own section
@@ -948,32 +949,32 @@ local GROUPS = {
 		tools = { MANA_TOOL, BUFFS_TOOL } },
 	{ name = "Shaman", class = "SHAMAN", tools = {
 		{ name = "Weapon Imbues", build = BuildPoisonsPage, icon = ICON .. "Spell_Nature_RockBiter",
-			desc = "Weapon imbue bar with reminders before it runs out.",
+			desc = Loc["Weapon imbue bar with reminders before it runs out."],
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
 		{ name = "Totems", build = BuildTotemsPage, icon = ICON .. "Spell_Nature_StoneSkinTotem",
-			desc = "Totem timers, kill alerts, totem sets and Lightning Shield charges.",
+			desc = Loc["Totem timers, kill alerts, totem sets and Lightning Shield charges."],
 			toggle = { function() return ns.db.totems and ns.db.totems.enabled end,
 				function(v) if ns.db.totems then ns.db.totems.enabled = v; if ns.Totems then ns.Totems.Refresh() end end end } },
 		{ name = "Cooldowns", build = BuildRogueTimersPage, icon = ICON .. "Spell_Nature_EarthShock",
-			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.", toggle = Switch("combat", RelayoutCombat) },
+			desc = Loc["Cooldown icons: shocks, Grounding Totem, Stormstrike and more."], toggle = Switch("combat", RelayoutCombat) },
 		MANA_TOOL, BUFFS_TOOL,
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
-			desc = "Which bars switch page while in Stealth.", toggle = Switch("barswitch", function() ns.ApplyBarSwitch() end) },
+			desc = Loc["Which bars switch page while in Stealth."], toggle = Switch("barswitch", function() ns.ApplyBarSwitch() end) },
 		{ name = "Poisons", build = function(p) BuildPoisonsPage(p); BuildPoisonStockPage(p) end, icon = ICON .. "Ability_Poisons",
-			desc = "Weapon poison bar, reminders, and poisons kept in bags.",
+			desc = Loc["Weapon poison bar, reminders, and poisons kept in bags."],
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
 		{ name = "Combat Bars", build = function(p) BuildComboPage(p); BuildRogueTimersPage(p) end, icon = ICON .. "Ability_Rogue_Eviscerate",
-			desc = "Health, energy and combo point bars, Slice and Dice and cooldowns.", toggle = Switch("combat", RelayoutCombat) },
+			desc = Loc["Health, energy and combo point bars, Slice and Dice and cooldowns."], toggle = Switch("combat", RelayoutCombat) },
 		{ name = "Lockboxes", build = BuildLockboxPage, icon = ICON .. "INV_Box_04",
-			desc = "One button to pick and open your lockboxes.",
+			desc = Loc["One button to pick and open your lockboxes."],
 			toggle = { function() return ns.db.lockbox.enabled end,
 				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
 		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "INV_Misc_Bag_11",
-			desc = "Sap / Pick Pocket icons on nameplates and opener weapon sets.",
+			desc = Loc["Sap / Pick Pocket icons on nameplates and opener weapon sets."],
 			toggle = Switch("opener", function() if ns.Opener then ns.Opener.UpdateSets() end end) },
 	} },
 }
@@ -1060,13 +1061,13 @@ local function CreateWindow()
 	logo:SetTexture("Interface\\AddOns\\TinkersBelt\\media\\icon")
 	local kicker = T.Text(header, "semibold", 10, T.muted)
 	kicker:SetPoint("TOPLEFT", logo, "TOPRIGHT", 16, -2)
-	kicker:SetText(("WOW FOREVER   -   %s"):format((UnitClass("player") or ""):upper()))
+	kicker:SetText((Loc["WOW FOREVER   -   %s"]):format((UnitClass("player") or ""):upper()))
 	local title = T.Text(header, "semibold", 30, T.gold)
 	title:SetPoint("TOPLEFT", kicker, "BOTTOMLEFT", -1, -4)
-	title:SetText("Tinker's Belt")
+	title:SetText(Loc["Tinker's Belt"])
 	local tagline = T.Text(header, "medium", 13, T.text)
 	tagline:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 1, -4)
-	tagline:SetText("Small tools for everyday play.")
+	tagline:SetText(Loc["Small tools for everyday play."])
 	local accent = header:CreateTexture(nil, "ARTWORK")
 	accent:SetTexture(T.WHITE)
 	accent:SetHeight(2)
@@ -1086,12 +1087,12 @@ local function CreateWindow()
 	local theme = T.NewDropdown(header, 130)
 	theme:SetPoint("RIGHT", close, "LEFT", -12, 0)
 	theme:SetupMenu(function(_, root)
-		root:CreateTitle("Theme")
+		root:CreateTitle(Loc["Theme"])
 		for _, o in ipairs({ { "modern", "Modern" }, { "classic", "Classic WoW" } }) do
-			root:CreateRadio(o[2], function() return (ns.adb.theme or "modern") == o[1] end, function()
+			root:CreateRadio(Loc[o[2]], function() return (ns.adb.theme or "modern") == o[1] end, function()
 				if (ns.adb.theme or "modern") == o[1] then return end
 				ns.adb.theme = o[1] ~= "modern" and o[1] or nil
-				ns.RequestReload("theme changes after a reload")
+				ns.RequestReload(Loc["theme changes after a reload"])
 			end)
 		end
 	end)
@@ -1110,17 +1111,17 @@ local function CreateWindow()
 	local footer = T.Text(f, "medium", 12, T.text)
 	footer:SetPoint("BOTTOM", 0, 9)
 	footer:SetJustifyH("CENTER")
-	footer:SetText("Ready")
+	footer:SetText(Loc["Ready"])
 	ns.SetFooter = function(text) footer:SetText(text) end
 	-- settings that only take full effect after a reload: footer warning + Reload button
-	local reloadBtn = T.NewButton(f, "Reload UI", 100, 22, "accent")
+	local reloadBtn = T.NewButton(f, Loc["Reload UI"], 100, 22, "accent")
 	reloadBtn:SetPoint("BOTTOMRIGHT", -14, 4)
 	reloadBtn:SetScript("OnClick", function() (C_UI and C_UI.Reload or ReloadUI)() end)
 	reloadBtn:Hide()
 	ns.RequestReload = function(reason)
-		footer:SetText("|cffffcc00Reload needed:|r " .. reason)
+		footer:SetText(Loc["|cffffcc00Reload needed:|r "] .. reason)
 		reloadBtn:Show()
-		print("Tinker's Belt: reload needed - " .. reason .. " (Reload UI button in /tb, or /reload)")
+		print(Loc["Tinker's Belt: reload needed - "] .. reason .. Loc[" (Reload UI button in /tb, or /reload)"])
 	end
 
 	-- sidebar: section labels, nav items with status dots, shared actions at the bottom
@@ -1182,12 +1183,12 @@ local function CreateWindow()
 		end
 		local tool = nav.tool
 		pageIcon:SetTexture(tool.icon)
-		pageTitle:SetText(tool.name)
+		pageTitle:SetText(Loc[tool.name])
 		pageDesc:SetText(tool.desc or "")
 		headToggle:SetShown(tool.toggle ~= nil)
 		headLabel:SetShown(tool.toggle ~= nil)
 		if tool.toggle then
-			headLabel:SetText(tool.toggleText or "Enable " .. tool.name:lower())
+			headLabel:SetText(tool.toggleText or (Loc["Enable %s"]):format(Loc[tool.name]))
 			headToggle:SetChecked(tool.toggle[1]())
 		end
 		UpdateDots()
@@ -1222,7 +1223,7 @@ local function CreateWindow()
 			for _, t in ipairs(group.tools) do if not (t.hidden and t.hidden()) then visible[#visible + 1] = t end end
 			local label = T.Text(listIn, "semibold", 10, T.muted)
 			label:SetPoint("TOPLEFT", 26, y)
-			label:SetText((group.name == "@class" and UnitClass("player") or group.name):upper())
+			label:SetText((group.name == "@class" and UnitClass("player") or Loc[group.name]):upper())
 			y = y - 18
 			for _, tool in ipairs(visible) do
 				local nav = CreateFrame("Button", nil, listIn)
@@ -1246,7 +1247,7 @@ local function CreateWindow()
 				nav.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 				nav.label = T.Text(nav, "medium", 14, T.text)
 				nav.label:SetPoint("LEFT", nav.icon, "RIGHT", 12, 0)
-				nav.label:SetText(tool.name)
+				nav.label:SetText(Loc[tool.name])
 				-- the feature's on/off switch, right in the list (clicking it doesn't open the page)
 				if tool.toggle then
 					nav.switch = T.NewToggle(nav, function(on)
@@ -1255,7 +1256,7 @@ local function CreateWindow()
 						UpdateDots()
 					end)
 					nav.switch:SetScale(0.8)
-					T.Tip(nav.switch, function() return tool.name .. ": " .. (tool.toggle[1]() and "on" or "off") end,
+					T.Tip(nav.switch, function() return Loc[tool.name] .. ": " .. (tool.toggle[1]() and Loc["on"] or Loc["off"]) end,
 						"Click to turn it " .. "on or off")
 					nav.switch:SetPoint("RIGHT", -12, 0)
 					nav.label:SetPoint("RIGHT", nav.switch, "LEFT", -6, 0)
@@ -1288,17 +1289,17 @@ local function CreateWindow()
 	if navs[1] then
 		Select(navs[1])
 	else
-		pageTitle:SetText("No tools for your class yet")
+		pageTitle:SetText(Loc["No tools for your class yet"])
 		headToggle:Hide()
 	end
 
-	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
+	local lock = T.NewButton(side, Loc["Unlock panels"], SIDEBAR - 40, 28, "accent")
 	lock:SetPoint("BOTTOMLEFT", 20, 52)
 	-- under it: the game's key binding screen (the addon's keys are in the "Tinker's Belt" category)
-	local keys = T.NewButton(side, "Key bindings", SIDEBAR - 40, 26)
+	local keys = T.NewButton(side, Loc["Key bindings"], SIDEBAR - 40, 26)
 	keys:SetPoint("BOTTOMLEFT", 20, 18)
 	keys:SetScript("OnClick", function()
-		if InCombatLockdown() then return print("Tinker's Belt: key bindings can't be opened in combat") end
+		if InCombatLockdown() then return print(Loc["Tinker's Belt: key bindings can't be opened in combat"]) end
 		f:Hide()
 		if Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID then
 			-- second argument: scroll to the Tinker's Belt section (ignored if this client can't)
@@ -1309,8 +1310,8 @@ local function CreateWindow()
 			ShowUIPanel(KeyBindingFrame)
 		end
 	end)
-	T.Tip(keys, "Key bindings", "Opens the game's key bindings. Tinker's Belt keys are in the \"Tinker's Belt\" category.")
-	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
+	T.Tip(keys, Loc["Key bindings"], "Opens the game's key bindings. Tinker's Belt keys are in the \"Tinker's Belt\" category.")
+	local function LockText() lock:SetText(ns.unlocked and Loc["Lock panels"] or Loc["Unlock panels"]) end
 	-- unlocking hides this window so the panels are free to move; locking (here or on the layout bar) brings it back
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked) end)
 	lock:SetScript("OnShow", LockText)
@@ -1344,7 +1345,7 @@ table.insert(ns.loginHooks, function()
 	local b = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 	b:SetPoint("TOPLEFT", 16, -16)
 	b:SetSize(180, 26)
-	b:SetText("Open Tinker's Belt")
+	b:SetText(Loc["Open Tinker's Belt"])
 	b:SetScript("OnClick", function()
 		window = window or CreateWindow()
 		window:Show()

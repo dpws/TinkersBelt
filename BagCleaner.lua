@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Bag Cleaner: when your bags are (nearly) full, a panel lists the cheapest stacks; click one to delete it.
 -- Never deletes items without a vendor price (quest items, keys, Hearthstone...).
@@ -75,7 +76,7 @@ local function Delete(it)
 	if not it then return end
 	local info = C_Container.GetContainerItemInfo(it.bag, it.slot)
 	if not info or info.itemID ~= it.id or (info.stackCount or 1) ~= it.count or info.isLocked then
-		print("Tinker's Belt: that stack moved, the list is updated")
+		print(Loc["Tinker's Belt: that stack moved, the list is updated"])
 		return C.Update()
 	end
 	ClearCursor()
@@ -83,7 +84,7 @@ local function Delete(it)
 	local kind, id = GetCursorInfo()
 	if kind ~= "item" or id ~= it.id then ClearCursor() return C.Update() end
 	DeleteCursorItem()
-	print(("Tinker's Belt: deleted %s x%d (%s)"):format(it.link or it.name or "item", it.count, Coins(it.value)))
+	print((Loc["Tinker's Belt: deleted %s x%d (%s)"]):format(it.link or it.name or Loc["item"], it.count, Coins(it.value)))
 end
 
 local ROW_H, WIDTH = 24, 260
@@ -114,7 +115,7 @@ local function Row(i)
 		if not it then return end
 		if mouse == "RightButton" then
 			Keep()[it.id] = it.name or true
-			print(("Tinker's Belt: %s is protected (undo on the Bag Cleaner page)"):format(it.link or it.name or "item"))
+			print((Loc["Tinker's Belt: %s is protected (undo on the Bag Cleaner page)"]):format(it.link or it.name or Loc["item"]))
 			if C.OnKeepChanged then C.OnKeepChanged() end
 			return C.Update()
 		end
@@ -124,8 +125,8 @@ local function Row(i)
 		if not self.item then return end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetBagItem(self.item.bag, self.item.slot)
-		GameTooltip:AddLine("Click: delete this stack", 1, 0.4, 0.3)
-		GameTooltip:AddLine("Right-click: protect this item (never listed)", 0.4, 0.8, 1)
+		GameTooltip:AddLine(Loc["Click: delete this stack"], 1, 0.4, 0.3)
+		GameTooltip:AddLine(Loc["Right-click: protect this item (never listed)"], 0.4, 0.8, 1)
 		GameTooltip:Show()
 	end)
 	r:SetScript("OnLeave", GameTooltip_Hide)
@@ -143,7 +144,7 @@ function C.Update()
 	local show = s.enabled and free <= (s.freeAt or 0)
 	list = show and ns.CleanerPick(Items(), s.maxQuality or 1, s.n or 5, Keep()) or {}
 	panel:SetShown((show and #list > 0) or ns.unlocked)
-	header:SetText(free == 0 and "Bags full: cheapest stacks" or ("%d free: cheapest stacks"):format(free))
+	header:SetText(free == 0 and Loc["Bags full: cheapest stacks"] or (Loc["%d free: cheapest stacks"]):format(free))
 	for i = 1, math.max(#list, #rows) do
 		local r = Row(i)
 		local it = list[i]

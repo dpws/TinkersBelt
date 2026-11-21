@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Shaman totem bar: [set] [Earth] [Fire] [Water] [Air] [shield].
 -- Elements: timer sweep while a totem is down, alert when one is killed early, left-click drops the active
@@ -141,7 +142,7 @@ local function Update()
 			local event
 			states[e.key], event = ns.TotemStep(states[e.key], have, start, duration, now)
 			if event == "killed" and not UnitIsDeadOrGhost("player") then
-				ns.Notify(("%s totem killed!"):format(e.name), S().sound)
+				ns.Notify((Loc["%s totem killed!"]):format(Loc[e.name]), S().sound)
 			end
 			if have then
 				b.icon:SetTexture(icon)
@@ -174,22 +175,22 @@ function M.Refresh()
 	UpdateItems()
 	UpdateSecure()
 	ns.RunOutOfCombat(function() ns.SetPanelScale(bar, S().scale or 1) end)
-	setButton.label:SetText(ns.TOTEM_SET_NAMES[S().set or 1])
+	setButton.label:SetText(Loc[ns.TOTEM_SET_NAMES[S().set or 1]])
 	Update()
 end
 
 -- Shift+click on an element: choose that element's totem for the active set
 local function OpenTotemMenu(owner, e)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		local setName = ns.TOTEM_SET_NAMES[S().set or 1]
-		root:CreateTitle(("%s totem (%s set)"):format(e.name, setName))
+		local setName = Loc[ns.TOTEM_SET_NAMES[S().set or 1]]
+		root:CreateTitle((Loc["%s totem (%s set)"]):format(Loc[e.name], setName))
 		local set = ActiveSet()
 		local function Pick(id)
 			set[e.key] = id
-			if InCombatLockdown() then print("Tinker's Belt: totem change applies after combat") end
+			if InCombatLockdown() then print(Loc["Tinker's Belt: totem change applies after combat"]) end
 			M.Refresh()
 		end
-		root:CreateRadio("None", function() return set[e.key] == nil end, function() Pick(nil) end)
+		root:CreateRadio(Loc["None"], function() return set[e.key] == nil end, function() Pick(nil) end)
 		local any = false
 		for _, id in ipairs(e.spells) do
 			if Known(id) then
@@ -198,7 +199,7 @@ local function OpenTotemMenu(owner, e)
 					function() return set[e.key] == id end, function() Pick(id) end)
 			end
 		end
-		if not any then root:CreateButton(("No %s totems learned yet"):format(e.name:lower())):SetEnabled(false) end
+		if not any then root:CreateButton((Loc["No %s totems learned yet"]):format(Loc[e.name])):SetEnabled(false) end
 	end)
 end
 
@@ -229,14 +230,14 @@ local function MakeSlot(e, i)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		local ok, have, name = pcall(GetTotemInfo, e.slot)
-		GameTooltip:AddLine(ok and have and not Secret(name) and name or (e.name .. " totem"))
+		GameTooltip:AddLine(ok and have and not Secret(name) and name or (Loc["%s totem"]):format(Loc[e.name]))
 		local id = ActiveSet()[e.key]
 		local chosen = id and SpellName(id)
-		GameTooltip:AddLine(("%s set: %s"):format(ns.TOTEM_SET_NAMES[S().set or 1], chosen or "no totem chosen"), 1, 0.82, 0)
-		if missing[e.key] then GameTooltip:AddLine(("%s Totem item missing from your bags!"):format(e.name), 1, 0.3, 0.3) end
-		GameTooltip:AddLine(chosen and ("Left-click: place " .. chosen) or "Left-click: place (choose a totem first)", 1, 1, 1)
-		GameTooltip:AddLine("Right-click: remove the totem that's down", 1, 1, 1)
-		GameTooltip:AddLine("Shift+click: choose this element's totem", 1, 1, 1)
+		GameTooltip:AddLine((Loc["%s set: %s"]):format(Loc[ns.TOTEM_SET_NAMES[S().set or 1]], chosen or Loc["no totem chosen"]), 1, 0.82, 0)
+		if missing[e.key] then GameTooltip:AddLine((Loc["%s Totem item missing from your bags!"]):format(Loc[e.name]), 1, 0.3, 0.3) end
+		GameTooltip:AddLine(chosen and ("Left-click: place " .. chosen) or Loc["Left-click: place (choose a totem first)"], 1, 1, 1)
+		GameTooltip:AddLine(Loc["Right-click: remove the totem that's down"], 1, 1, 1)
+		GameTooltip:AddLine(Loc["Shift+click: choose this element's totem"], 1, 1, 1)
 		GameTooltip:Show()
 	end)
 	return b
@@ -244,15 +245,15 @@ end
 
 local function OpenSetMenu(owner)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle("Totem set")
+		root:CreateTitle(Loc["Totem set"])
 		for i, name in ipairs(ns.TOTEM_SET_NAMES) do
 			root:CreateRadio(name, function() return (S().set or 1) == i end, function()
 				S().set = i
-				if InCombatLockdown() then print("Tinker's Belt: totem set change applies after combat") end
+				if InCombatLockdown() then print(Loc["Tinker's Belt: totem set change applies after combat"]) end
 				M.Refresh()
 			end)
 		end
-		root:CreateButton("Edit sets (/tb > Shaman > Totems)", function() ns.ToggleWindow() end)
+		root:CreateButton(Loc["Edit sets (/tb > Shaman > Totems)"], function() ns.ToggleWindow() end)
 	end)
 end
 
@@ -278,9 +279,9 @@ local function Create()
 	setButton:SetScript("PostClick", function(self, mouse) if mouse == "RightButton" then OpenSetMenu(self) end end)
 	setButton:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddLine("Totem set: " .. ns.TOTEM_SET_NAMES[S().set or 1])
-		GameTooltip:AddLine("Left-click: drop the next totem of the set (Earth, Fire, Water, Air)", 1, 1, 1, true)
-		GameTooltip:AddLine("Right-click: choose a set", 1, 1, 1, true)
+		GameTooltip:AddLine(Loc["Totem set: "] .. Loc[ns.TOTEM_SET_NAMES[S().set or 1]])
+		GameTooltip:AddLine(Loc["Left-click: drop the next totem of the set (Earth, Fire, Water, Air)"], 1, 1, 1, true)
+		GameTooltip:AddLine(Loc["Right-click: choose a set"], 1, 1, 1, true)
 		GameTooltip:Show()
 	end)
 
@@ -294,8 +295,8 @@ local function Create()
 	shieldButton.count:SetPoint("BOTTOMRIGHT", -2, 2)
 	shieldButton:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddLine(SpellName(SHIELD) or "Lightning Shield")
-		GameTooltip:AddLine("Number = charges left. Click to cast.", 1, 1, 1, true)
+		GameTooltip:AddLine(SpellName(SHIELD) or Loc["Lightning Shield"])
+		GameTooltip:AddLine(Loc["Number = charges left. Click to cast."], 1, 1, 1, true)
 		GameTooltip:Show()
 	end)
 
@@ -315,7 +316,7 @@ local function Create()
 			for key in pairs(missing) do
 				if not warned[key] and S().enabled then
 					warned[key] = true
-					ns.Notify(("%s Totem is not in your bags: its totems can't be dropped"):format(key:gsub("^%l", string.upper)), S().sound)
+					ns.Notify((Loc["%s Totem is not in your bags: its totems can't be dropped"]):format(key:gsub("^%l", string.upper)), S().sound)
 				end
 			end
 		end

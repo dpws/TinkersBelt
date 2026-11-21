@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Mark a player as seen; merges non-nil info. Returns true when new (or back after timing out).
 function ns.NearbySeen(list, guid, info, now, timeout)
@@ -41,7 +42,7 @@ local function Alert(guid, e)
 	if s.alert == "all" or (s.alert == "killers" and score and score.d > 0) then
 		local className = e.class and (LOCALIZED_CLASS_NAMES_MALE[e.class] or e.class) or "?"
 		local lvl = (e.level and e.level > 0) and e.level or "??"
-		ns.Notify(("Enemy nearby: %s (%s %s)"):format(e.name or "?", lvl, className))
+		ns.Notify((Loc["Enemy nearby: %s (%s %s)"]):format(e.name or "?", lvl, className))
 		ns.PlaySoundKey(s.sound)
 	end
 end
@@ -68,7 +69,7 @@ local function Refresh()
 	end
 	local now = GetTime()
 	local items = ns.NearbySorted(list, now, s.timeout)
-	header:SetText(("Nearby enemies (%d)"):format(#items))
+	header:SetText((Loc["Nearby enemies (%d)"]):format(#items))
 	for i, row in ipairs(rows) do
 		local e = items[i]
 		if e then
@@ -77,7 +78,7 @@ local function Refresh()
 			local lvl = (e.level and e.level > 0) and e.level or "??"
 			local score = ns.adb.pvp[e.guid]
 			row.left:SetText(("%s  %s"):format(lvl, name))
-			row.right:SetText((score and (ns.PvpScoreText(score) .. "  ") or "") .. ("%ds"):format(now - e.seen))
+			row.right:SetText((score and (ns.PvpScoreText(score) .. "  ") or "") .. (Loc["%ds"]):format(now - e.seen))
 		else
 			row.left:SetText("")
 			row.right:SetText("")

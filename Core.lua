@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 DpwsTools = ns -- global for /run debugging
 
 ns.loginHooks = {}
@@ -39,7 +40,7 @@ function ns.RegisterPanel(frame, name, onMoved)
 	T.Panel(o, T.Accent(0.16), T.Accent(0.7)) -- accent tint while unlocked
 	local label = T.Text(o, "semibold", 11, T.gold)
 	label:SetPoint("BOTTOM", 0, 4)
-	label:SetText(name)
+	label:SetText(Loc[name])
 	T.Skin(frame) -- the panel's own texts in Inter
 	o:EnableMouse(true)
 	o:RegisterForDrag("LeftButton")
@@ -79,7 +80,7 @@ for name, text in pairs({
 -- what the two non-button bindings run
 function TinkersBelt_ToggleSettings() if ns.ToggleWindow then ns.ToggleWindow() end end
 function TinkersBelt_ToggleUnlock()
-	if InCombatLockdown() then return print("Tinker's Belt: panels can't be unlocked in combat") end
+	if InCombatLockdown() then return print(Loc["Tinker's Belt: panels can't be unlocked in combat"]) end
 	ns.SetUnlocked(not ns.unlocked)
 end
 
@@ -248,7 +249,7 @@ local function SettingsBar()
 	sl:SetPoint("LEFT", x, 0)
 	sl:SetValue(L().size)
 	x = x + 220 + 12
-	local lock = T.NewButton(bar, "Lock panels", 100, 26, "accent")
+	local lock = T.NewButton(bar, Loc["Lock panels"], 100, 26, "accent")
 	lock:SetPoint("LEFT", x, 0)
 	lock:SetScript("OnClick", function() ns.SetUnlocked(false) end)
 	bar:SetWidth(x + 100 + 14)
@@ -347,7 +348,7 @@ function ns.ShowCopyWindow(text)
 		T.Box(copyFrame, T.window, T.border, 10)
 		local title = T.Text(copyFrame, "semibold", 13, { 1, 1, 1, 1 })
 		title:SetPoint("TOPLEFT", 14, -12)
-		title:SetText("Tinker's Belt - press Ctrl+C to copy, Esc to close")
+		title:SetText(Loc["Tinker's Belt - press Ctrl+C to copy, Esc to close"])
 		local close = CreateFrame("Button", nil, copyFrame)
 		close:SetSize(24, 24)
 		close:SetPoint("TOPRIGHT", -8, -6)
@@ -393,5 +394,5 @@ end
 SlashCmdList.DPWS = function(msg)
 	local cmd = strtrim(msg or ""):lower()
 	if cmd ~= "" and ns.slashCommands and ns.slashCommands[cmd] then return ns.slashCommands[cmd]() end
-	if ns.ToggleWindow then ns.ToggleWindow() else print("Tinker's Belt loaded") end
+	if ns.ToggleWindow then ns.ToggleWindow() else print(Loc["Tinker's Belt loaded"]) end
 end

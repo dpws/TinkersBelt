@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 local function TKey(t) return t.tab .. ":" .. t.i end
 
@@ -166,13 +167,13 @@ local function Describe(a)
 end
 
 function P.LoadBars(name)
-	if InCombatLockdown() then print("Tinker's Belt: can't change action bars in combat") return end
+	if InCombatLockdown() then print(Loc["Tinker's Belt: can't change action bars in combat"]) return end
 	local profile = Store()[name]
 	if not profile then return end
 	local api, missing = ResolveAPI()
-	if not api then print("Tinker's Belt: can't load bars on this client (missing " .. missing .. "), nothing changed") return end
+	if not api then print(Loc["Tinker's Belt: can't load bars on this client (missing "] .. missing .. Loc["), nothing changed"]) return end
 	local plan = ns.BarRestorePlan(profile.bars, SnapshotBars(), SLOTS) -- built before the backup may overwrite it
-	if not next(plan) then print(("Tinker's Belt: bars already match '%s'"):format(name)) return end
+	if not next(plan) then print((Loc["Tinker's Belt: bars already match '%s'"]):format(name)) return end
 	if name ~= BACKUP then P.Save(BACKUP) end
 	local failed = {}
 	for slot, step in pairs(plan) do
@@ -187,9 +188,9 @@ function P.LoadBars(name)
 	end
 	ClearCursor()
 	if #failed > 0 then
-		print(("Tinker's Belt: bars loaded from '%s', not placed: %s"):format(name, table.concat(failed, ", ")))
+		print((Loc["Tinker's Belt: bars loaded from '%s', not placed: %s"]):format(name, table.concat(failed, ", ")))
 	else
-		print(("Tinker's Belt: bars loaded from '%s' (previous bars saved as '%s')"):format(name, BACKUP))
+		print((Loc["Tinker's Belt: bars loaded from '%s' (previous bars saved as '%s')"]):format(name, BACKUP))
 	end
 end
 
@@ -209,8 +210,8 @@ local function Finish()
 	applying = nil
 	local missing = 0
 	for _, s in ipairs(a.saved) do missing = missing + math.max(0, s.rank - CurrentRank(s.tab, s.i)) end
-	print(("Tinker's Belt: talents from '%s' done%s"):format(a.name,
-		missing > 0 and (", %d points not spent (reset talents at a trainer first?)"):format(missing) or ""))
+	print((Loc["Tinker's Belt: talents from '%s' done%s"]):format(a.name,
+		missing > 0 and (Loc[", %d points not spent (reset talents at a trainer first?)"]):format(missing) or ""))
 	if a.onDone then a.onDone() end
 end
 
@@ -239,14 +240,14 @@ end
 function P.LoadTalents(name, onDone)
 	local profile = Store()[name]
 	if not profile or applying then return false end
-	if Unspent() == 0 then print("Tinker's Belt: no unspent talent points (reset talents at a trainer first)") return false end
+	if Unspent() == 0 then print(Loc["Tinker's Belt: no unspent talent points (reset talents at a trainer first)"]) return false end
 	applying = { name = name, saved = profile.talents, skip = {}, fails = {}, onDone = onDone }
 	ticker = C_Timer.NewTicker(0.25, function()
 		local ok, err = pcall(TalentTick)
 		if not ok then -- never leave the stepper stuck
 			if ticker then ticker:Cancel(); ticker = nil end
 			applying = nil
-			print("Tinker's Belt: talent loading stopped: " .. tostring(err))
+			print(Loc["Tinker's Belt: talent loading stopped: "] .. tostring(err))
 		end
 	end)
 	return true
@@ -261,15 +262,15 @@ end
 local attached
 local function OpenMenu(owner)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle("Tinker's Belt profiles")
+		root:CreateTitle(Loc["Tinker's Belt profiles"])
 		for _, name in ipairs(P.List()) do
 			local sub = root:CreateButton(name)
-			sub:CreateButton("Load talents", function() P.LoadTalents(name) end)
-			sub:CreateButton("Load bars", function() P.LoadBars(name) end)
-			sub:CreateButton("Load both", function() P.LoadBoth(name) end)
+			sub:CreateButton(Loc["Load talents"], function() P.LoadTalents(name) end)
+			sub:CreateButton(Loc["Load bars"], function() P.LoadBars(name) end)
+			sub:CreateButton(Loc["Load both"], function() P.LoadBoth(name) end)
 		end
 		root:CreateDivider()
-		root:CreateButton("Save / manage...", function() ns.OpenWindow("Profiles") end)
+		root:CreateButton(Loc["Save / manage...Loc["], function() ns.OpenWindow("]Profiles") end)
 	end)
 end
 
@@ -284,7 +285,7 @@ local function Attach()
 	ns.Theme.Button(b)
 	b:SetFrameStrata("DIALOG")
 	b:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -1)
-	b:SetText("TB Profiles")
+	b:SetText(Loc["TB Profiles"])
 	b:SetScript("OnClick", OpenMenu)
 	b:SetShown(frame:IsShown())
 	frame:HookScript("OnShow", function() b:Show() end)
@@ -298,10 +299,10 @@ f:SetScript("OnEvent", Attach)
 -- /tb frames: which talent-like windows are open (to find the talent window on this client)
 ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.frames = function()
-	print(("Tinker's Belt: profiles button attached: %s"):format(attached and "yes" or "no"))
+	print((Loc["Tinker's Belt: profiles button attached: %s"]):format(attached and Loc["yes"] or "no"))
 	if attached then
 		local x, y = attached:GetCenter()
-		print(("  button visible: %s, position: %s, %s (screen %d x %d)"):format(tostring(attached:IsVisible()),
+		print((Loc["  button visible: %s, position: %s, %s (screen %d x %d)"]):format(tostring(attached:IsVisible()),
 			tostring(x and math.floor(x)), tostring(y and math.floor(y)), UIParent:GetWidth(), UIParent:GetHeight()))
 	end
 	local found = 0
@@ -310,10 +311,10 @@ ns.slashCommands.frames = function()
 			local ok, shown = pcall(function() return obj.IsShown and obj:IsShown() and obj.GetObjectType and obj:GetObjectType() == "Frame" end)
 			if ok and shown then
 				found = found + 1
-				print("  shown: " .. name)
+				print(Loc["  shown: "] .. name)
 			end
 		end
 	end
-	if found == 0 then print("  no talent/spells window is open - open it and try again") end
+	if found == 0 then print(Loc["  no talent/spells window is open - open it and try again"]) end
 end
 table.insert(ns.loginHooks, Attach)

@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- field: "k" = you killed them, "d" = they killed you; me = your character (also counted per character in e.by)
 function ns.PvpRecord(scores, guid, name, field, me)
@@ -45,7 +46,7 @@ end
 
 function ns.PvpScoreText(e)
 	local color = e.k > e.d and "40ff40" or (e.k < e.d and "ff4040" or "ffffff")
-	return ("|cff%s%d : %d|r"):format(color, e.k, e.d)
+	return (Loc["|cff%s%d : %d|r"]):format(color, e.k, e.d)
 end
 
 -- history: oldest first, at most `cap` entries
@@ -216,7 +217,7 @@ local function OnTooltipUnit(tooltip)
 		-- all your characters, and this one when it differs
 		local mine = ns.PvpScoreFor(e, Me())
 		local extra = (mine and (mine.k ~= e.k or mine.d ~= e.d)) and ("  (this character " .. ns.PvpScoreText(mine) .. ")") or ""
-		tooltip:AddLine("PvP: " .. ns.PvpScoreText(e) .. extra)
+		tooltip:AddLine(Loc["PvP: "] .. ns.PvpScoreText(e) .. extra)
 	end
 end
 

@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Flat dark UI kit in the style of BuffTap's settings window: rounded cards, gold accent, Inter font.
 -- Own textures only (media/circle.tga is generated, Inter is OFL-licensed).
@@ -491,7 +492,7 @@ end
 function Page:Choice(text, options, get, set, width)
 	return self:Dropdown(text, function(root)
 		for _, o in ipairs(options) do
-			root:CreateRadio(o[2], function() return get() == o[1] end, function() set(o[1]) end)
+			root:CreateRadio(Loc[o[2]], function() return get() == o[1] end, function() set(o[1]) end)
 		end
 	end, width)
 end
@@ -499,9 +500,9 @@ end
 -- sound picker (ns.SOUNDS + None); choosing one plays it
 function Page:Sound(text, get, set)
 	return self:Dropdown(text, function(root)
-		root:CreateRadio("None", function() return get() == nil end, function() set(nil) end)
+		root:CreateRadio(Loc["None"], function() return get() == nil end, function() set(nil) end)
 		for _, s in ipairs(ns.SOUNDS) do
-			root:CreateRadio(s.name, function() return get() == s.key end, function() set(s.key); ns.PlaySoundKey(s.key) end)
+			root:CreateRadio(Loc[s.name], function() return get() == s.key end, function() set(s.key); ns.PlaySoundKey(s.key) end)
 		end
 	end)
 end

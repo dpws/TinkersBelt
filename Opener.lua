@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- creature type "Humanoid" in each client language (Sap and Pick Pocket work on humanoids only)
 ns.HUMANOID = {
@@ -316,7 +317,7 @@ end
 function O.SaveSet(key)
 	local s = S()
 	s.sets[key] = { mh = ItemOf(16), oh = ItemOf(17) }
-	ns.Notify(("Weapon set saved: %s"):format(key == "opener" and "Opener" or "Fight"))
+	ns.Notify((Loc["Weapon set saved: %s"]):format(key == "opener" and Loc["Opener"] or Loc["Fight"]))
 	O.UpdateSets()
 end
 
@@ -361,12 +362,12 @@ local function SetButton(i, key, label)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		local set = S().sets[key]
-		GameTooltip:AddLine(label .. " weapons")
+		GameTooltip:AddLine(label .. Loc[" weapons"])
 		if set then
 			if set.mh then GameTooltip:AddLine(set.mh.name, 1, 1, 1) end
 			if set.oh then GameTooltip:AddLine(set.oh.name, 1, 1, 1) end
 		else
-			GameTooltip:AddLine("Save it on the Openers page (/tb)", 0.6, 0.65, 0.7)
+			GameTooltip:AddLine(Loc["Save it on the Openers page (/tb)"], 0.6, 0.65, 0.7)
 		end
 		GameTooltip:Show()
 	end)
@@ -419,7 +420,7 @@ table.insert(ns.loginHooks, function()
 			end
 			if IsPickPocket(spellID) then
 				keepTarget, pickTime = true, GetTime()
-				lastPick = ("spell=%s mobID=%s name=%s plate=%s"):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
+				lastPick = (Loc["spell=%s mobID=%s name=%s plate=%s"]):format(tostring(spellID), tostring(Read(UnitGUID, "target") ~= nil),
 					tostring(Read(UnitName, "target") ~= nil),
 					tostring(Read(C_NamePlate.GetNamePlateForUnit, "target") ~= nil))
 				local guid = Read(UnitGUID, "target")
@@ -437,7 +438,7 @@ table.insert(ns.loginHooks, function()
 			-- plates get rebuilt (e.g. during Pick Lock): a plate with the same name back within 5s keeps the mark
 			if plate and type(plate.dpwsPicked) == "string" then gone[#gone + 1] = { name = plate.dpwsPicked, t = GetTime() } end
 			if plate and plate.dpwsPicked then
-				lastLoss = ("plate removed %.1fs after the pick, name kept=%s"):format(GetTime() - pickTime, tostring(type(plate.dpwsPicked) == "string"))
+				lastLoss = (Loc["plate removed %.1fs after the pick, name kept=%s"]):format(GetTime() - pickTime, tostring(type(plate.dpwsPicked) == "string"))
 			end
 			if plate then plate.dpwsPicked = nil end
 		elseif event == "NAME_PLATE_UNIT_ADDED" then

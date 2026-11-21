@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end }) -- translations (Locale.lua)
 
 -- Friendly Names: the game's friendly player nameplates are turned on (Forever's only signal that a
 -- friendly player is near, the combat log is closed) but drawn invisible; our own label shows the name
@@ -68,7 +69,7 @@ local function ApplyPlate(unit)
 				local lvl = level > 0 and tostring(level) or "??"
 				local diff = level > 0 and GetQuestDifficultyColor and GetQuestDifficultyColor(level) or { r = 1, g = 0.1, b = 0.1 }
 				local function hex(v) return math.floor(v * 255 + 0.5) end
-				text = ("|cff%02x%02x%02x%s|r %s"):format(hex(diff.r), hex(diff.g), hex(diff.b), lvl, name)
+				text = (Loc["|cff%02x%02x%02x%s|r %s"]):format(hex(diff.r), hex(diff.g), hex(diff.b), lvl, name)
 			end
 		end
 		tag.name:SetText(text)
@@ -168,6 +169,6 @@ ns.slashCommands = ns.slashCommands or {}
 ns.slashCommands.allies = function()
 	S().enabled = not S().enabled
 	A.Apply()
-	print(("Tinker's Belt: Friendly Names %s"):format(S().enabled and "ON" or "OFF (your nameplate setting is restored)"))
+	print((Loc["Tinker's Belt: Friendly Names %s"]):format(S().enabled and "ON" or Loc["OFF (your nameplate setting is restored)"]))
 end
 ns.slashCommands["allies info"] = function() ns.Diagnose(Info) end

@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- "ok" / "low" (under warnSec left) / "missing"; auras = { [name] = expirationTime, 0 = no duration }
 function ns.BuffStatus(auras, names, now, warnSec)
@@ -276,8 +277,8 @@ local function ReminderButton(i)
 			local c = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
 			GameTooltip:AddLine(GetUnitName(u, true) or u, c.r, c.g, c.b)
 		end
-		GameTooltip:AddLine("Click: buff the first one", 0.6, 0.65, 0.7)
-		GameTooltip:AddLine("Shift+drag: move", 0.6, 0.65, 0.7)
+		GameTooltip:AddLine(Loc["Click: buff the first one"], 0.6, 0.65, 0.7)
+		GameTooltip:AddLine(Loc["Shift+drag: move"], 0.6, 0.65, 0.7)
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
@@ -372,7 +373,7 @@ function B.ShowPicker(owner, who, spells)
 			b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 			b:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_TOP")
-				GameTooltip:AddLine(self.spell or "Show all blessings")
+				GameTooltip:AddLine(self.spell or Loc["Show all blessings"])
 				GameTooltip:Show()
 			end)
 			b:SetScript("OnLeave", GameTooltip_Hide)
@@ -425,8 +426,8 @@ local function StripButton(strip, i)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self.spell or "")
-		GameTooltip:AddLine("Click: cast on " .. (GetUnitName(strip.unit, true) or strip.unit), 1, 1, 1)
-		if self.entry and self.entry.def.group then GameTooltip:AddLine("Right-click: choose their blessing", 1, 1, 1) end
+		GameTooltip:AddLine(Loc["Click: cast on "] .. (GetUnitName(strip.unit, true) or strip.unit), 1, 1, 1)
+		if self.entry and self.entry.def.group then GameTooltip:AddLine(Loc["Right-click: choose their blessing"], 1, 1, 1) end
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
@@ -454,7 +455,7 @@ local function Paint(b, status, left)
 	-- rounded down like the game's timers; seconds in the last minute (not "0m")
 	local text = ""
 	if status == "low" and left then
-		text = left >= 60 and ("%dm"):format(math.floor(left / 60)) or ("%ds"):format(math.floor(left))
+		text = left >= 60 and (Loc["%dm"]):format(math.floor(left / 60)) or (Loc["%ds"]):format(math.floor(left))
 	end
 	b.time:SetText(text)
 end
@@ -603,7 +604,7 @@ local function Update()
 		if mine then
 			-- a buff that just dropped off you
 			for _, spell in ipairs(selfMissing) do
-				if wasMissing[spell] == false then ns.Notify(spell .. " is gone", s.sound) end
+				if wasMissing[spell] == false then ns.Notify(spell .. Loc[" is gone"], s.sound) end
 			end
 			local now = {}
 			for _, e in ipairs(B.entries) do
@@ -713,7 +714,7 @@ table.insert(ns.loginHooks, function()
 		if event == "SPELLS_CHANGED" then
 			B.Reload()
 		elseif s.enabled and B.selfMissing and #B.selfMissing > 0 then
-			ns.Notify("Entering combat without " .. table.concat(B.selfMissing, ", "), s.sound)
+			ns.Notify(Loc["Entering combat without "] .. table.concat(B.selfMissing, ", "), s.sound)
 		end
 	end)
 	C_Timer.NewTicker(1, SafeUpdate)

@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end }) -- translations (Locale.lua)
 
 -- Distance band from the checks the game allows: exact yards (group members only), trade range (~10),
 -- follow/inspect range (~28), the class buff's range (~40); otherwise just "seen by nameplate".
@@ -12,7 +13,7 @@ end
 
 function ns.AllyRangeText(range)
 	if range >= 100 then return "far" end
-	return ("%dy"):format(math.floor(range + 0.5))
+	return (Loc["%dy"]):format(math.floor(range + 0.5))
 end
 
 -- closest first, then by name
@@ -130,14 +131,14 @@ local function MakeRow(i)
 	-- invite: a plain button left of the row (outside the secure row)
 	r.invite = T.NewButton(frame, "+", 20, 20)
 	r.invite:SetPoint("RIGHT", r, "LEFT", -4, 0)
-	T.Tip(r.invite, "Invite to group")
+	T.Tip(r.invite, Loc["Invite to group"])
 	r:SetScript("OnEnter", function(self)
 		if not self.entry then return end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self.entry.full)
 		if self.entry.guild then GameTooltip:AddLine("<" .. self.entry.guild .. ">", 0.8, 0.82, 0.86) end
-		GameTooltip:AddLine("Left-click: target", 1, 1, 1)
-		if BuffName() then GameTooltip:AddLine("Right-click: " .. BuffName(), 1, 1, 1) end
+		GameTooltip:AddLine(Loc["Left-click: target"], 1, 1, 1)
+		if BuffName() then GameTooltip:AddLine(Loc["Right-click: "] .. BuffName(), 1, 1, 1) end
 		GameTooltip:Show()
 	end)
 	r:SetScript("OnLeave", GameTooltip_Hide)
@@ -161,7 +162,7 @@ local function Update()
 	-- cities and inns (rested areas) are crowded: the list can stay hidden there
 	local show = s.enabled and ns.adb.allies.enabled and not IsInInstance() and not (s.hideInCities and IsResting())
 	if InCombatLockdown() then
-		title:SetText("Nearby allies  |cff8c96a3(paused in combat)|r")
+		title:SetText(Loc["Nearby allies  |cff8c96a3(paused in combat)|r"])
 		return -- secure rows can't change in combat
 	end
 	frame:SetShown(show or ns.unlocked)
@@ -169,7 +170,7 @@ local function Update()
 	local list = Collect()
 	local buff = BuffName()
 	local n = math.min(#list, s.rows or 10)
-	title:SetText(("Nearby allies  |cff8c96a3%d|r"):format(#list))
+	title:SetText((Loc["Nearby allies  |cff8c96a3%d|r"]):format(#list))
 	for i = 1, (s.rows or 10) do
 		local r = rows[i] or MakeRow(i)
 		rows[i] = r
@@ -178,9 +179,9 @@ local function Update()
 		if e then
 			local color = RAID_CLASS_COLORS[e.class]
 			local lvl = (e.level and not Secret(e.level) and e.level > 0) and e.level or "??"
-			r.name:SetText(("|cff8c96a3%s|r %s"):format(lvl, e.full))
+			r.name:SetText((Loc["|cff8c96a3%s|r %s"]):format(lvl, e.full))
 			if color then r.name:SetTextColor(color.r, color.g, color.b) end
-			r.tags:SetText((e.friend and "|cff6dcfc4<3|r " or "") .. (e.sameGuild and "|cff4dcc66G|r" or ""))
+			r.tags:SetText((e.friend and Loc["|cff6dcfc4<3|r "] or "") .. (e.sameGuild and Loc["|cff4dcc66G|r"] or ""))
 			r.range:SetText(ns.AllyRangeText(e.range))
 			-- your party / raid stands out: party-chat blue, or classic gold in the Classic theme
 			r.bg:SetColor(e.grouped and (T.theme == "classic" and PARTY_BG_CLASSIC or PARTY_BG) or T.row)

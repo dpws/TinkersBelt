@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- What to buy from this vendor. list: itemID -> target count; count(id) -> in bags;
 -- goods: { index, id, price (per batch), batch, available (-1 = unlimited) }.
@@ -48,7 +49,7 @@ local function Count(id) return (C_Item and C_Item.GetItemCount or GetItemCount)
 local function Coins(copper)
 	local fn = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
 	if fn then return fn(copper) end
-	return ("%dg %ds %dc"):format(copper / 10000, (copper / 100) % 100, copper % 100)
+	return (Loc["%dg %ds %dc"]):format(copper / 10000, (copper / 100) % 100, copper % 100)
 end
 local function ItemName(id)
 	return (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or (GetItemInfo and GetItemInfo(id)) or ("item " .. id)
@@ -106,16 +107,16 @@ local function Restock(verbose)
 	local buys, total, over = ns.RestockPlan(items, Count, goods, r.budget)
 	if #buys == 0 then return Say("nothing to buy here (vendor doesn't sell them, or you have enough)") end
 	if over then
-		print(("Tinker's Belt: restock skipped, it would cost %s (limit %s)"):format(
+		print((Loc["Tinker's Belt: restock skipped, it would cost %s (limit %s)"]):format(
 			Coins(total), Coins(r.budget)))
 		return
 	end
-	if GetMoney() < total then print("Tinker's Belt: restock skipped, not enough gold") return end
+	if GetMoney() < total then print(Loc["Tinker's Belt: restock skipped, not enough gold"]) return end
 	local parts = {}
 	for _, b in ipairs(buys) do
 		if b.batches then
 			for _ = 1, b.batches do queue[#queue + 1] = { index = b.index } end -- one vendor batch each
-			parts[#parts + 1] = ("%dx %s"):format(b.batches, ItemName(b.id))
+			parts[#parts + 1] = (Loc["%dx %s"]):format(b.batches, ItemName(b.id))
 		else
 			local stack = (GetMerchantItemMaxStack and GetMerchantItemMaxStack(b.index)) or 20
 			local left = b.qty
@@ -127,7 +128,7 @@ local function Restock(verbose)
 			parts[#parts + 1] = ("%d %s"):format(b.qty, ItemName(b.id))
 		end
 	end
-	print(("Tinker's Belt: restocking %s (%s)"):format(table.concat(parts, ", "), Coins(total)))
+	print((Loc["Tinker's Belt: restocking %s (%s)"]):format(table.concat(parts, ", "), Coins(total)))
 	RunQueue()
 end
 

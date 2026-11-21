@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Pure reminder logic per weapon. Returns new state and nil | "early" | "expired".
 -- itemID: the equipped weapon; a different weapon in the slot starts fresh (no false warnings on swap)
@@ -69,8 +70,8 @@ end
 
 local function FormatTime(ms)
 	-- rounded down like the game's timers: 59s left reads 59s, the last second reads 0s
-	if ms >= 60000 then return ("%dm"):format(math.floor(ms / 60000)) end
-	return ("%ds"):format(math.floor(ms / 1000))
+	if ms >= 60000 then return (Loc["%dm"]):format(math.floor(ms / 60000)) end
+	return (Loc["%ds"]):format(math.floor(ms / 1000))
 end
 
 -- weapon icon, poison icon, desaturation (insecure, fine in combat)
@@ -114,7 +115,7 @@ end
 
 local function SetPoison(info, id)
 	ns.db.poisons[info.key] = id
-	if InCombatLockdown() then print("Tinker's Belt: " .. Word() .. " change applies after combat") end
+	if InCombatLockdown() then print(Loc["Tinker's Belt: "] .. Word() .. Loc[" change applies after combat"]) end
 	P.Refresh()
 end
 
@@ -130,7 +131,7 @@ local function OpenMenu(owner, info)
 						function() return ns.db.poisons[info.key] == id end, function() SetPoison(info, id) end)
 				end
 			end
-			if not any then root:CreateButton("No weapon imbues learned yet"):SetEnabled(false) end
+			if not any then root:CreateButton(Loc["No weapon imbues learned yet"]):SetEnabled(false) end
 			return
 		end
 		for _, id in ipairs(ns.AllPoisonIds()) do
@@ -141,7 +142,7 @@ local function OpenMenu(owner, info)
 				root:CreateRadio(text, function() return ns.db.poisons[info.key] == id end, function() SetPoison(info, id) end)
 			end
 		end
-		if not any then root:CreateButton("No poisons in bags"):SetEnabled(false) end
+		if not any then root:CreateButton(Loc["No poisons in bags"]):SetEnabled(false) end
 	end)
 end
 
@@ -204,7 +205,7 @@ local function MakeButton(info, i)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:SetInventoryItem("player", info.slot)
-		GameTooltip:AddLine(("Left-click: apply %s   Right-click: choose   Unlock panels in /tb to move"):format(Word()), 0.6, 0.8, 1, true)
+		GameTooltip:AddLine((Loc["Left-click: apply %s   Right-click: choose   Unlock panels in /tb to move"]):format(Word()), 0.6, 0.8, 1, true)
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
@@ -227,9 +228,9 @@ local function OnUpdate(_, dt)
 			local event
 			states[key], event = ns.PoisonStep(states[key], has, ms, warnMs, itemID)
 			if event == "early" then
-				Warn(("%s %s: %d min left"):format(b.info.name, Word(), ns.db.poisons.warnMinutes))
+				Warn((Loc["%s %s: %d min left"]):format(b.info.name, Word(), ns.db.poisons.warnMinutes))
 			elseif event == "expired" then
-				Warn(("%s %s expired!"):format(b.info.name, Word()))
+				Warn((Loc["%s %s expired!"]):format(b.info.name, Word()))
 			end
 			b.time:SetText(has and FormatTime(ms) or "")
 			b.charges:SetText(has and charges > 0 and charges or "")
@@ -276,7 +277,7 @@ local function Create()
 			local missing = {}
 			if WeaponID(16) and not hasMH then missing[#missing + 1] = "Main Hand" end
 			if WeaponID(17) and not hasOH then missing[#missing + 1] = "Off Hand" end
-			if #missing > 0 then Warn(("No %s on %s!"):format(Word(), table.concat(missing, " / "))) end
+			if #missing > 0 then Warn((Loc["No %s on %s!"]):format(Word(), table.concat(missing, " / "))) end
 		else
 			P.Refresh()
 		end

@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 local FSR = 5 -- the five second rule (Forever has no mana ticks: regen is continuous, but stops for 5s after spending)
 
@@ -90,7 +91,7 @@ ns.slashCommands.mana = function()
 		Say(("mana: readable=%s value=%s max=%s"):format(tostring(mana ~= nil), tostring(mana), tostring(max)))
 		local now = GetTime()
 		Say(("mana: last mana change %.1fs ago, last spend %s"):format(now - lastPowerEvent,
-			lastSpend and ("%.1fs ago"):format(now - lastSpend) or "never"))
+			lastSpend and (Loc["%.1fs ago"]):format(now - lastSpend) or "never"))
 	end)
 end
 

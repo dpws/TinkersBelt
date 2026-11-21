@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end }) -- translations (Locale.lua)
 
 -- lockboxes and locked chests found in the world
 ns.LOCKBOXES = {
@@ -62,12 +63,12 @@ local function Update()
 	end
 	button.box, button.action = box, action
 	if box then
-		local use = ("/use %d %d"):format(box.bag, box.slot)
+		local use = (Loc["/use %d %d"]):format(box.bag, box.slot)
 		local pick = C_Spell.GetSpellName(PICK_LOCK)
 		button:SetAttribute("macrotext", action == "pick" and ("/cast " .. pick .. "\n" .. use) or use)
 		button.icon:SetTexture(C_Item.GetItemIconByID(box.id))
 		button.count:SetText(ready > 1 and ready or "")
-		button.label:SetText(action == "pick" and "pick" or "open")
+		button.label:SetText(action == "pick" and Loc["pick"] or Loc["open"])
 	end
 	button:SetShown((S().enabled and box ~= nil) or ns.unlocked)
 end
@@ -96,9 +97,9 @@ table.insert(ns.loginHooks, function()
 	button:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		if self.box then
-			GameTooltip:AddLine((self.action == "pick" and "Pick the lock: " or "Open: ") .. (C_Item.GetItemNameByID(self.box.id) or ""))
+			GameTooltip:AddLine((self.action == "pick" and Loc["Pick the lock: "] or Loc["Open: "]) .. (C_Item.GetItemNameByID(self.box.id) or ""))
 		else
-			GameTooltip:AddLine("Lockbox helper")
+			GameTooltip:AddLine(Loc["Lockbox helper"])
 		end
 		GameTooltip:Show()
 	end)

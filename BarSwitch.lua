@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- page = fallback if the game doesn't expose its "actionpage" attribute; real value read at login
 ns.BARS = {
@@ -92,5 +93,5 @@ table.insert(ns.loginHooks, function() ns.RunOutOfCombat(Setup) end)
 -- self-check
 local p2 = ns.ValidPages(2)
 if not (tContains(p2, 14) and not tContains(p2, 6) and not tContains(p2, 7) and not tContains(p2, 12) and #p2 == 8) then
-	print("|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r")
+	print(Loc["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"])
 end

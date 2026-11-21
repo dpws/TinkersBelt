@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- seconds until ready; 0 = ready (the global cooldown, 1.5s or less, doesn't count)
 function ns.CooldownLeft(start, duration, now)
@@ -206,7 +207,7 @@ local function OnCast(spellID)
 	local cp = (now - cpSeenAt < 2) and cpSeen or nil
 	local dur = (cp and (Learned()[cp] or (6 + 3 * cp))) or S().sndLast or 21
 	own = { start = now, dur = dur, cp = cp }
-	lastCast = ("cp=%s dur=%s learned=%s"):format(tostring(cp), tostring(dur), tostring(cp and Learned()[cp] ~= nil))
+	lastCast = (Loc["cp=%s dur=%s learned=%s"]):format(tostring(cp), tostring(dur), tostring(cp and Learned()[cp] ~= nil))
 end
 local function OnAura() end -- kept for the event hook
 

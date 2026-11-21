@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 local ICON = "Interface\\AddOns\\TinkersBelt\\media\\minimap"
 local RADIUS = 105 -- distance from minimap center; default minimap is ~140px wide
@@ -31,8 +32,8 @@ table.insert(ns.loginHooks, function()
 	b:SetScript("OnClick", function() ns.ToggleWindow() end)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-		GameTooltip:AddLine("Tinker's Belt")
-		GameTooltip:AddLine("Click: open settings  ||  Drag: move", 1, 1, 1)
+		GameTooltip:AddLine(Loc["Tinker's Belt"])
+		GameTooltip:AddLine(Loc["Click: open settings  ||  Drag: move"], 1, 1, 1)
 		GameTooltip:Show()
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)

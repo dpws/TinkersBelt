@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- recipes: poisonID -> { reagents = { [itemID] = qty }, makes = n }; count(id) -> in bags
 
@@ -85,7 +86,7 @@ ns.slashCommands.tradeskill = function()
 	local function idOf(link) return link and tonumber(link:match("item:(%d+)")) end
 	ns.Diagnose(function(Say)
 		local P = function(msg) Say("tradeskill: " .. msg) end
-		P(("frames shown: ProfessionsFrame=%s TradeSkillFrame=%s CraftFrame=%s"):format(
+		P((Loc["frames shown: ProfessionsFrame=%s TradeSkillFrame=%s CraftFrame=%s"]):format(
 			tostring(ProfessionsFrame and ProfessionsFrame:IsShown()), tostring(TradeSkillFrame and TradeSkillFrame:IsShown()),
 			tostring(CraftFrame and CraftFrame:IsShown())))
 		if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
@@ -96,22 +97,22 @@ ns.slashCommands.tradeskill = function()
 				if info and info.learned then
 					learned = learned + 1
 					local s = C_TradeSkillUI.GetRecipeSchematic(rid, false)
-					P(("  learned: recipe %d -> item %s (%s)"):format(rid, tostring(s and s.outputItemID), tostring(s and s.name)))
+					P((Loc["  learned: recipe %d -> item %s (%s)"]):format(rid, tostring(s and s.outputItemID), tostring(s and s.name)))
 				end
 			end
-			P(("C_TradeSkillUI: %d recipes, %d marked learned by the game"):format(#ids, learned))
+			P((Loc["C_TradeSkillUI: %d recipes, %d marked learned by the game"]):format(#ids, learned))
 		else
 			P("C_TradeSkillUI: not available")
 		end
 		if GetNumTradeSkills then
 			local n = GetNumTradeSkills()
-			P(("GetNumTradeSkills: %d lines, skill line %s"):format(n, tostring(GetTradeSkillLine and GetTradeSkillLine())))
+			P((Loc["GetNumTradeSkills: %d lines, skill line %s"]):format(n, tostring(GetTradeSkillLine and GetTradeSkillLine())))
 			local shown = 0
 			for i = 1, n do
 				local name, kind = GetTradeSkillInfo(i)
 				if kind ~= "header" and shown < 4 then
 					shown = shown + 1
-					P(("  %d: %s -> item %s"):format(i, tostring(name), tostring(idOf(GetTradeSkillItemLink(i)))))
+					P((Loc["  %d: %s -> item %s"]):format(i, tostring(name), tostring(idOf(GetTradeSkillItemLink(i)))))
 				end
 			end
 		else
@@ -119,7 +120,7 @@ ns.slashCommands.tradeskill = function()
 		end
 		local learned = 0
 		for _ in pairs(Recipes() or {}) do learned = learned + 1 end
-		P(("poison recipes known by this character: %d (built-in poison IDs start %d, %d, %d...)"):format(
+		P((Loc["poison recipes known by this character: %d (built-in poison IDs start %d, %d, %d...)"]):format(
 			learned, ns.POISON_IDS[1], ns.POISON_IDS[2], ns.POISON_IDS[3]))
 	end)
 end
@@ -130,7 +131,7 @@ function S.Describe()
 	if not Stock() then return lines end
 	for id, target in pairs(Stock()) do
 		local recipe = Recipes() and Recipes()[id]
-		lines[#lines + 1] = ("poison %s: have %d / %d, recipe %s"):format(ItemName(id), Count(id), target,
+		lines[#lines + 1] = (Loc["poison %s: have %d / %d, recipe %s"]):format(ItemName(id), Count(id), target,
 			recipe and "known" or "NOT known (open your Poisons window once)")
 	end
 	return lines
@@ -208,7 +209,7 @@ end
 
 local function Craft(id, crafts)
 	local h = handles[id]
-	if not h then print("Tinker's Belt: open your Poisons window first (left-click the craft button)") return end
+	if not h then print(Loc["Tinker's Belt: open your Poisons window first (left-click the craft button)"]) return end
 	if h.craftIndex then
 		DoCraft(h.craftIndex) -- the Craft window makes one per call: one poison per click
 	elseif h.recipeID then
@@ -237,7 +238,7 @@ S.Update = UpdateButton
 
 local function OpenMenu(owner)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle("Craft poison")
+		root:CreateTitle(Loc["Craft poison"])
 		local ids = {}
 		for id in pairs(Stock()) do ids[#ids + 1] = id end
 		table.sort(ids)
@@ -246,11 +247,11 @@ local function OpenMenu(owner)
 			local can = recipe and ns.PoisonCanMake(recipe, Count) or 0
 			local missing = Stock()[id] - Count(id)
 			local crafts = math.min(math.ceil(math.max(missing, 0) / (recipe and recipe.makes or 1)), can)
-			local b = root:CreateButton(("%s  %d/%d  (can make %d)"):format(ItemName(id), Count(id), Stock()[id], can),
+			local b = root:CreateButton((Loc["%s  %d/%d  (can make %d)"]):format(ItemName(id), Count(id), Stock()[id], can),
 				function() Craft(id, crafts) end)
 			if crafts <= 0 then b:SetEnabled(false) end
 		end
-		if #ids == 0 then root:CreateButton("No poisons in stock list (/tb > Rogue > Poison Stock)"):SetEnabled(false) end
+		if #ids == 0 then root:CreateButton(Loc["No poisons in stock list (/tb > Rogue > Poison Stock)"]):SetEnabled(false) end
 	end)
 end
 
@@ -284,9 +285,9 @@ table.insert(ns.loginHooks, function()
 	end)
 	button:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Craft poisons")
-		GameTooltip:AddLine("Left-click: open Poisons, click again to craft what's short", 1, 1, 1, true)
-		GameTooltip:AddLine("Right-click: choose which poison to craft", 1, 1, 1, true)
+		GameTooltip:AddLine(Loc["Craft poisons"])
+		GameTooltip:AddLine(Loc["Left-click: open Poisons, click again to craft what's short"], 1, 1, 1, true)
+		GameTooltip:AddLine(Loc["Right-click: choose which poison to craft"], 1, 1, 1, true)
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", GameTooltip_Hide)

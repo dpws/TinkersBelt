@@ -1,4 +1,5 @@
 local _, ns = ...
+local Loc = ns.L or setmetatable({}, { __index = function(_, k) return k end })
 
 -- Addon-wide center-screen notifications in a movable panel (unlock in /tb to move).
 local frame
@@ -24,7 +25,7 @@ function ns.Notify(msg, playSound)
 	if frame then
 		frame:AddMessage(msg, 1, 0.3, 0.1)
 	else
-		print("Tinker's Belt: " .. msg) -- before login
+		print(Loc["Tinker's Belt: "] .. msg) -- before login
 	end
 	if playSound then PlaySound(SOUNDKIT.RAID_WARNING) end
 	if ns.SetFooter then ns.SetFooter(msg) end -- config window status line
