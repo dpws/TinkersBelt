@@ -841,7 +841,7 @@ local function RelayoutCombat()
 end
 
 -- in the class section, and in the Shaman section for shamans
-local MANA_TOOL = { name = "Mana Ticks", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
+local MANA_TOOL = { name = "Mana Regen", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
 	desc = "The five second rule, then regeneration.",
 	toggle = Switch("mana", function() if ns.Mana then ns.Mana.Layout() end end) }
 local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",

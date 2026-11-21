@@ -128,7 +128,7 @@ table.insert(ns.loginHooks, function()
 	else
 		bar:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
 	end
-	ns.RegisterPanel(bar, "Mana Ticks", function(self)
+	ns.RegisterPanel(bar, "Mana Regen", function(self)
 		local point, _, relPoint, x, y = self:GetPoint()
 		m.pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
