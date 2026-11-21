@@ -207,7 +207,7 @@ local function UpdateSapTimers()
 				t.icon:SetSize(size, size)
 				t.icon:SetPoint("LEFT")
 				t.text:SetFont(ns.Theme.font.semibold, math.max(math.floor(size * 0.8), 10), "OUTLINE")
-				t.text:SetText(math.ceil(left))
+				t.text:SetText(math.floor(left)) -- last second reads 0, like the game's timers
 				if left <= 5 then t.text:SetTextColor(1, 0.25, 0.2) else t.text:SetTextColor(1, 1, 1) end
 				t:SetWidth(size + 3 + t.text:GetStringWidth())
 				t:Show()

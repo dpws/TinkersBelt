@@ -276,7 +276,7 @@ local function Update()
 			snd:SetMinMaxValues(0, dur)
 			snd:SetValue(left)
 			SetFill(true)
-			snd.text:SetFormattedText("%d", math.ceil(left))
+			snd.text:SetFormattedText("%d", math.floor(left)) -- last second reads 0, like the game's timers
 		else
 			snd:SetValue(0)
 			SetFill(false)

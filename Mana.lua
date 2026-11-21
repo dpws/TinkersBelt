@@ -60,7 +60,7 @@ local function Update()
 	-- fills up over the 5 seconds; full + glowing = regenerating
 	local regen = phase.phase ~= "fsr"
 	fill:SetWidth(math.max(w * (regen and 1 or (1 - phase.fraction)), 0.01))
-	text:SetText(regen and "" or ("%.1f"):format(phase.remaining))
+	text:SetText(regen and "" or ("%.1f"):format(math.floor(phase.remaining * 10) / 10)) -- rounded down: 0.96 reads 0.9
 	if regen ~= bar.glow:IsShown() then
 		bar.glow:SetShown(regen)
 		if regen then bar.glowAnim:Play() else bar.glowAnim:Stop() end

@@ -68,8 +68,9 @@ local function Warn(msg)
 end
 
 local function FormatTime(ms)
-	if ms >= 60000 then return ("%dm"):format(math.ceil(ms / 60000)) end
-	return ("%ds"):format(math.ceil(ms / 1000))
+	-- rounded down like the game's timers: 59s left reads 59s, the last second reads 0s
+	if ms >= 60000 then return ("%dm"):format(math.floor(ms / 60000)) end
+	return ("%ds"):format(math.floor(ms / 1000))
 end
 
 -- weapon icon, poison icon, desaturation (insecure, fine in combat)

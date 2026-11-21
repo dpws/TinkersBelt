@@ -451,7 +451,12 @@ local function Paint(b, status, left)
 	b.icon:SetDesaturated(dim)
 	b.icon:SetAlpha(dim and 0.35 or 1)
 	b.border:SetShown(status == "missing")
-	b.time:SetText(status == "low" and left and ("%dm"):format(math.ceil(left / 60)) or "")
+	-- rounded down like the game's timers; seconds in the last minute (not "0m")
+	local text = ""
+	if status == "low" and left then
+		text = left >= 60 and ("%dm"):format(math.floor(left / 60)) or ("%ds"):format(math.floor(left))
+	end
+	b.time:SetText(text)
 end
 
 local function UpdateStrips(auraCache, combat)
