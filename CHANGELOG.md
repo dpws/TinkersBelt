@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.6 - 2026-11-21
+
+### New
+- Tinker's Belt speaks your language: German, French, Spanish (Spain and Latin America), Italian, Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional). It follows your game client; anything not yet translated shows in English.
+
 ## 0.4.5 - 2026-11-21
 
 ### New
