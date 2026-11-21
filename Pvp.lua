@@ -1,11 +1,41 @@
 local _, ns = ...
 
--- field: "k" = you killed them, "d" = they killed you
-function ns.PvpRecord(scores, guid, name, field)
+-- field: "k" = you killed them, "d" = they killed you; me = your character (also counted per character in e.by)
+function ns.PvpRecord(scores, guid, name, field, me)
 	local e = scores[guid] or { k = 0, d = 0 }
 	e.name = name
 	e[field] = e[field] + 1
+	if me then
+		e.by = e.by or {}
+		local c = e.by[me] or { k = 0, d = 0 }
+		c[field] = c[field] + 1
+		e.by[me] = c
+	end
 	scores[guid] = e
+end
+
+-- the score against one enemy for one of your characters (me = nil: all of them)
+function ns.PvpScoreFor(e, me)
+	if not me then return e end
+	return e.by and e.by[me] or nil
+end
+
+-- history entries of one of your characters (me = nil: all)
+function ns.PvpFilter(log, me)
+	if not me then return log end
+	local out = {}
+	for _, entry in ipairs(log) do if entry.me == me then out[#out + 1] = entry end end
+	return out
+end
+
+-- your characters that appear in the history, sorted
+function ns.PvpCharacters(log)
+	local seen, list = {}, {}
+	for _, entry in ipairs(log) do
+		if entry.me and not seen[entry.me] then seen[entry.me] = true; list[#list + 1] = entry.me end
+	end
+	table.sort(list)
+	return list
 end
 
 -- the game doesn't say who killed you: use the last enemy player who hit you within `window` seconds
@@ -66,11 +96,14 @@ local function Seen(unit)
 	end)
 end
 
+local function Me() return GetUnitName("player", true) end -- full name: Forever names are two words
 local function Record(guid, name, kind)
-	ns.PvpRecord(ns.adb.pvp, guid, name, kind)
+	local me = Me()
+	ns.PvpRecord(ns.adb.pvp, guid, name, kind, me)
 	Seen("target"); Seen("mouseover")
 	local _, class = GetPlayerInfoByGUID(guid)
-	ns.PvpLogAdd(ns.adb.pvpLog, { t = time(), kind = kind, name = name, class = class, level = levels[guid] }, LOG_CAP)
+	ns.PvpLogAdd(ns.adb.pvpLog, { t = time(), kind = kind, name = name, class = class, level = levels[guid],
+		me = me, meClass = select(2, UnitClass("player")) }, LOG_CAP)
 	local a = ns.adb
 	if a.pvpAnnounce then
 		local className = class and (LOCALIZED_CLASS_NAMES_MALE[class] or class)
@@ -179,7 +212,12 @@ local function OnTooltipUnit(tooltip)
 	local ok, guid = pcall(function() return UnitIsPlayer(unit) and UnitGUID(unit) end)
 	if not ok or not guid or Secret(guid) then return end
 	local e = ns.adb.pvp[guid]
-	if e then tooltip:AddLine("PvP: " .. ns.PvpScoreText(e)) end
+	if e then
+		-- all your characters, and this one when it differs
+		local mine = ns.PvpScoreFor(e, Me())
+		local extra = (mine and (mine.k ~= e.k or mine.d ~= e.d)) and ("  (this character " .. ns.PvpScoreText(mine) .. ")") or ""
+		tooltip:AddLine("PvP: " .. ns.PvpScoreText(e) .. extra)
+	end
 end
 
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum.TooltipDataType then

@@ -53,4 +53,20 @@ check("death text, unknown level", ns.PvpAnnounceText("d", "Orc", "Warrior", nil
 check("skull level -1 shows ??", ns.PvpAnnounceText("d", "Orc", "Warrior", -1, score) == "Killed by Orc (?? Warrior)  |cff40ff403 : 1|r")
 check("unknown class", ns.PvpAnnounceText("k", "X", nil, 10, score) == "Killed X (10 ?)  |cff40ff403 : 1|r")
 
+-- per character (twinks)
+local sc = {}
+ns.PvpRecord(sc, "G", "Gank", "k", "Lava Craft")
+ns.PvpRecord(sc, "G", "Gank", "d", "Ever Vess")
+ns.PvpRecord(sc, "G", "Gank", "k", "Lava Craft")
+check("total across characters", sc.G.k == 2 and sc.G.d == 1)
+check("per character", sc.G.by["Lava Craft"].k == 2 and sc.G.by["Ever Vess"].d == 1)
+check("score for all = total", ns.PvpScoreFor(sc.G, nil) == sc.G)
+check("score for a character", ns.PvpScoreFor(sc.G, "Ever Vess").d == 1)
+check("no score for a character who never met them", ns.PvpScoreFor(sc.G, "Mr Boshy") == nil)
+local log = { { me = "Lava Craft" }, { me = "Ever Vess" }, {}, { me = "Lava Craft" } }
+check("filter by character", #ns.PvpFilter(log, "Lava Craft") == 2)
+check("no filter: everything, old entries too", #ns.PvpFilter(log, nil) == 4)
+local chars = ns.PvpCharacters(log)
+check("characters sorted, once each", #chars == 2 and chars[1] == "Ever Vess" and chars[2] == "Lava Craft")
+
 print("pvp: " .. passed .. " passed")

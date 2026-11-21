@@ -404,9 +404,20 @@ local function BuildPvpPage(parent)
 		reset = T.NewButton(row, "Reset all scores", 170, 26)
 		reset:SetPoint("RIGHT")
 	end)
+	local who -- nil = all your characters, else one character's full name
+	local ShowPage
+	P:Dropdown("Character", function(root)
+		root:CreateRadio("All characters", function() return who == nil end, function() who = nil; P.refreshAll() end)
+		for _, name in ipairs(ns.PvpCharacters(a.pvpLog)) do
+			root:CreateRadio(name, function() return who == name end, function() who = name; P.refreshAll() end)
+		end
+	end, 260)
 	local function ShowStats()
 		local players, k, d = 0, 0, 0
-		for _, e in pairs(a.pvp) do players, k, d = players + 1, k + e.k, e.d + d end
+		for _, e in pairs(a.pvp) do
+			local s = ns.PvpScoreFor(e, who)
+			if s then players, k, d = players + 1, k + s.k, d + s.d end
+		end
 		stats:SetText(("%d players tracked.  Total %s"):format(players, ns.PvpScoreText({ k = k, d = d })))
 	end
 	-- two clicks to reset: no popup dialog
@@ -429,13 +440,13 @@ local function BuildPvpPage(parent)
 	-- history: newest first
 	P:Card("Latest kills and deaths")
 	local PER_PAGE = 13
-	local COLS = { { "When", 0 }, { "", 100 }, { "Name", 170 }, { "Class", 380 }, { "Lvl", 500 } }
+	local COLS = { { "When", 0 }, { "", 90 }, { "Name", 150 }, { "Class", 330 }, { "Lvl", 420 }, { "Character", 460 } }
 	local function Cells(row, font, color)
 		local cells = {}
 		for c, col in ipairs(COLS) do
 			local fs = T.Text(row, font, 12, color)
 			fs:SetPoint("LEFT", 2 + col[2], 0)
-			fs:SetWidth((COLS[c + 1] and COLS[c + 1][2] or 560) - col[2] - 6)
+			fs:SetWidth((COLS[c + 1] and COLS[c + 1][2] or 640) - col[2] - 6)
 			fs:SetWordWrap(false)
 			cells[c] = fs
 		end
@@ -464,8 +475,9 @@ local function BuildPvpPage(parent)
 		nextB = T.NewButton(row, "Older >", 100, 24)
 		nextB:SetPoint("LEFT", pageText, "RIGHT", 16, 0)
 	end)
-	local function ShowPage()
-		local items, pages, p = ns.PvpPage(a.pvpLog, page, PER_PAGE)
+	ShowPage = function()
+		local log = ns.PvpFilter(a.pvpLog, who)
+		local items, pages, p = ns.PvpPage(log, page, PER_PAGE)
 		page = p
 		for i, cells in ipairs(rows) do
 			local e = items[i]
@@ -477,11 +489,13 @@ local function BuildPvpPage(parent)
 				cells[3]:SetText(e.name or "?")
 				cells[4]:SetText(color and ("|c%s%s|r"):format(color.colorStr, className) or className)
 				cells[5]:SetText((e.level and e.level > 0) and e.level or "??")
+				local mc = e.meClass and RAID_CLASS_COLORS[e.meClass]
+				cells[6]:SetText(e.me and (mc and ("|c%s%s|r"):format(mc.colorStr, e.me) or e.me) or "|cff8c96a3?|r")
 			else
 				for _, fs in ipairs(cells) do fs:SetText("") end
 			end
 		end
-		if #a.pvpLog == 0 then rows[1][3]:SetText("No kills or deaths yet") end
+		if #log == 0 then rows[1][3]:SetText("No kills or deaths yet") end
 		pageText:SetText(("Page %d / %d"):format(page, pages))
 		prev:SetEnabled(page > 1)
 		nextB:SetEnabled(page < pages)
@@ -489,6 +503,7 @@ local function BuildPvpPage(parent)
 	prev:SetScript("OnClick", function() page = page - 1; ShowPage() end)
 	nextB:SetScript("OnClick", function() page = page + 1; ShowPage() end)
 	P:Refresher(function() page = 1; ShowPage() end)
+	P.refreshAll = function() page = 1; ShowStats(); ShowPage() end
 	-- live update while the page is open
 	ns.OnPvpLogChanged = function() if parent:IsVisible() then ShowStats(); ShowPage() end end
 	P:Finish()
