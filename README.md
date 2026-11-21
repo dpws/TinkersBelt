@@ -10,6 +10,7 @@ Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in ga
 - **PvP**: your score against each enemy player, per character and across all your characters, kill announcements and sounds, and a list of nearby enemies.
 - **Friendly names**: clean class-coloured labels instead of nameplates, plus a clickable nearby allies list.
 - **Auto restock**: buys reagents at vendors within a gold limit.
+- **Bag Cleaner**: when your bags are full, lists the cheapest stacks to delete with a click; right-click protects an item.
 - **Themes**: Modern, or Classic WoW frames.
 
 ## Rogues

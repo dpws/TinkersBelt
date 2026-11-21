@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 - 2026-11-21
+
+### New
+- Bag Cleaner: when your bags are full, a panel lists the cheapest stacks. Click one to delete it, right-click to protect that item for good. Items with no vendor price are never listed.
+- Tooltips on the macro builder's small buttons and switches, the allies invite button and the settings sidebar switches.
+
 ## 0.4.1 - 2026-11-21
 
 ### New
