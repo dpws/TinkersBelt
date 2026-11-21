@@ -829,7 +829,7 @@ end
 ---------------------------------------------------------------------------
 -- Window
 
--- Sidebar sections (General + class sections). toggle = header Enable switch; status = sidebar dot.
+-- Sidebar sections (General + class sections). toggle = the feature's on/off switch (sidebar and page header).
 local ICON = "Interface\\Icons\\"
 -- on/off for a whole feature (ns.On key); refresh redraws it
 local function Switch(key, refresh)
