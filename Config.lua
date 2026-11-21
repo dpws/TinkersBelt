@@ -1177,7 +1177,7 @@ local function CreateWindow()
 	-- nav list scrolls (mouse wheel) above the lock button when a class has many tools
 	local list = CreateFrame("ScrollFrame", nil, side)
 	list:SetPoint("TOPLEFT")
-	list:SetPoint("BOTTOMRIGHT", 0, 56)
+	list:SetPoint("BOTTOMRIGHT", 0, 90) -- room for Unlock panels + Key bindings
 	local listIn = CreateFrame("Frame", nil, list)
 	listIn:SetWidth(SIDEBAR)
 	list:SetScrollChild(listIn)
@@ -1266,7 +1266,21 @@ local function CreateWindow()
 	end
 
 	local lock = T.NewButton(side, "Unlock panels", SIDEBAR - 40, 28, "accent")
-	lock:SetPoint("BOTTOMLEFT", 20, 18)
+	lock:SetPoint("BOTTOMLEFT", 20, 52)
+	-- under it: the game's key binding screen (the addon's keys are in the "Tinker's Belt: ..." categories)
+	local keys = T.NewButton(side, "Key bindings", SIDEBAR - 40, 26)
+	keys:SetPoint("BOTTOMLEFT", 20, 18)
+	keys:SetScript("OnClick", function()
+		if InCombatLockdown() then return print("Tinker's Belt: key bindings can't be opened in combat") end
+		f:Hide()
+		if Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID then
+			Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID)
+		elseif KeyBindingFrame_LoadUI then
+			KeyBindingFrame_LoadUI()
+			ShowUIPanel(KeyBindingFrame)
+		end
+	end)
+	T.Tip(keys, "Key bindings", "Opens the game's key bindings. Tinker's Belt keys are in the \"Tinker's Belt: ...\" categories.")
 	local function LockText() lock:SetText(ns.unlocked and "Lock panels" or "Unlock panels") end
 	-- unlocking hides this window so the panels are free to move; locking (here or on the layout bar) brings it back
 	lock:SetScript("OnClick", function() ns.SetUnlocked(not ns.unlocked) end)
