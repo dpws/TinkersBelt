@@ -840,6 +840,8 @@ local GROUPS = {
 				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
 			desc = "Save and load action bars and talents, shared by your characters of this class." },
+		{ name = "Macros", build = function(p) ns.BuildMacrosPage(p) end, icon = ICON .. "INV_Misc_Note_01",
+			desc = "Visual macro builder: blocks and switches, live preview." },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
 			desc = "Buy reagents and supplies automatically at vendors.",
 			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },

@@ -24,6 +24,7 @@ Allies.lua
 AlliesList.lua
 BagSlots.lua
 Profiles.lua
+Macros.lua
 Restock.lua
 Mana.lua
 Buffs.lua
