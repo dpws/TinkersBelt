@@ -407,14 +407,20 @@ function ns.BuildMacrosPage(page)
 				end
 			end
 		end
+		-- a spell chosen from the spellbook that the macro doesn't cast: listed here too, so it shows as selected
+		if type(m.tooltip) == "string" and not seen[m.tooltip] then
+			root:CreateRadio(("|T%s:16|t %s"):format(SpellIcon("cast", m.tooltip), m.tooltip), function() return true end, Set(m.tooltip))
+		end
+		-- plain buttons, not radios: only one entry above may count as selected (else the name shows twice)
 		local book = root:CreateButton("From your spellbook")
 		for _, tab in ipairs(SpellBook()) do
 			local sub = book:CreateButton(tab.name)
 			for _, sp in ipairs(tab.spells) do
-				-- spells this macro uses are already listed above: a second radio would show the name twice
-				if not seen[sp.name] then
-					sub:CreateRadio(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function() return m.tooltip == sp.name end, Set(sp.name))
-				end
+				sub:CreateButton(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function()
+					m.tooltip = sp.name
+					UpdatePreview()
+					tipPick:GenerateMenu()
+				end)
 			end
 		end
 	end)
