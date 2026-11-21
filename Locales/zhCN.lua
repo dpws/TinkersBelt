@@ -1,7 +1,8 @@
 local _, ns = ...
 -- zhCN translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua zhCN)
-if GetLocale() ~= "zhCN" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["zhCN"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> 物品 %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  按钮可见：%s，位置：%s，%s（屏幕 %d x %d）"
 L["  learned: recipe %d -> item %s (%s)"] = "  已学会：配方 %d -> 物品 %s（%s）"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00需要重载：|r "
 L["Add %s preset"] = "添加%s预设"
 L["no"] = "否"
-
+L["Game language"] = "游戏语言"
+L["Language"] = "语言"
+L["The addon's language. Game language follows your client."] = "插件的语言。游戏语言跟随你的客户端。"
+L["language changes after a reload"] = "重新载入后更改语言"

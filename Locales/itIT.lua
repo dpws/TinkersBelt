@@ -1,7 +1,8 @@
 local _, ns = ...
 -- itIT translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua itIT)
-if GetLocale() ~= "itIT" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["itIT"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> oggetto %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  pulsante visibile: %s, posizione: %s, %s (schermo %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  appresa: ricetta %d -> oggetto %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Ricaricamento necessario:|r "
 L["Add %s preset"] = "Aggiungi preset %s"
 L["no"] = "no"
-
+L["Game language"] = "Lingua del gioco"
+L["Language"] = "Lingua"
+L["The addon's language. Game language follows your client."] = "La lingua dell'addon. Lingua del gioco segue il tuo client."
+L["language changes after a reload"] = "la lingua cambia dopo un ricaricamento"

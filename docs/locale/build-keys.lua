@@ -14,6 +14,9 @@ local LIT = '"[^"\\]*"'
 for _, p in ipairs(files) do
 	local s = read(p)
 	for lit in s:gmatch('Loc%[(' .. LIT .. ')%]') do add(lit) end
+	-- descriptions kept in English in tables, translated where shown
+	for lit in s:gmatch('desc = (' .. LIT .. ')') do add(lit) end
+	for lit in s:gmatch('E%(' .. LIT .. ', (' .. LIT .. ')') do add(lit) end
 end
 -- names in tables, translated where shown
 local cfg = read("Config.lua")

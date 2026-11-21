@@ -1,7 +1,8 @@
 local _, ns = ...
 -- esMX translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua esMX)
-if GetLocale() ~= "esMX" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["esMX"] = L
 
 L["  %d: %s -> item %s"] = "  %d: %s -> objeto %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  botón visible: %s, posición: %s, %s (pantalla %d x %d)"
@@ -491,4 +492,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Hay que recargar:|r "
 L["Add %s preset"] = "Agregar plantilla de %s"
 L["no"] = "no"
-
+L["Game language"] = "Idioma del juego"
+L["Language"] = "Idioma"
+L["The addon's language. Game language follows your client."] = "El idioma del addon. Idioma del juego sigue a tu cliente."
+L["language changes after a reload"] = "el idioma cambia después de recargar"

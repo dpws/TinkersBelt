@@ -50,6 +50,27 @@ function T.UseTheme(name)
 	T.BAR = "Interface\\TargetingFrame\\UI-StatusBar"
 end
 
+-- Korean and Chinese: Inter and Friz Quadrata have none of their letters, so the game's own font for that
+-- language is used (the first one this client has)
+local CJK_FONTS = {
+	koKR = { "Fonts\\2002.TTF", "Fonts\\2002B.TTF" },
+	zhCN = { "Fonts\\ARKai_T.ttf", "Fonts\\ARHei.ttf", "Fonts\\ARKai_C.ttf" },
+	zhTW = { "Fonts\\bLEI00D.ttf", "Fonts\\bHEI01B.TTF", "Fonts\\bKAI00M.ttf" },
+}
+function T.UseLanguageFont(lang)
+	local list = CJK_FONTS[lang]
+	if not list or not UIParent then return end
+	local probe = UIParent:CreateFontString()
+	for _, path in ipairs(list) do
+		if probe:SetFont(path, 12, "") then
+			T.font.regular, T.font.medium, T.font.semibold = path, path, path
+			return
+		end
+	end
+	local fallback = STANDARD_TEXT_FONT or (GameFontNormal and GameFontNormal:GetFont())
+	if fallback then T.font.regular, T.font.medium, T.font.semibold = fallback, fallback, fallback end
+end
+
 -- classic frames: tooltip border, or the big dialog border for windows (radius >= 10)
 local function Backdrop(frame, fill, border, dialog)
 	if not frame.SetBackdrop then
@@ -57,7 +78,7 @@ local function Backdrop(frame, fill, border, dialog)
 		frame:HookScript("OnSizeChanged", frame.OnBackdropSizeChanged)
 	end
 	if dialog then
-		frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+		frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
 			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", tile = true, tileSize = 32, edgeSize = 32,
 			insets = { left = 11, right = 12, top = 12, bottom = 11 } })
 		frame:SetBackdropColor(1, 1, 1, 1)
@@ -223,6 +244,18 @@ function T.Tip(frame, title, text)
 end
 
 -- flat button; kind "accent" = gold fill with dark text
+-- a button never narrower than its text: re-fit on every SetText
+local function FitText(b, pad)
+	local set = b.SetText
+	local min = b:GetWidth()
+	local function Fit()
+		local fs = b:GetFontString()
+		if fs then b:SetWidth(math.max(min, math.ceil(fs:GetStringWidth()) + pad)) end
+	end
+	b.SetText = function(self, text) set(self, text); Fit() end
+	Fit()
+end
+
 function T.NewButton(parent, text, w, h, kind)
 	if T.theme == "classic" then
 		-- the game's own red panel button (accent ones too: classic has only the red kind)
@@ -234,6 +267,7 @@ function T.NewButton(parent, text, w, h, kind)
 			local _, size = fs:GetFont()
 			fs:SetFont(T.font.medium, math.min(size or 12, 12), "")
 		end
+		FitText(b, 24)
 		return b
 	end
 	local b = CreateFrame("Button", nil, parent)
@@ -252,6 +286,7 @@ function T.NewButton(parent, text, w, h, kind)
 	hl:SetColorTexture(1, 1, 1, 0.05)
 	b:HookScript("OnEnable", function() fs:SetTextColor(unpack(accent and { 0.06, 0.065, 0.08, 1 } or T.text)) end)
 	b:HookScript("OnDisable", function() fs:SetTextColor(unpack(T.muted)) end)
+	FitText(b, 18)
 	return b
 end
 

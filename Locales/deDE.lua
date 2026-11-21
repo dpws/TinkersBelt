@@ -1,7 +1,8 @@
 local _, ns = ...
 -- deDE translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua deDE)
-if GetLocale() ~= "deDE" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["deDE"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> Gegenstand %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  Taste sichtbar: %s, Position: %s, %s (Bildschirm %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  erlernt: Rezept %d -> Gegenstand %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Neuladen nötig:|r "
 L["Add %s preset"] = "%s-Vorlage hinzufügen"
 L["no"] = "nein"
-
+L["Game language"] = "Spielsprache"
+L["Language"] = "Sprache"
+L["The addon's language. Game language follows your client."] = "Die Sprache des Addons. Spielsprache folgt deinem Client."
+L["language changes after a reload"] = "Sprache ändert sich nach einem Neuladen"

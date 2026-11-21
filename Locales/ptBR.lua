@@ -1,7 +1,8 @@
 local _, ns = ...
 -- ptBR translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua ptBR)
-if GetLocale() ~= "ptBR" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["ptBR"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> item %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  botão visível: %s, posição: %s, %s (tela %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  aprendida: receita %d -> item %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00É preciso recarregar:|r "
 L["Add %s preset"] = "Adicionar predefinição de %s"
 L["no"] = "não"
-
+L["Game language"] = "Idioma do jogo"
+L["Language"] = "Idioma"
+L["The addon's language. Game language follows your client."] = "O idioma do addon. Idioma do jogo segue o seu cliente."
+L["language changes after a reload"] = "o idioma muda após recarregar"

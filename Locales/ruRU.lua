@@ -1,7 +1,8 @@
 local _, ns = ...
 -- ruRU translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua ruRU)
-if GetLocale() ~= "ruRU" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["ruRU"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> предмет %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  кнопка видна: %s, позиция: %s, %s (экран %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  изучено: рецепт %d -> предмет %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Нужна перезагрузка:|r "
 L["Add %s preset"] = "Добавить набор: %s"
 L["no"] = "нет"
-
+L["Game language"] = "Язык игры"
+L["Language"] = "Язык"
+L["The addon's language. Game language follows your client."] = "Язык модификации. «Язык игры» — как в клиенте."
+L["language changes after a reload"] = "язык сменится после перезагрузки"

@@ -912,36 +912,36 @@ end
 
 -- in the class section, and in the Shaman section for shamans
 local MANA_TOOL = { name = "Mana Regen", build = BuildManaPage, icon = ICON .. "INV_Potion_76",
-	desc = Loc["The five second rule, then regeneration."],
+	desc = "The five second rule, then regeneration.",
 	toggle = Switch("mana", function() if ns.Mana then ns.Mana.Layout() end end) }
 local BUFFS_TOOL = { name = "Buffs", build = BuildBuffsPage, icon = ICON .. "Spell_Holy_WordFortitude",
-	desc = Loc["Never forget a buff: on you, your group, and beside party frames."],
+	desc = "Never forget a buff: on you, your group, and beside party frames.",
 	toggle = { function() return ns.db.buffs.enabled end,
 		function(v) ns.db.buffs.enabled = v; if ns.Buffs then ns.Buffs.Update() end end } }
 
 local GROUPS = {
 	{ name = "General", tools = {
 		{ name = "PvP", build = function(p) BuildPvpPage(p); BuildPvpSettingsPage(p) end, icon = ICON .. "Ability_DualWield",
-			desc = Loc["Your score against enemy players, recent kills and deaths, and PvP settings."], toggle = Switch("pvp") },
+			desc = "Your score against enemy players, recent kills and deaths, and PvP settings.", toggle = Switch("pvp") },
 		{ name = "Nearby Enemies", build = BuildNearbyPage, icon = ICON .. "Ability_Hunter_EagleEye",
-			desc = Loc["Opposite-faction players seen around you."],
+			desc = "Opposite-faction players seen around you.",
 			toggle = { function() return ns.adb.nearby.enabled end,
 				function(v) ns.adb.nearby.enabled = v; if ns.RefreshNearby then ns.RefreshNearby() end end } },
 		{ name = "Friendly Names", build = BuildAlliesPage, icon = ICON .. "Spell_Holy_PrayerOfHealing02",
-			desc = Loc["Clean name labels above friendly players: class colour and guild, no nameplate."],
+			desc = "Clean name labels above friendly players: class colour and guild, no nameplate.",
 			toggle = { function() return ns.adb.allies.enabled end,
 				function(v) ns.adb.allies.enabled = v; if ns.Allies then ns.Allies.Apply() end end } },
 		{ name = "Profiles", build = BuildProfilesPage, icon = ICON .. "INV_Misc_Book_09",
-			desc = Loc["Save and load action bars and talents, shared by your characters of this class."],
+			desc = "Save and load action bars and talents, shared by your characters of this class.",
 			hidden = function() return ns.PROFILES_HIDDEN end },
 		{ name = "Macros", build = function(p) ns.BuildMacrosPage(p) end, icon = ICON .. "INV_Misc_Note_01",
-			desc = Loc["Visual macro builder: blocks and switches, live preview."] },
+			desc = "Visual macro builder: blocks and switches, live preview." },
 		{ name = "Bag Cleaner", build = BuildCleanerPage, icon = ICON .. "INV_Misc_Bag_08",
-			desc = Loc["When bags are full: the cheapest stacks, click to delete."],
+			desc = "When bags are full: the cheapest stacks, click to delete.",
 			toggle = { function() return ns.db.cleaner and ns.db.cleaner.enabled end,
 				function(v) if ns.db.cleaner then ns.db.cleaner.enabled = v; if ns.BagCleaner then ns.BagCleaner.Update() end end end } },
 		{ name = "Auto Restock", build = BuildRestockPage, icon = ICON .. "INV_Misc_Bag_10",
-			desc = Loc["Buy reagents and supplies automatically at vendors."],
+			desc = "Buy reagents and supplies automatically at vendors.",
 			toggle = { function() return ns.db.restock.enabled end, function(v) ns.db.restock.enabled = v end } },
 	} },
 	-- named after your class (a paladin's buffs aren't "caster" tools); shamans get these in their own section
@@ -949,32 +949,32 @@ local GROUPS = {
 		tools = { MANA_TOOL, BUFFS_TOOL } },
 	{ name = "Shaman", class = "SHAMAN", tools = {
 		{ name = "Weapon Imbues", build = BuildPoisonsPage, icon = ICON .. "Spell_Nature_RockBiter",
-			desc = Loc["Weapon imbue bar with reminders before it runs out."],
+			desc = "Weapon imbue bar with reminders before it runs out.",
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
 		{ name = "Totems", build = BuildTotemsPage, icon = ICON .. "Spell_Nature_StoneSkinTotem",
-			desc = Loc["Totem timers, kill alerts, totem sets and Lightning Shield charges."],
+			desc = "Totem timers, kill alerts, totem sets and Lightning Shield charges.",
 			toggle = { function() return ns.db.totems and ns.db.totems.enabled end,
 				function(v) if ns.db.totems then ns.db.totems.enabled = v; if ns.Totems then ns.Totems.Refresh() end end end } },
 		{ name = "Cooldowns", build = BuildRogueTimersPage, icon = ICON .. "Spell_Nature_EarthShock",
-			desc = Loc["Cooldown icons: shocks, Grounding Totem, Stormstrike and more."], toggle = Switch("combat", RelayoutCombat) },
+			desc = "Cooldown icons: shocks, Grounding Totem, Stormstrike and more.", toggle = Switch("combat", RelayoutCombat) },
 		MANA_TOOL, BUFFS_TOOL,
 	} },
 	{ name = "Rogue", class = "ROGUE", tools = {
 		{ name = "Stealth Action Bars", build = BuildBarSwitchPage, icon = ICON .. "Ability_Stealth",
-			desc = Loc["Which bars switch page while in Stealth."], toggle = Switch("barswitch", function() ns.ApplyBarSwitch() end) },
+			desc = "Which bars switch page while in Stealth.", toggle = Switch("barswitch", function() ns.ApplyBarSwitch() end) },
 		{ name = "Poisons", build = function(p) BuildPoisonsPage(p); BuildPoisonStockPage(p) end, icon = ICON .. "Ability_Poisons",
-			desc = Loc["Weapon poison bar, reminders, and poisons kept in bags."],
+			desc = "Weapon poison bar, reminders, and poisons kept in bags.",
 			toggle = { function() return ns.db.poisons.enabled end,
 				function(v) ns.db.poisons.enabled = v; if ns.Poisons then ns.Poisons.Refresh() end end } },
 		{ name = "Combat Bars", build = function(p) BuildComboPage(p); BuildRogueTimersPage(p) end, icon = ICON .. "Ability_Rogue_Eviscerate",
-			desc = Loc["Health, energy and combo point bars, Slice and Dice and cooldowns."], toggle = Switch("combat", RelayoutCombat) },
+			desc = "Health, energy and combo point bars, Slice and Dice and cooldowns.", toggle = Switch("combat", RelayoutCombat) },
 		{ name = "Lockboxes", build = BuildLockboxPage, icon = ICON .. "INV_Box_04",
-			desc = Loc["One button to pick and open your lockboxes."],
+			desc = "One button to pick and open your lockboxes.",
 			toggle = { function() return ns.db.lockbox.enabled end,
 				function(v) ns.db.lockbox.enabled = v; if ns.Lockbox then ns.Lockbox.Update() end end } },
 		{ name = "Openers", build = BuildOpenerPage, icon = ICON .. "INV_Misc_Bag_11",
-			desc = Loc["Sap / Pick Pocket icons on nameplates and opener weapon sets."],
+			desc = "Sap / Pick Pocket icons on nameplates and opener weapon sets.",
 			toggle = Switch("opener", function() if ns.Opener then ns.Opener.UpdateSets() end end) },
 	} },
 }
@@ -1084,8 +1084,23 @@ local function CreateWindow()
 	local version = T.Text(header, "medium", 15, T.muted)
 	version:SetPoint("BOTTOMLEFT", title, "BOTTOMRIGHT", 10, 4)
 	version:SetText("v" .. ((C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("TinkersBelt", "Version") or "?"))
+	local lang = T.NewDropdown(header, 150)
+	lang:SetupMenu(function(_, root)
+		root:CreateTitle(Loc["Language"])
+		local function Pick(code)
+			if ns.adb.lang == code then return end
+			ns.adb.lang = code
+			ns.RequestReload(Loc["language changes after a reload"])
+		end
+		root:CreateRadio(Loc["Game language"], function() return ns.adb.lang == nil end, function() Pick(nil) end)
+		for _, l in ipairs(ns.LANGUAGES) do
+			root:CreateRadio(l[2], function() return ns.adb.lang == l[1] end, function() Pick(l[1]) end)
+		end
+	end)
+	T.Tip(lang, Loc["Language"], Loc["The addon's language. Game language follows your client."])
 	local theme = T.NewDropdown(header, 130)
 	theme:SetPoint("RIGHT", close, "LEFT", -12, 0)
+	lang:SetPoint("RIGHT", theme, "LEFT", -8, 0)
 	theme:SetupMenu(function(_, root)
 		root:CreateTitle(Loc["Theme"])
 		for _, o in ipairs({ { "modern", "Modern" }, { "classic", "Classic WoW" } }) do
@@ -1184,7 +1199,7 @@ local function CreateWindow()
 		local tool = nav.tool
 		pageIcon:SetTexture(tool.icon)
 		pageTitle:SetText(Loc[tool.name])
-		pageDesc:SetText(tool.desc or "")
+		pageDesc:SetText(tool.desc and Loc[tool.desc] or "")
 		headToggle:SetShown(tool.toggle ~= nil)
 		headLabel:SetShown(tool.toggle ~= nil)
 		if tool.toggle then

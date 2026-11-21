@@ -207,47 +207,47 @@ end
 local MO = function(spell) return { unit = "mouseover", help = false, dead = false, spell = spell } end
 ns.MACRO_LIBRARY = {
 	ROGUE = {
-		{ name = "Opener", desc = Loc["Stealth: Cheap Shot. Otherwise Sinister Strike. Starts auto attack."], make = function(N)
+		{ name = "Opener", desc = "Stealth: Cheap Shot. Otherwise Sinister Strike. Starts auto attack.", make = function(N)
 			return { tooltip = true, lines = { cast({ stealth = true, spell = N(1833) }, { spell = N(1752) }), { cmd = "startattack" } } }
 		end },
-		{ name = "Dagger Opener", desc = Loc["Stealth: Ambush, Ctrl: Garrote. Otherwise Backstab. Starts auto attack."], make = function(N)
+		{ name = "Dagger Opener", desc = "Stealth: Ambush, Ctrl: Garrote. Otherwise Backstab. Starts auto attack.", make = function(N)
 			return { tooltip = true, lines = { cast({ stealth = true, ctrl = true, spell = N(703) }, { stealth = true, spell = N(8676) },
 				{ spell = N(53) }), { cmd = "startattack" } } }
 		end },
-		{ name = "Pick + Cheap", desc = Loc["Pick Pocket, then Cheap Shot. Stand still when you press it."], make = function(N)
+		{ name = "Pick + Cheap", desc = "Pick Pocket, then Cheap Shot. Stand still when you press it.", make = function(N)
 			return { tooltip = N(1833), lines = { cast({ spell = N(921) }), cast({ spell = N(1833) }) } }
 		end },
-		{ name = "Pick + Ambush", desc = Loc["Pick Pocket, then Ambush (dagger). Stand still when you press it."], make = function(N)
+		{ name = "Pick + Ambush", desc = "Pick Pocket, then Ambush (dagger). Stand still when you press it.", make = function(N)
 			return { tooltip = N(8676), lines = { cast({ spell = N(921) }), cast({ spell = N(8676) }) } }
 		end },
-		{ name = "Pick + Sap", desc = Loc["Pick Pocket, then Sap: loot a mob and leave it asleep."], make = function(N)
+		{ name = "Pick + Sap", desc = "Pick Pocket, then Sap: loot a mob and leave it asleep.", make = function(N)
 			return { tooltip = N(6770), lines = { cast({ spell = N(921) }), cast({ spell = N(6770) }) } }
 		end },
-		{ name = "Sap / Blind", desc = Loc["Stealth: Sap. Otherwise Blind. Mouseover enemy first, else your target."], make = function(N)
+		{ name = "Sap / Blind", desc = "Stealth: Sap. Otherwise Blind. Mouseover enemy first, else your target.", make = function(N)
 			local sap, blind = MO(N(6770)), MO(N(2094))
 			sap.stealth = true
 			return { tooltip = true, lines = { cast(sap, { stealth = true, spell = N(6770) }, blind, { spell = N(2094) }) } }
 		end },
-		{ name = "Stealth", desc = Loc["In combat: Vanish. Otherwise Stealth, which a second press can't cancel."], make = function(N)
+		{ name = "Stealth", desc = "In combat: Vanish. Otherwise Stealth, which a second press can't cancel.", make = function(N)
 			return { tooltip = true, lines = { cast({ combat = true, spell = N(1856) }, { stealth = false, spell = N(1784) }) } }
 		end },
-		{ name = "Escape", desc = Loc["Stop attacking, Vanish, then Sprint away."], make = function(N)
+		{ name = "Escape", desc = "Stop attacking, Vanish, then Sprint away.", make = function(N)
 			return { tooltip = N(1856), lines = { { cmd = "stopattack" }, cast({ spell = N(1856) }), cast({ spell = N(2983) }) } }
 		end },
-		{ name = "Kick", desc = Loc["Kicks your focus if it's an enemy, else your target. Ctrl: always your target."], make = function(N)
+		{ name = "Kick", desc = "Kicks your focus if it's an enemy, else your target. Ctrl: always your target.", make = function(N)
 			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(1766) }, { unit = "focus", help = false, dead = false,
 				spell = N(1766) }, { spell = N(1766) }) } }
 		end },
-		{ name = "Feint / Evasion", desc = Loc["Feint to drop threat. Ctrl: Evasion."], make = function(N)
+		{ name = "Feint / Evasion", desc = "Feint to drop threat. Ctrl: Evasion.", make = function(N)
 			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(5277) }, { spell = N(1966) }) } }
 		end },
-		{ name = "Finisher", desc = Loc["Eviscerate. Ctrl: Slice and Dice."], make = function(N)
+		{ name = "Finisher", desc = "Eviscerate. Ctrl: Slice and Dice.", make = function(N)
 			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(5171) }, { spell = N(2098) }) } }
 		end },
-		{ name = "Kidney / Gouge", desc = Loc["Kidney Shot. Ctrl: Gouge."], make = function(N)
+		{ name = "Kidney / Gouge", desc = "Kidney Shot. Ctrl: Gouge.", make = function(N)
 			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(1776) }, { spell = N(408) }) } }
 		end },
-		{ name = "Premed Opener", desc = Loc["Premeditation, then Cheap Shot (needs the talent)."], make = function(N)
+		{ name = "Premed Opener", desc = "Premeditation, then Cheap Shot (needs the talent).", make = function(N)
 			return { tooltip = N(14183), lines = { cast({ spell = N(14183) }), cast({ spell = N(1833) }) } }
 		end },
 	},
@@ -276,104 +276,104 @@ local function E(name, desc, make) return { name = name, desc = desc, make = mak
 
 local L = ns.MACRO_LIBRARY
 L.WARRIOR = {
-	E("Charge", Loc["Battle Stance: Charge. Berserker Stance: Intercept. Otherwise Battle Stance."], function(N)
+	E("Charge", "Battle Stance: Charge. Berserker Stance: Intercept. Otherwise Battle Stance.", function(N)
 		return { tooltip = true, lines = { cast({ form = 1, spell = N(100) }, { form = 3, spell = N(20252) }, { spell = N(2457) }) } }
 	end),
-	E("Overpower", Loc["Overpower, switching to Battle Stance first if needed."], function(N)
+	E("Overpower", "Overpower, switching to Battle Stance first if needed.", function(N)
 		return { tooltip = true, lines = { cast({ form = 1, spell = N(7384) }, { spell = N(2457) }) } }
 	end),
-	E("Interrupt", Loc["Berserker Stance: Pummel. Otherwise Shield Bash."], function(N)
+	E("Interrupt", "Berserker Stance: Pummel. Otherwise Shield Bash.", function(N)
 		return { tooltip = true, lines = { cast({ form = 3, spell = N(6552) }, { spell = N(72) }) } }
 	end),
-	E("Taunt", Loc["Taunt, switching to Defensive Stance first if needed."], function(N)
+	E("Taunt", "Taunt, switching to Defensive Stance first if needed.", function(N)
 		return { tooltip = true, lines = { cast({ form = 2, spell = N(355) }, { spell = N(71) }) } }
 	end),
-	E("Execute", Loc["Execute, leaving Defensive Stance for Battle Stance if needed."], function(N)
+	E("Execute", "Execute, leaving Defensive Stance for Battle Stance if needed.", function(N)
 		return { tooltip = true, lines = { cast({ form = 2, spell = N(2457) }, { spell = N(5308) }) } }
 	end),
-	E("Strike", Loc["Heroic Strike. Shift: Cleave."], function(N)
+	E("Strike", "Heroic Strike. Shift: Cleave.", function(N)
 		return { tooltip = true, lines = { cast({ shift = true, spell = N(845) }, { spell = N(78) }) } }
 	end),
 }
 L.MAGE = {
-	E("Polymorph", Loc["Mouseover enemy, else target."], Harm(118)),
-	E("Counterspell", Loc["Stops your cast. Counterspells your focus if it's an enemy, else your target."], function(N)
+	E("Polymorph", "Mouseover enemy, else target.", Harm(118)),
+	E("Counterspell", "Stops your cast. Counterspells your focus if it's an enemy, else your target.", function(N)
 		local m = Harm(2139, "focus")(N); m.stopcasting = true; return m
 	end),
-	E("Intellect", Loc["Arcane Intellect. Alt: yourself, else mouseover friend, else target."], Help(1459)),
-	E("Remove Curse", Loc["Remove Lesser Curse. Alt: yourself, else mouseover friend, else target."], Help(475)),
-	E("Blink", Loc["Stops your cast, then Blinks."], function(N) return { tooltip = true, stopcasting = true, lines = { cast({ spell = N(1953) }) } } end),
-	E("PoM Pyro", Loc["Presence of Mind, then Pyroblast (needs both talents)."], Pair(12043, 11366)),
+	E("Intellect", "Arcane Intellect. Alt: yourself, else mouseover friend, else target.", Help(1459)),
+	E("Remove Curse", "Remove Lesser Curse. Alt: yourself, else mouseover friend, else target.", Help(475)),
+	E("Blink", "Stops your cast, then Blinks.", function(N) return { tooltip = true, stopcasting = true, lines = { cast({ spell = N(1953) }) } } end),
+	E("PoM Pyro", "Presence of Mind, then Pyroblast (needs both talents).", Pair(12043, 11366)),
 }
 L.PRIEST = {
-	E("Shield", Loc["Power Word: Shield. Alt: yourself, else mouseover friend, else target."], Help(17)),
-	E("Flash Heal", Loc["Alt: yourself, else mouseover friend, else target."], Help(2061)),
-	E("Renew", Loc["Alt: yourself, else mouseover friend, else target."], Help(139)),
-	E("Dispel", Loc["Dispel Magic. Alt: yourself, else mouseover (friend or enemy), else target."], function(N)
+	E("Shield", "Power Word: Shield. Alt: yourself, else mouseover friend, else target.", Help(17)),
+	E("Flash Heal", "Alt: yourself, else mouseover friend, else target.", Help(2061)),
+	E("Renew", "Alt: yourself, else mouseover friend, else target.", Help(139)),
+	E("Dispel", "Dispel Magic. Alt: yourself, else mouseover (friend or enemy), else target.", function(N)
 		local sp = N(527)
 		return { tooltip = true, lines = { cast({ alt = true, unit = "player", spell = sp }, { unit = "mouseover", dead = false, spell = sp }, { spell = sp }) } }
 	end),
-	E("Fortitude", Loc["Power Word: Fortitude. Alt: yourself, else mouseover friend, else target."], Help(1243)),
-	E("Inner Focus", Loc["Inner Focus, then Greater Heal (needs the talent)."], Pair(14751, 2060)),
-	E("Shackle", Loc["Shackle Undead: mouseover enemy, else target."], Harm(9484)),
+	E("Fortitude", "Power Word: Fortitude. Alt: yourself, else mouseover friend, else target.", Help(1243)),
+	E("Inner Focus", "Inner Focus, then Greater Heal (needs the talent).", Pair(14751, 2060)),
+	E("Shackle", "Shackle Undead: mouseover enemy, else target.", Harm(9484)),
 }
 L.DRUID = {
-	E("Rejuvenation", Loc["Alt: yourself, else mouseover friend, else target."], Help(774)),
-	E("Healing Touch", Loc["Alt: yourself, else mouseover friend, else target."], Help(5185)),
-	E("Innervate", Loc["Alt: yourself, else mouseover friend, else target."], Help(29166)),
-	E("Remove Curse", Loc["Alt: yourself, else mouseover friend, else target."], Help(2782)),
-	E("Abolish Poison", Loc["Alt: yourself, else mouseover friend, else target."], Help(2893)),
-	E("Roots", Loc["Entangling Roots: mouseover enemy, else target."], Harm(339)),
-	E("Hibernate", Loc["Mouseover enemy, else target."], Harm(2637)),
-	E("NS Heal", Loc["Nature's Swiftness, then Healing Touch (needs the talent)."], Pair(17116, 5185)),
-	E("Cat Opener", Loc["Prowling: Ravage (Ctrl: Pounce). Otherwise Shred."], function(N)
+	E("Rejuvenation", "Alt: yourself, else mouseover friend, else target.", Help(774)),
+	E("Healing Touch", "Alt: yourself, else mouseover friend, else target.", Help(5185)),
+	E("Innervate", "Alt: yourself, else mouseover friend, else target.", Help(29166)),
+	E("Remove Curse", "Alt: yourself, else mouseover friend, else target.", Help(2782)),
+	E("Abolish Poison", "Alt: yourself, else mouseover friend, else target.", Help(2893)),
+	E("Roots", "Entangling Roots: mouseover enemy, else target.", Harm(339)),
+	E("Hibernate", "Mouseover enemy, else target.", Harm(2637)),
+	E("NS Heal", "Nature's Swiftness, then Healing Touch (needs the talent).", Pair(17116, 5185)),
+	E("Cat Opener", "Prowling: Ravage (Ctrl: Pounce). Otherwise Shred.", function(N)
 		return { tooltip = true, lines = { cast({ stealth = true, ctrl = true, spell = N(9005) }, { stealth = true, spell = N(6785) }, { spell = N(5221) }) } }
 	end),
 }
 L.HUNTER = {
-	E("Feign Trap", Loc["In combat: Feign Death. Out of combat (after feigning): Freezing Trap."], function(N)
+	E("Feign Trap", "In combat: Feign Death. Out of combat (after feigning): Freezing Trap.", function(N)
 		return { tooltip = true, lines = { cast({ combat = true, spell = N(5384) }, { spell = N(1499) }) } }
 	end),
-	E("Pet Heal", Loc["Dead pet: Revive Pet. Otherwise Mend Pet."], function(N)
+	E("Pet Heal", "Dead pet: Revive Pet. Otherwise Mend Pet.", function(N)
 		return { tooltip = true, lines = { cast({ unit = "pet", dead = true, spell = N(982) }, { spell = N(136) }) } }
 	end),
-	E("Melee", Loc["Mongoose Bite when it's up, then Raptor Strike."], function(N)
+	E("Melee", "Mongoose Bite when it's up, then Raptor Strike.", function(N)
 		return { tooltip = N(2973), lines = { cast({ spell = N(1495) }), cast({ spell = N(2973) }) } }
 	end),
-	E("Aspects", Loc["Aspect of the Hawk. Shift: Cheetah. Ctrl: Monkey."], function(N)
+	E("Aspects", "Aspect of the Hawk. Shift: Cheetah. Ctrl: Monkey.", function(N)
 		return { tooltip = true, lines = { cast({ shift = true, spell = N(5118) }, { ctrl = true, spell = N(13163) }, { spell = N(13165) }) } }
 	end),
-	E("Hunters Mark", Loc["Mouseover enemy, else target."], Harm(1130)),
-	E("Tranq Shot", Loc["Tranquilizing Shot: mouseover enemy, else target."], Harm(19801)),
+	E("Hunters Mark", "Mouseover enemy, else target.", Harm(1130)),
+	E("Tranq Shot", "Tranquilizing Shot: mouseover enemy, else target.", Harm(19801)),
 }
 L.WARLOCK = {
-	E("Fear", Loc["Mouseover enemy, else target."], Harm(5782)),
-	E("Banish", Loc["Mouseover enemy, else target."], Harm(710)),
-	E("Corruption", Loc["Mouseover enemy, else target (dot several mobs)."], Harm(172)),
-	E("Agony", Loc["Curse of Agony: mouseover enemy, else target."], Harm(980)),
-	E("Spell Lock", Loc["Felhunter Spell Lock on your focus if it's an enemy, else your target."], Harm(19244, "focus")),
-	E("Seduction", Loc["Succubus Seduction: mouseover enemy, else target."], Harm(6358)),
-	E("Fel Felhunter", Loc["Fel Domination, then Summon Felhunter (needs the talent)."], Pair(18708, 691)),
+	E("Fear", "Mouseover enemy, else target.", Harm(5782)),
+	E("Banish", "Mouseover enemy, else target.", Harm(710)),
+	E("Corruption", "Mouseover enemy, else target (dot several mobs).", Harm(172)),
+	E("Agony", "Curse of Agony: mouseover enemy, else target.", Harm(980)),
+	E("Spell Lock", "Felhunter Spell Lock on your focus if it's an enemy, else your target.", Harm(19244, "focus")),
+	E("Seduction", "Succubus Seduction: mouseover enemy, else target.", Harm(6358)),
+	E("Fel Felhunter", "Fel Domination, then Summon Felhunter (needs the talent).", Pair(18708, 691)),
 }
 L.PALADIN = {
-	E("Flash of Light", Loc["Alt: yourself, else mouseover friend, else target."], Help(19750)),
-	E("Holy Light", Loc["Alt: yourself, else mouseover friend, else target."], Help(635)),
-	E("Cleanse", Loc["Alt: yourself, else mouseover friend, else target."], Help(4987)),
-	E("Protection", Loc["Blessing of Protection. Alt: yourself, else mouseover friend, else target."], Help(1022)),
-	E("Freedom", Loc["Blessing of Freedom. Alt: yourself, else mouseover friend, else target."], Help(1044)),
-	E("Hammer", Loc["Hammer of Justice: mouseover enemy, else target."], Harm(853)),
-	E("DF Holy Light", Loc["Divine Favor, then Holy Light (needs the talent)."], Pair(20216, 635)),
-	E("Judge + Seal", Loc["Judgement, then Seal of Righteousness again."], Pair(20271, 20154)),
+	E("Flash of Light", "Alt: yourself, else mouseover friend, else target.", Help(19750)),
+	E("Holy Light", "Alt: yourself, else mouseover friend, else target.", Help(635)),
+	E("Cleanse", "Alt: yourself, else mouseover friend, else target.", Help(4987)),
+	E("Protection", "Blessing of Protection. Alt: yourself, else mouseover friend, else target.", Help(1022)),
+	E("Freedom", "Blessing of Freedom. Alt: yourself, else mouseover friend, else target.", Help(1044)),
+	E("Hammer", "Hammer of Justice: mouseover enemy, else target.", Harm(853)),
+	E("DF Holy Light", "Divine Favor, then Holy Light (needs the talent).", Pair(20216, 635)),
+	E("Judge + Seal", "Judgement, then Seal of Righteousness again.", Pair(20271, 20154)),
 }
 L.SHAMAN = {
-	E("Healing Wave", Loc["Alt: yourself, else mouseover friend, else target."], Help(331)),
-	E("Lesser Wave", Loc["Lesser Healing Wave. Alt: yourself, else mouseover friend, else target."], Help(8004)),
-	E("Chain Heal", Loc["Alt: yourself, else mouseover friend, else target."], Help(1064)),
-	E("Cure Poison", Loc["Alt: yourself, else mouseover friend, else target."], Help(526)),
-	E("Interrupt", Loc["Earth Shock on your focus if it's an enemy, else your target."], Harm(8042, "focus")),
-	E("Purge", Loc["Mouseover enemy, else target."], Harm(370)),
-	E("NS Heal", Loc["Nature's Swiftness, then Healing Wave (needs the talent)."], Pair(16188, 331)),
-	E("EM Chain", Loc["Elemental Mastery, then Chain Lightning (needs the talent)."], Pair(16166, 421)),
+	E("Healing Wave", "Alt: yourself, else mouseover friend, else target.", Help(331)),
+	E("Lesser Wave", "Lesser Healing Wave. Alt: yourself, else mouseover friend, else target.", Help(8004)),
+	E("Chain Heal", "Alt: yourself, else mouseover friend, else target.", Help(1064)),
+	E("Cure Poison", "Alt: yourself, else mouseover friend, else target.", Help(526)),
+	E("Interrupt", "Earth Shock on your focus if it's an enemy, else your target.", Harm(8042, "focus")),
+	E("Purge", "Mouseover enemy, else target.", Harm(370)),
+	E("NS Heal", "Nature's Swiftness, then Healing Wave (needs the talent).", Pair(16188, 331)),
+	E("EM Chain", "Elemental Mastery, then Chain Lightning (needs the talent).", Pair(16166, 421)),
 }
 
 if not CreateFrame then return end -- offline test stops here
@@ -481,6 +481,7 @@ local function Chip(parent, text, w)
 	b.text:SetPoint("CENTER")
 	b.text:SetJustifyH("CENTER")
 	b.text:SetText(text)
+	b:SetWidth(math.max(w, math.ceil(b.text:GetStringWidth()) + 14)) -- fits longer translations
 	function b:SetOn(on)
 		Fill(self, on and T.Accent(0.35) or T.control)
 		self.text:SetTextColor(unpack(on and T.gold or T.muted))
@@ -585,7 +586,7 @@ function ns.BuildMacrosPage(page)
 	ed:SetPoint("TOPLEFT", W - EDIT_W, 0)
 	ed:SetWidth(EDIT_W)
 
-	local nameBox = T.NewInput(ed, 170)
+	local nameBox = T.NewInput(ed, 140)
 	nameBox:SetPoint("TOPLEFT", 0, 0)
 	nameBox:SetMaxLetters(16)
 	local nameHint = T.Text(ed, "regular", 11, T.muted)
@@ -628,10 +629,10 @@ function ns.BuildMacrosPage(page)
 				cur.scope = cur.tab
 				cur.model = entry.make(N)
 				nameBox:SetText(entry.name)
-				Say(entry.desc)
+				Say(Loc[entry.desc])
 				RefreshList()
 			end)
-			if b.SetTooltip then b:SetTooltip(function(tip) GameTooltip_SetTitle(tip, entry.name); GameTooltip_AddNormalLine(tip, entry.desc) end) end
+			if b.SetTooltip then b:SetTooltip(function(tip) GameTooltip_SetTitle(tip, entry.name); GameTooltip_AddNormalLine(tip, Loc[entry.desc]) end) end
 		end
 	end)
 	local tipChip, stopChip = Chip(ed, Loc["Spell tooltip"], 88), Chip(ed, Loc["Stop casting first"], 116)
@@ -703,23 +704,31 @@ function ns.BuildMacrosPage(page)
 		b.rm = T.NewButton(b, "x", 24, 22)
 		b.rm:SetPoint("TOPRIGHT", 0, -2)
 		b.chips = {}
-		for r, specs in ipairs(CHIP_ROWS) do
-			local x = 18
+		-- switches flow left to right and wrap, so longer translations take more rows instead of overlapping
+		local x, row = 18, 0
+		local function Place(frame, w)
+			if x > 18 and x + w > EDIT_W - 20 then x, row = 18, row + 1 end
+			frame:ClearAllPoints()
+			frame:SetPoint("TOPLEFT", x, -32 - row * 26)
+			x = x + w + 4
+		end
+		for _, specs in ipairs(CHIP_ROWS) do
 			for _, spec in ipairs(specs) do
 				local c = Chip(b, Loc[spec[1]], spec[4])
-				c:SetPoint("TOPLEFT", x, -32 - (r - 1) * 26)
 				c.spec = spec
 				T.Tip(c, Loc[spec[1]], Loc[CHIP_TIPS[spec[1]]] .. Loc[". Click again to turn it off."])
-				x = x + spec[4] + 4
+				Place(c, c:GetWidth())
 				b.chips[#b.chips + 1] = c
 			end
 		end
 		b.form = T.NewDropdown(b, 110)
+		Place(b.form, 110)
+		b.height = 32 + (row + 1) * 26 + 2
+		b:SetHeight(b.height)
 		T.Tip(b.form, Loc["Form / stance"], Loc["[form:N]: only in that form or stance (1 = first on your stance bar)"])
 		T.Tip(b.pick, Loc["Pick a spell"], Loc["From your spellbook (Use item lines: from your bags)"])
 		T.Tip(b.unit, Loc["Cast on"], Loc["Who this option casts on"])
 		T.Tip(b.rm, Loc["Remove this option"])
-		b.form:SetPoint("TOPLEFT", 18 + 58 + 74 + 44 + 46 + 16, -54)
 		-- drag a spell or item from the spellbook / bags into the box
 		b.input:SetScript("OnReceiveDrag", function(self)
 			local kind, a, _, d = GetCursorInfo()
@@ -890,6 +899,14 @@ function ns.BuildMacrosPage(page)
 		tmpl:SetShown(not m.raw)
 
 		local y = -66
+		-- the two switches beside the template menu: on their own row when they don't fit
+		tipChip:ClearAllPoints()
+		if tmpl:GetWidth() + 10 + tipChip:GetWidth() + 6 + stopChip:GetWidth() > EDIT_W then
+			tipChip:SetPoint("TOPLEFT", 0, -64)
+			y = y - 28
+		else
+			tipChip:SetPoint("LEFT", tmpl, "RIGHT", 10, 0)
+		end
 		local showTip = (not m.raw) and m.tooltip ~= nil
 		tipLabel:SetShown(showTip)
 		tipPick:SetShown(showTip)
@@ -948,7 +965,7 @@ function ns.BuildMacrosPage(page)
 				b.rm:SetShown(#opts > 1)
 				b.rm:SetScript("OnClick", function() table.remove(line.options, j); Relayout() end)
 				b:Show()
-				h = h + OPT_H
+				h = h + b.height
 			end
 			for j = #opts + 1, #(c.opts or {}) do c.opts[j]:Hide() end
 			c.add:SetShown(not spec.bare)

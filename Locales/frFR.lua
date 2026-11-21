@@ -1,7 +1,8 @@
 local _, ns = ...
 -- frFR translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua frFR)
-if GetLocale() ~= "frFR" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["frFR"] = L
 L["  %d: %s -> item %s"] = "  %d : %s -> objet %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  bouton visible : %s, position : %s, %s (écran %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  appris : recette %d -> objet %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Rechargement nécessaire :|r "
 L["Add %s preset"] = "Ajouter le préréglage %s"
 L["no"] = "non"
-
+L["Game language"] = "Langue du jeu"
+L["Language"] = "Langue"
+L["The addon's language. Game language follows your client."] = "La langue de l'addon. Langue du jeu suit votre client."
+L["language changes after a reload"] = "la langue change après un rechargement"

@@ -34,10 +34,9 @@ for _, loc in ipairs(LOCALES) do
 			print(("%s: missing or does not parse"):format(path))
 			failed = failed + 1
 		else
-			local ns = { L = {} }
-			GetLocale = function() return loc end
+			local ns = {}
 			chunk("TinkersBelt", ns)
-			local L = ns.L
+			local L = ns.LOCALES and ns.LOCALES[loc] or {}
 			local missing, bad = 0, {}
 			for _, en in ipairs(keys) do
 				local tr = rawget(L, en)

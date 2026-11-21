@@ -1,7 +1,8 @@
 local _, ns = ...
 -- koKR translation (keys: docs/locale/keys.txt; check: luajit tests/locales.lua koKR)
-if GetLocale() ~= "koKR" then return end
-local L = ns.L
+local L = {}
+ns.LOCALES = ns.LOCALES or {}
+ns.LOCALES["koKR"] = L
 L["  %d: %s -> item %s"] = "  %d: %s -> 아이템 %s"
 L["  button visible: %s, position: %s, %s (screen %d x %d)"] = "  버튼 표시: %s, 위치: %s, %s (화면 %d x %d)"
 L["  learned: recipe %d -> item %s (%s)"] = "  습득: 제조법 %d -> 아이템 %s (%s)"
@@ -490,4 +491,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00재시작 필요:|r "
 L["Add %s preset"] = "%s 프리셋 추가"
 L["no"] = "아니요"
-
+L["Game language"] = "게임 언어"
+L["Language"] = "언어"
+L["The addon's language. Game language follows your client."] = "애드온의 언어입니다. 게임 언어는 클라이언트를 따릅니다."
+L["language changes after a reload"] = "언어는 다시 불러온 후 바뀝니다"
