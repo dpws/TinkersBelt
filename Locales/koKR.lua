@@ -490,3 +490,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00재시작 필요:|r "
 L["Add %s preset"] = "%s 프리셋 추가"
 L["no"] = "아니요"
+
+-- CurseForge translations (corrections from native speakers) are inserted below at release and win over
+-- the lines above. Translators work on the Localization page of the CurseForge project.
+--@localization(locale="koKR", format="lua_additive_table", handle-unlocalized="ignore")@

@@ -490,3 +490,7 @@ L["|cffff4040Tinker's Belt: self-check FAILED (BarSwitch)|r"] = "|cffff4040Tinke
 L["|cffffcc00Reload needed:|r "] = "|cffffcc00Нужна перезагрузка:|r "
 L["Add %s preset"] = "Добавить набор: %s"
 L["no"] = "нет"
+
+-- CurseForge translations (corrections from native speakers) are inserted below at release and win over
+-- the lines above. Translators work on the Localization page of the CurseForge project.
+--@localization(locale="ruRU", format="lua_additive_table", handle-unlocalized="ignore")@

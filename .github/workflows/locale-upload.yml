@@ -1,0 +1,50 @@
+# Sends the addon's texts to CurseForge's translation page (project 1819230), where native speakers can
+# correct them. Run by hand: Actions > Upload translations > Run workflow.
+# - English phrases (docs/locale/keys.txt) are always sent; phrases no longer in the addon are removed.
+# - "seed" also sends the translations in Locales/*.lua. Do that once: later it would overwrite corrections
+#   made on CurseForge. Releases pull CurseForge's translations in through the --@localization@ lines.
+name: Upload translations
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Also send Locales/*.lua translations (first time only)"
+        type: boolean
+        default: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      URL: https://wow.curseforge.com/api/projects/1819230/localization/import
+    steps:
+      - uses: actions/checkout@v4
+      - name: English phrases
+        run: |
+          python3 - <<'PY'
+          import ast
+          out = []
+          for line in open("docs/locale/keys.txt", encoding="utf-8"):
+              line = line.strip()
+              if line:
+                  out.append("L[%s] = %s" % (line, line))
+          open("enUS.txt", "w", encoding="utf-8").write("\n".join(out) + "\n")
+          print(len(out), "phrases")
+          PY
+          curl -sS --fail-with-body -H "X-Api-Token: $CF_API_TOKEN" \
+            -F 'metadata={"language":"enUS","formatType":"TableAdditions","missing-phrase-handling":"DeletePhrase"}' \
+            -F "localizations=<enUS.txt" "$URL"
+          echo
+      - name: Translations (seed)
+        if: ${{ inputs.seed }}
+        run: |
+          for loc in deDE frFR esES esMX itIT ptBR ruRU koKR zhCN zhTW; do
+            grep '^L\[' "Locales/$loc.lua" > "$loc.txt"
+            echo "$loc: $(wc -l < "$loc.txt") lines"
+            curl -sS --fail-with-body -H "X-Api-Token: $CF_API_TOKEN" \
+              -F "metadata={\"language\":\"$loc\",\"formatType\":\"TableAdditions\",\"missing-phrase-handling\":\"DoNothing\"}" \
+              -F "localizations=<$loc.txt" "$URL"
+            echo
+          done
