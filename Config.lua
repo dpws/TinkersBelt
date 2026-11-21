@@ -1274,7 +1274,8 @@ local function CreateWindow()
 		if InCombatLockdown() then return print("Tinker's Belt: key bindings can't be opened in combat") end
 		f:Hide()
 		if Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID then
-			Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID)
+			-- second argument: scroll to the Tinker's Belt section (ignored if this client can't)
+			Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID, BINDING_HEADER_TINKERSBELT)
 		elseif KeyBindingFrame_LoadUI then
 			KeyBindingFrame_LoadUI()
 			ShowUIPanel(KeyBindingFrame)
