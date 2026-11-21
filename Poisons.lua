@@ -29,6 +29,7 @@ P.SLOTS = {
 -- highest rank). P.imbue is set at login.
 P.IMBUES = { 8017, 8024, 8033, 8232 } -- Rockbiter, Flametongue, Frostbrand, Windfury Weapon
 local function Word() return P.imbue and Loc["imbue"] or Loc["poison"] end
+local function Hand(key) return key == "mh" and Loc["Main Hand"] or Loc["Off Hand"] end -- looked up when shown (language is set after load)
 
 local bar
 local buttons, states = {}, {}
@@ -121,7 +122,7 @@ end
 
 local function OpenMenu(owner, info)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
-		root:CreateTitle(info.name .. " " .. Word())
+		root:CreateTitle(Hand(info.key) .. ": " .. Word())
 		local any = false
 		if P.imbue then
 			for _, id in ipairs(P.IMBUES) do
@@ -136,7 +137,8 @@ local function OpenMenu(owner, info)
 		end
 		for _, id in ipairs(ns.AllPoisonIds()) do
 			local count = Count(id)
-			if count > 0 then
+			-- only what goes on a weapon (the Poisons window also makes Blinding Powder, a reagent)
+			if count > 0 and C_Item.GetItemSpell(id) then
 				any = true
 				local text = ("|T%s:16|t %s (%d)"):format(ItemIcon(id) or "", ItemName(id), count)
 				root:CreateRadio(text, function() return ns.db.poisons[info.key] == id end, function() SetPoison(info, id) end)
@@ -228,9 +230,9 @@ local function OnUpdate(_, dt)
 			local event
 			states[key], event = ns.PoisonStep(states[key], has, ms, warnMs, itemID)
 			if event == "early" then
-				Warn((Loc["%s %s: %d min left"]):format(b.info.name, Word(), ns.db.poisons.warnMinutes))
+				Warn((Loc["%s %s: %d min left"]):format(Hand(b.info.key), Word(), ns.db.poisons.warnMinutes))
 			elseif event == "expired" then
-				Warn((Loc["%s %s expired!"]):format(b.info.name, Word()))
+				Warn((Loc["%s %s expired!"]):format(Hand(b.info.key), Word()))
 			end
 			b.time:SetText(has and FormatTime(ms) or "")
 			b.charges:SetText(has and charges > 0 and charges or "")
@@ -275,8 +277,8 @@ local function Create()
 			if not bar:IsShown() then return end
 			local hasMH, _, _, _, hasOH = GetWeaponEnchantInfo()
 			local missing = {}
-			if WeaponID(16) and not hasMH then missing[#missing + 1] = "Main Hand" end
-			if WeaponID(17) and not hasOH then missing[#missing + 1] = "Off Hand" end
+			if WeaponID(16) and not hasMH then missing[#missing + 1] = Hand("mh") end
+			if WeaponID(17) and not hasOH then missing[#missing + 1] = Hand("oh") end
 			if #missing > 0 then Warn((Loc["No %s on %s!"]):format(Word(), table.concat(missing, " / "))) end
 		else
 			P.Refresh()
