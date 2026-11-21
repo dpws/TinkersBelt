@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-11-21
+
+### New
+- Macro builder (/tb > Macros): build macros from blocks and switches with a live preview, start from templates, pick spells from your spellbook or items from your bags, and open your existing macros as blocks.
+- Rogues: a Sap timer above sapped enemies' nameplates.
+- PvP Kills: records which of your characters killed or died, with per-character scores, a character filter and a Character column.
+
+### Changed
+- Nearby allies: "Hide the list in cities and inns" hides the list (name labels always show).
+- Timers count down to 0 like the game's own timers.
+
 ## 0.3.2 - 2026-11-20
 
 ### New
