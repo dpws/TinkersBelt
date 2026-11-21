@@ -305,7 +305,7 @@ local function BuildTotemsPage(parent)
 			end, 260)
 		end
 	end
-	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s.")
+	P:Note("Set button: one totem per click, Earth to Air. Right-click: switch set. Resets after combat or 30s. Keys: Esc > Options > Keybindings > AddOns > Tinker's Belt.")
 	P:Finish()
 end
 

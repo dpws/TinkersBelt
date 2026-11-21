@@ -1,0 +1,8 @@
+<Bindings>
+	<!-- Tinker's Belt key bindings (Key Bindings > AddOns). Each one presses one of the addon's buttons. -->
+	<Binding name="CLICK DpwsTotemSetButton:LeftButton" header="TINKERSBELT" category="ADDONS"/>
+	<Binding name="CLICK DpwsTotemEarth:LeftButton" category="ADDONS"/>
+	<Binding name="CLICK DpwsTotemFire:LeftButton" category="ADDONS"/>
+	<Binding name="CLICK DpwsTotemWater:LeftButton" category="ADDONS"/>
+	<Binding name="CLICK DpwsTotemAir:LeftButton" category="ADDONS"/>
+</Bindings>
