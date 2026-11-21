@@ -60,7 +60,8 @@ end
 function ns.MacroText(m)
 	if m.raw then return m.raw end
 	local out = {}
-	if m.tooltip then out[#out + 1] = "#showtooltip" end
+	-- tooltip = true, or the spell to show ("#showtooltip Backstab")
+	if m.tooltip then out[#out + 1] = type(m.tooltip) == "string" and ("#showtooltip " .. m.tooltip) or "#showtooltip" end
 	if m.stopcasting then out[#out + 1] = "/stopcasting" end
 	for _, line in ipairs(m.lines or {}) do
 		local text = ns.MacroLine(line)
@@ -100,7 +101,9 @@ function ns.ParseMacro(text)
 	for line in (text or ""):gmatch("[^\n]+") do
 		line = line:match("^%s*(.-)%s*$")
 		if line == "" then -- skip
-		elseif line:lower() == "#showtooltip" then m.tooltip = true
+		elseif line:sub(1, 12):lower() == "#showtooltip" and (#line == 12 or line:sub(13, 13):match("%s")) then
+			local spell = line:sub(13):match("^%s*(.-)$")
+			m.tooltip = spell ~= "" and spell or true
 		elseif line:sub(1, 1) == "#" then return nil, "a " .. line:match("^(#%S+)") .. " line"
 		else
 			local slash, rest = line:match("^(/%S+)%s*(.-)$")

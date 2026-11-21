@@ -51,4 +51,8 @@ check("parse: /target by name stays text", select(2, ns.ParseMacro("/target Lava
 check("parse: #show stays text", select(2, ns.ParseMacro("#show Sap\n/cast Sap")), "a #show line")
 check("parse: /startattack with conditions stays text", select(2, ns.ParseMacro("/startattack [harm]")), "/startattack with conditions")
 
+local pick = "#showtooltip Удар в спину\n/cast Обшаривание карманов\n/cast Удар в спину"
+check("parse: #showtooltip with a spell, Russian names", round(pick), pick)
+check("parse: #showtooltip keeps its spell", ns.ParseMacro(pick).tooltip, "Удар в спину")
+
 print("macros: " .. passed .. " passed")
