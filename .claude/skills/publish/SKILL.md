@@ -59,7 +59,7 @@ the tools instead of the full history.
 ## 4. Commit and tag
 
 ```bash
-git add TinkersBelt.toc CHANGELOG.md docs/release/index.html
+git add TinkersBelt.toc CHANGELOG.md
 git commit -m "release: v<version>"   # plus the session's Co-Authored-By line
 git tag v<version>
 
@@ -69,21 +69,21 @@ git push origin main --tags
 The user agreed (2026-11-19) that releases are pushed to the public repo `origin` (dpws/TinkersBelt).
 Push only `main` and tags; other branches stay local.
 
-## 5. Zip
+## 5. Package (GitHub Action)
+
+The tag push runs `.github/workflows/release.yml` (BigWigs packager, `.pkgmeta`): it builds
+`TinkersBelt-v<version>.zip`, creates the GitHub release with `CHANGELOG.md` as notes, and uploads to
+CurseForge (project 1819230) when the repo secret `CF_API_KEY` is set. Don't build or upload by hand.
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .claude/skills/publish/build-zip.ps1 -Version <version> -OutDir <scratchpad>/release
+gh run list --repo dpws/TinkersBelt --workflow release.yml --limit 1   # find the run for the tag
+gh run watch <run id> --repo dpws/TinkersBelt --exit-status
+gh release view v<version> --repo dpws/TinkersBelt --json assets -q '.assets[].name + " " + (.assets[].size|tostring)'
 ```
 
-Prints the zip path. The zip holds a single `TinkersBelt` folder (no tests, docs, scripts).
-
-Then the GitHub release, with this version's changelog section as notes:
-
-```bash
-gh release create v<version> <zip> --repo dpws/TinkersBelt --title "Tinker's Belt <version>" --notes-file <notes.md>
-```
-
-Check the asset downloads without a login: `curl -sIL <download url> | grep -i "^HTTP"` ends in 200.
+A failed run: read `gh run view <id> --log-failed`, report it, don't release around it. Check the asset
+downloads without a login: `curl -sIL <download url> | grep -i "^HTTP"` ends in 200. If CurseForge got a
+file, check its game version is WoW Forever.
 
 ## 6. Artifact page (same URL every time)
 
@@ -101,10 +101,10 @@ Page source: `docs/release/index.html` (kept in git so each release edits the la
 1. Title "Tinker's Belt", the version, release date, one-line description (from the toc `## Notes`),
    target client: WoW Forever (`## Interface` from the toc).
 2. **Download** link to the GitHub release asset:
-   `https://github.com/dpws/TinkersBelt/releases/download/v<version>/TinkersBelt-<version>.zip`
+   `https://github.com/dpws/TinkersBelt/releases/download/v<version>/TinkersBelt-v<version>.zip`
    (`<a class="dl" ... target="_blank" rel="noopener">`), plus an "All versions" link to the releases
    page. No `downloads` capability: that only works for viewers signed in to Claude. On a new release,
-   change the link, the version, date and size in the page.
+   change the link, the version, date and size (from the release asset) in the page.
 3. **How to install**:
    1. Close the game (a new addon folder is only picked up on a restart; updates need just `/reload`).
    2. Download the zip.
@@ -117,6 +117,8 @@ Page source: `docs/release/index.html` (kept in git so each release edits the la
 4. **Changelog**: the whole `CHANGELOG.md`, rendered as HTML, newest first.
 
 Publish with `icon: "download"` on the first publish only, and a one-sentence `description`.
+
+Then commit the page source (`docs: release page v<version>`) and push `main`.
 
 ## 7. Report
 

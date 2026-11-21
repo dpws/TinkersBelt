@@ -1,0 +1,23 @@
+# A pushed version tag (v1.2.3) builds TinkersBelt-v1.2.3.zip with the BigWigs packager (.pkgmeta),
+# creates the GitHub release, and uploads to CurseForge when the CF_API_KEY secret is set
+# (project id from ## X-Curse-Project-ID in the toc).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: BigWigsMods/packager@v2

@@ -6,6 +6,7 @@
 ## SavedVariables: DpwsToolsDB
 ## SavedVariablesPerCharacter: DpwsToolsCharDB
 ## IconTexture: Interface\AddOns\TinkersBelt\media\icon
+## X-Curse-Project-ID: 1819230
 
 Core.lua
 Theme.lua
