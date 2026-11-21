@@ -387,6 +387,34 @@ function ns.BuildMacrosPage(page)
 	tipChip:SetPoint("LEFT", tmpl, "RIGHT", 10, 0)
 	stopChip:SetPoint("LEFT", tipChip, "RIGHT", 6, 0)
 	tipChip:SetScript("OnClick", function() cur.model.tooltip = not cur.model.tooltip or nil; Relayout() end)
+	-- which spell the tooltip and icon show: automatic (the one that would cast), a spell of this macro, or any
+	local tipLabel = T.Text(ed, "regular", 12, T.muted)
+	tipLabel:SetText("Tooltip shows")
+	local tipPick = T.NewDropdown(ed, 240)
+	tipPick:SetPoint("LEFT", tipLabel, "RIGHT", 10, 0)
+	tipPick:SetupMenu(function(_, root)
+		local m = cur.model
+		local function Set(v) return function() m.tooltip = v; UpdatePreview() end end
+		root:CreateRadio("Automatic (the spell it casts)", function() return m.tooltip == true end, Set(true))
+		local seen = {}
+		for _, line in ipairs(m.lines or {}) do
+			for _, o in ipairs(line.options or {}) do
+				local name = o.spell
+				if name and name ~= "" and not seen[name] then
+					seen[name] = true
+					root:CreateRadio(("|T%s:16|t %s"):format(SpellIcon(line.cmd, name), name),
+						function() return m.tooltip == name end, Set(name))
+				end
+			end
+		end
+		local book = root:CreateButton("From your spellbook")
+		for _, tab in ipairs(SpellBook()) do
+			local sub = book:CreateButton(tab.name)
+			for _, sp in ipairs(tab.spells) do
+				sub:CreateRadio(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function() return m.tooltip == sp.name end, Set(sp.name))
+			end
+		end
+	end)
 	stopChip:SetScript("OnClick", function() cur.model.stopcasting = not cur.model.stopcasting or nil; Relayout() end)
 
 	-- line cards (pooled)
@@ -590,6 +618,15 @@ function ns.BuildMacrosPage(page)
 		tmpl:SetShown(not m.raw)
 
 		local y = -66
+		local showTip = (not m.raw) and m.tooltip ~= nil
+		tipLabel:SetShown(showTip)
+		tipPick:SetShown(showTip)
+		if showTip then
+			tipLabel:ClearAllPoints()
+			tipLabel:SetPoint("TOPLEFT", 2, y - 6)
+			tipPick:GenerateMenu()
+			y = y - 34
+		end
 		for i, line in ipairs(m.raw and {} or m.lines) do
 			local c = Card(i)
 			local spec = CMD[line.cmd] or CMD.cast
