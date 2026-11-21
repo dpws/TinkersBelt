@@ -491,6 +491,3 @@ L["|cffffcc00Reload needed:|r "] = "|cffffcc00Rechargement nécessaire :|r "
 L["Add %s preset"] = "Ajouter le préréglage %s"
 L["no"] = "non"
 
--- CurseForge translations (corrections from native speakers) are inserted below at release and win over
--- the lines above. Translators work on the Localization page of the CurseForge project.
---@localization(locale="frFR", format="lua_additive_table", handle-unlocalized="ignore")@
