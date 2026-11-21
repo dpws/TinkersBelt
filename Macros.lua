@@ -44,12 +44,32 @@ function ns.MacroLine(line)
 	if not c then return nil end
 	if c.bare then return c.slash end
 	local parts = {}
-	for _, o in ipairs(line.options or {}) do
-		local cond = ns.MacroConditions(o)
-		if c.unitOnly then
+	if c.unitOnly then
+		for _, o in ipairs(line.options or {}) do
+			local cond = ns.MacroConditions(o)
 			if cond ~= "" then parts[#parts + 1] = cond end
-		elseif o.spell and o.spell ~= "" then
-			parts[#parts + 1] = (cond ~= "" and (cond .. " ") or "") .. o.spell
+		end
+	else
+		local opts = {}
+		for _, o in ipairs(line.options or {}) do
+			if o.spell and o.spell ~= "" then opts[#opts + 1] = o end
+		end
+		-- options in a row with the same spell share it: "[a][] Sap" instead of "[a] Sap; Sap" (shorter,
+		-- and long spell names in some languages must still fit 255 bytes)
+		local i = 1
+		while i <= #opts do
+			local conds, j = {}, i
+			while j <= #opts and opts[j].spell == opts[i].spell do
+				conds[#conds + 1] = ns.MacroConditions(opts[j])
+				j = j + 1
+			end
+			if #conds == 1 then
+				parts[#parts + 1] = (conds[1] ~= "" and (conds[1] .. " ") or "") .. opts[i].spell
+			else
+				for k, cond in ipairs(conds) do if cond == "" then conds[k] = "[]" end end
+				parts[#parts + 1] = table.concat(conds) .. " " .. opts[i].spell
+			end
+			i = j
 		end
 	end
 	if #parts == 0 then return nil end
@@ -173,6 +193,63 @@ ns.MACRO_TEMPLATES = {
 	{ name = "Focus: mouseover enemy", make = function()
 		return { lines = { { cmd = "focus", options = { { unit = "mouseover", help = false, dead = false } } } } }
 	end },
+}
+
+-- Curated macros per class. Spells by rank-1 ID: N(id) gives the name in the player's language, so the
+-- macros work on any client. name = macro name (16 letters max), desc = what it does.
+local function cast(...)
+	local options = {}
+	for _, o in ipairs({ ... }) do options[#options + 1] = o end
+	return { cmd = "cast", options = options }
+end
+-- Rogue set judged against Forever and Classic guides (RankedBoost Forever, Skill Capped Forever, Classic wikis).
+local MO = function(spell) return { unit = "mouseover", help = false, dead = false, spell = spell } end
+ns.MACRO_LIBRARY = {
+	ROGUE = {
+		{ name = "Opener", desc = "Stealth: Cheap Shot. Otherwise Sinister Strike. Starts auto attack.", make = function(N)
+			return { tooltip = true, lines = { cast({ stealth = true, spell = N(1833) }, { spell = N(1752) }), { cmd = "startattack" } } }
+		end },
+		{ name = "Dagger Opener", desc = "Stealth: Ambush, Ctrl: Garrote. Otherwise Backstab. Starts auto attack.", make = function(N)
+			return { tooltip = true, lines = { cast({ stealth = true, ctrl = true, spell = N(703) }, { stealth = true, spell = N(8676) },
+				{ spell = N(53) }), { cmd = "startattack" } } }
+		end },
+		{ name = "Pick + Cheap", desc = "Pick Pocket, then Cheap Shot. Stand still when you press it.", make = function(N)
+			return { tooltip = N(1833), lines = { cast({ spell = N(921) }), cast({ spell = N(1833) }) } }
+		end },
+		{ name = "Pick + Ambush", desc = "Pick Pocket, then Ambush (dagger). Stand still when you press it.", make = function(N)
+			return { tooltip = N(8676), lines = { cast({ spell = N(921) }), cast({ spell = N(8676) }) } }
+		end },
+		{ name = "Pick + Sap", desc = "Pick Pocket, then Sap: loot a mob and leave it asleep.", make = function(N)
+			return { tooltip = N(6770), lines = { cast({ spell = N(921) }), cast({ spell = N(6770) }) } }
+		end },
+		{ name = "Sap / Blind", desc = "Stealth: Sap. Otherwise Blind. Mouseover enemy first, else your target.", make = function(N)
+			local sap, blind = MO(N(6770)), MO(N(2094))
+			sap.stealth = true
+			return { tooltip = true, lines = { cast(sap, { stealth = true, spell = N(6770) }, blind, { spell = N(2094) }) } }
+		end },
+		{ name = "Stealth", desc = "In combat: Vanish. Otherwise Stealth, which a second press can't cancel.", make = function(N)
+			return { tooltip = true, lines = { cast({ combat = true, spell = N(1856) }, { stealth = false, spell = N(1784) }) } }
+		end },
+		{ name = "Escape", desc = "Stop attacking, Vanish, then Sprint away.", make = function(N)
+			return { tooltip = N(1856), lines = { { cmd = "stopattack" }, cast({ spell = N(1856) }), cast({ spell = N(2983) }) } }
+		end },
+		{ name = "Kick", desc = "Kicks your focus if it's an enemy, else your target. Ctrl: always your target.", make = function(N)
+			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(1766) }, { unit = "focus", help = false, dead = false,
+				spell = N(1766) }, { spell = N(1766) }) } }
+		end },
+		{ name = "Feint / Evasion", desc = "Feint to drop threat. Ctrl: Evasion.", make = function(N)
+			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(5277) }, { spell = N(1966) }) } }
+		end },
+		{ name = "Finisher", desc = "Eviscerate. Ctrl: Slice and Dice.", make = function(N)
+			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(5171) }, { spell = N(2098) }) } }
+		end },
+		{ name = "Kidney / Gouge", desc = "Kidney Shot. Ctrl: Gouge.", make = function(N)
+			return { tooltip = true, lines = { cast({ ctrl = true, spell = N(1776) }, { spell = N(408) }) } }
+		end },
+		{ name = "Premed Opener", desc = "Premeditation, then Cheap Shot (needs the talent).", make = function(N)
+			return { tooltip = N(14183), lines = { cast({ spell = N(14183) }), cast({ spell = N(1833) }) } }
+		end },
+	},
 }
 
 if not CreateFrame then return end -- offline test stops here
@@ -381,6 +458,26 @@ function ns.BuildMacrosPage(page)
 				cur.model = t.make(s or "")
 				Relayout()
 			end)
+		end
+	end)
+	local library = ns.MACRO_LIBRARY[select(2, UnitClass("player"))]
+	local lib = T.NewDropdown(ed, 140)
+	lib:SetPoint("TOPRIGHT", 0, 0)
+	lib:SetDefaultText("Class macros...")
+	lib:SetShown(library ~= nil)
+	lib:SetupMenu(function(_, root)
+		local function N(id) return C_Spell.GetSpellName(id) or ("spell " .. id) end
+		for _, entry in ipairs(library or {}) do
+			local b = root:CreateButton(entry.name, function()
+				-- a new macro: nothing you have is changed until you Save
+				cur.index = nil
+				cur.scope = cur.tab
+				cur.model = entry.make(N)
+				nameBox:SetText(entry.name)
+				Say(entry.desc)
+				RefreshList()
+			end)
+			if b.SetTooltip then b:SetTooltip(function(tip) GameTooltip_SetTitle(tip, entry.name); GameTooltip_AddNormalLine(tip, entry.desc) end) end
 		end
 	end)
 	local tipChip, stopChip = Chip(ed, "Spell tooltip", 88), Chip(ed, "Stop casting first", 116)

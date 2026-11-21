@@ -14,7 +14,7 @@ check("harm", ns.MacroConditions({ help = false }), "[harm]")
 
 check("mouseover heal with fallback", ns.MacroText({ tooltip = true, lines = { { cmd = "cast", options = {
 	{ unit = "mouseover", help = true, dead = false, spell = "Flash Heal" }, { spell = "Flash Heal" } } } } }),
-	"#showtooltip\n/cast [@mouseover,help,nodead] Flash Heal; Flash Heal")
+	"#showtooltip\n/cast [@mouseover,help,nodead][] Flash Heal")
 check("stop casting first, then attack", ns.MacroText({ stopcasting = true, lines = { { cmd = "cast", options = {
 	{ stealth = true, spell = "Cheap Shot" }, { spell = "Sinister Strike" } } }, { cmd = "startattack" } } }),
 	"/stopcasting\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack")
@@ -32,15 +32,16 @@ for _, t in ipairs(ns.MACRO_TEMPLATES) do
 	check("template " .. t.name .. " builds text", type(ns.MacroText(m)), "string")
 end
 check("template keeps your spell", ns.MacroText(ns.MACRO_TEMPLATES[3].make("Power Word: Shield")),
-	"#showtooltip\n/cast [@player,mod:alt] Power Word: Shield; Power Word: Shield")
+	"#showtooltip\n/cast [@player,mod:alt][] Power Word: Shield")
 
 -- text -> blocks -> text
 local function round(text) local m = ns.ParseMacro(text); return m and ns.MacroText(m) end
-check("parse: builder text comes back the same", round("#showtooltip\n/cast [@mouseover,help,nodead] Flash Heal; Flash Heal"),
-	"#showtooltip\n/cast [@mouseover,help,nodead] Flash Heal; Flash Heal")
+check("parse: builder text comes back the same", round("#showtooltip\n/cast [@mouseover,help,nodead][] Flash Heal"),
+	"#showtooltip\n/cast [@mouseover,help,nodead][] Flash Heal")
+check("parse: X; X is shortened to [][]", round("/cast [@mouseover,help] Flash Heal; Flash Heal"), "/cast [@mouseover,help][] Flash Heal")
 check("parse: stopcasting, opener, attack", round("/stopcasting\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack"),
 	"/stopcasting\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack")
-check("parse: [a][b] X becomes two options", round("/cast [@mouseover,harm][] Sap"), "/cast [@mouseover,harm] Sap; Sap")
+check("parse: [a][] X comes back the same", round("/cast [@mouseover,harm][] Sap"), "/cast [@mouseover,harm][] Sap")
 check("parse: target= and modifier: spellings", round("/cast [target=player,modifier:alt] Renew"), "/cast [@player,mod:alt] Renew")
 check("parse: @target shown as the default target", round("/cast [@target,harm] Sap"), "/cast [harm] Sap")
 check("parse: focus conditions", round("/focus [@mouseover,harm][@target]"), "/focus [@mouseover,harm][@target]")
@@ -54,5 +55,22 @@ check("parse: /startattack with conditions stays text", select(2, ns.ParseMacro(
 local pick = "#showtooltip Удар в спину\n/cast Обшаривание карманов\n/cast Удар в спину"
 check("parse: #showtooltip with a spell, Russian names", round(pick), pick)
 check("parse: #showtooltip keeps its spell", ns.ParseMacro(pick).tooltip, "Удар в спину")
+
+-- class library: built from spell IDs, so the text is in the client's language
+local english = { [6770] = "Sap", [1833] = "Cheap Shot", [1752] = "Sinister Strike" }
+local asked = {}
+local function N(id) asked[id] = true; return english[id] or ("Spell" .. id) end
+-- the longest spell names in any client: 30 Cyrillic letters = 60 bytes (macros hold 255 bytes)
+local function Long() return string.rep("Ж", 30) end
+for _, e in ipairs(ns.MACRO_LIBRARY.ROGUE) do
+	check("rogue " .. e.name .. ": name fits a macro name", #e.name <= 16, true)
+	local text = ns.MacroText(e.make(N))
+	check("rogue " .. e.name .. ": builds text", #text > 0, true)
+	local long = ns.MacroText(e.make(Long))
+	check("rogue " .. e.name .. ": fits 255 bytes with long Russian names (" .. #long .. ")", #long <= 255, true)
+	check("rogue " .. e.name .. ": reads back into blocks", ns.ParseMacro(text) ~= nil, true)
+end
+check("spells come from IDs", asked[6770] and asked[1833], true)
+check("opener text", ns.MacroText(ns.MACRO_LIBRARY.ROGUE[1].make(N)), "#showtooltip\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack")
 
 print("macros: " .. passed .. " passed")
