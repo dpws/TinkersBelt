@@ -248,9 +248,11 @@ end
 local function FitText(b, pad)
 	local set = b.SetText
 	local min = b:GetWidth()
+	-- only when the text really doesn't fit: a "+" or "x" keeps its small square size
 	local function Fit()
 		local fs = b:GetFontString()
-		if fs then b:SetWidth(math.max(min, math.ceil(fs:GetStringWidth()) + pad)) end
+		local w = fs and math.ceil(fs:GetStringWidth()) or 0
+		b:SetWidth((w + 8 > min) and (w + pad) or min)
 	end
 	b.SetText = function(self, text) set(self, text); Fit() end
 	Fit()
