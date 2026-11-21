@@ -61,14 +61,29 @@ end
 
 -- new start of a span [lo, lo+len]: whichever of its start, middle or end is closest to a grid line snaps.
 -- Also returns that grid line.
+-- returns the new start, the grid line, and which part snapped: 1 = start edge, 2 = middle, 3 = end edge
 function ns.SnapEdges(lo, len, size, c)
-	local best, line
-	for _, off in ipairs({ 0, len / 2, len }) do
+	local best, line, part
+	for i, off in ipairs({ 0, len / 2, len }) do
 		local g = ns.SnapToGrid(lo + off, size, c)
 		local d = g - (lo + off)
-		if not best or math.abs(d) < math.abs(best) then best, line = d, g end
+		if not best or math.abs(d) < math.abs(best) then best, line, part = d, g, i end
 	end
-	return lo + best, line
+	return lo + best, line, part
+end
+
+-- The point a snapped panel is pinned by: the edge or middle that snapped (1/2/3 across, 1/2/3 up), so
+-- when the panel changes size it grows away from its grid line instead of sliding off it.
+local ACROSS, UP = { "LEFT", "", "RIGHT" }, { "BOTTOM", "", "TOP" }
+function ns.SnapPoint(across, up)
+	local p = UP[up] .. ACROSS[across]
+	return p ~= "" and p or "CENTER"
+end
+-- where a point sits on a frame, as fractions of its width and height from the bottom-left
+function ns.PointFraction(point)
+	local fx = point:find("LEFT") and 0 or (point:find("RIGHT") and 1 or 0.5)
+	local fy = point:find("BOTTOM") and 0 or (point:find("TOP") and 1 or 0.5)
+	return fx, fy
 end
 
 local grid, lines = nil, {}
@@ -131,17 +146,18 @@ end
 
 local function Place(frame, left, top, snap)
 	local s = frame:GetEffectiveScale() / UIParent:GetEffectiveScale() -- grid is in UIParent units
-	local lineX, lineY
+	local w, h = frame:GetWidth() * s, frame:GetHeight() * s
+	local bottom, lineX, lineY, point = top - h, nil, nil, "TOPLEFT"
 	if snap then
-		local size = L().size
-		local w, h = frame:GetWidth() * s, frame:GetHeight() * s
-		left, lineX = ns.SnapEdges(left, w, size, UIParent:GetWidth() / 2)
-		top, lineY = ns.SnapEdges(top - h, h, size, UIParent:GetHeight() / 2)
-		top = top + h
+		local size, across, up = L().size
+		left, lineX, across = ns.SnapEdges(left, w, size, UIParent:GetWidth() / 2)
+		bottom, lineY, up = ns.SnapEdges(bottom, h, size, UIParent:GetHeight() / 2)
+		point = ns.SnapPoint(across, up) -- remembered through the saved position (panels save their point)
 	end
 	Highlight(lineX, lineY)
+	local fx, fy = ns.PointFraction(point)
 	frame:ClearAllPoints()
-	frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left / s, top / s)
+	frame:SetPoint(point, UIParent, "BOTTOMLEFT", (left + fx * w) / s, (bottom + fy * h) / s)
 end
 local function Cursor()
 	local x, y = GetCursorPosition()
@@ -210,15 +226,19 @@ local function SettingsBar()
 end
 
 -- scale around the panel's center (call out of combat for frames with secure children)
+-- rescale around the panel's pin point (its snapped edge), so a snapped panel stays on its grid line
 function ns.SetPanelScale(frame, scale)
 	if frame:GetScale() == scale then return end
-	local cx, cy = frame:GetCenter()
-	if not cx then frame:SetScale(scale); return end
+	local l, b = frame:GetLeft(), frame:GetBottom()
+	if not l then frame:SetScale(scale); return end
+	local point = frame:GetPoint() or "CENTER"
+	local fx, fy = ns.PointFraction(point)
 	local old = frame:GetEffectiveScale()
+	local ax, ay = (l + fx * frame:GetWidth()) * old, (b + fy * frame:GetHeight()) * old -- screen pixels
 	frame:SetScale(scale)
 	local new = frame:GetEffectiveScale()
 	frame:ClearAllPoints()
-	frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", cx * old / new, cy * old / new)
+	frame:SetPoint(point, UIParent, "BOTTOMLEFT", ax / new, ay / new)
 	if frame.dpwsOnMoved then frame.dpwsOnMoved(frame) end
 end
 
