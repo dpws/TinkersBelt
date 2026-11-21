@@ -72,7 +72,7 @@ Push only `main` and tags; other branches stay local.
 ## 5. Package (GitHub Action)
 
 The tag push runs `.github/workflows/release.yml` (BigWigs packager, `.pkgmeta`): it builds
-`TinkersBelt-v<version>.zip`, creates the GitHub release with `CHANGELOG.md` as notes, and uploads to
+`TinkersBelt-v<version>-forever.zip` (the packager tags Forever builds), creates the GitHub release with `CHANGELOG.md` as notes, and uploads to
 CurseForge (project 1819230) when the repo secret `CF_API_TOKEN` is set. Don't build or upload by hand.
 
 ```bash
@@ -101,7 +101,7 @@ Page source: `docs/release/index.html` (kept in git so each release edits the la
 1. Title "Tinker's Belt", the version, release date, one-line description (from the toc `## Notes`),
    target client: WoW Forever (`## Interface` from the toc).
 2. **Download** link to the GitHub release asset:
-   `https://github.com/dpws/TinkersBelt/releases/download/v<version>/TinkersBelt-v<version>.zip`
+   `https://github.com/dpws/TinkersBelt/releases/download/v<version>/TinkersBelt-v<version>-forever.zip`
    (`<a class="dl" ... target="_blank" rel="noopener">`), plus an "All versions" link to the releases
    page. No `downloads` capability: that only works for viewers signed in to Claude. On a new release,
    change the link, the version, date and size (from the release asset) in the page.
