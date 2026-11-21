@@ -62,14 +62,23 @@ local asked = {}
 local function N(id) asked[id] = true; return english[id] or ("Spell" .. id) end
 -- the longest spell names in any client: 30 Cyrillic letters = 60 bytes (macros hold 255 bytes)
 local function Long() return string.rep("Ж", 30) end
-for _, e in ipairs(ns.MACRO_LIBRARY.ROGUE) do
-	check("rogue " .. e.name .. ": name fits a macro name", #e.name <= 16, true)
-	local text = ns.MacroText(e.make(N))
-	check("rogue " .. e.name .. ": builds text", #text > 0, true)
-	local long = ns.MacroText(e.make(Long))
-	check("rogue " .. e.name .. ": fits 255 bytes with long Russian names (" .. #long .. ")", #long <= 255, true)
-	check("rogue " .. e.name .. ": reads back into blocks", ns.ParseMacro(text) ~= nil, true)
+local classes = 0
+for class, list in pairs(ns.MACRO_LIBRARY) do
+	classes = classes + 1
+	local names = {}
+	for _, e in ipairs(list) do
+		local id = class .. " " .. e.name
+		check(id .. ": name fits a macro name", #e.name <= 16, true)
+		check(id .. ": name unique in its class", names[e.name], nil)
+		names[e.name] = true
+		local text = ns.MacroText(e.make(N))
+		check(id .. ": builds text", #text > 0, true)
+		local long = ns.MacroText(e.make(Long))
+		check(id .. ": fits 255 bytes with long Russian names (" .. #long .. ")", #long <= 255, true)
+		check(id .. ": reads back the same", ns.MacroText(ns.ParseMacro(text)), text)
+	end
 end
+check("all nine classes", classes, 9)
 check("spells come from IDs", asked[6770] and asked[1833], true)
 check("opener text", ns.MacroText(ns.MACRO_LIBRARY.ROGUE[1].make(N)), "#showtooltip\n/cast [stealth] Cheap Shot; Sinister Strike\n/startattack")
 

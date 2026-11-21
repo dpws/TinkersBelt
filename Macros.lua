@@ -18,7 +18,7 @@ local CMD = {}
 for _, c in ipairs(ns.MACRO_COMMANDS) do CMD[c.key] = c end
 
 ns.MACRO_UNITS = { { nil, "Target" }, { "mouseover", "Mouseover" }, { "focus", "Focus" }, { "player", "Yourself" },
-	{ "targettarget", "Target's target" } }
+	{ "targettarget", "Target's target" }, { "pet", "Your pet" } }
 
 -- tri-state switches: true = first word, false = second, nil = don't care
 local PAIRS = { help = { "help", "harm" }, combat = { "combat", "nocombat" }, stealth = { "stealth", "nostealth" },
@@ -252,7 +252,150 @@ ns.MACRO_LIBRARY = {
 	},
 }
 
+-- shared shapes for the other classes (spell ids, resolved through N when picked)
+local function Help(id) -- Alt: yourself; else mouseover friend; else target
+	return function(N)
+		local sp = N(id)
+		return { tooltip = true, lines = { cast({ alt = true, unit = "player", spell = sp },
+			{ unit = "mouseover", help = true, dead = false, spell = sp }, { spell = sp }) } }
+	end
+end
+local function Harm(id, unit) -- mouseover (or focus) enemy, else target
+	return function(N)
+		local sp = N(id)
+		return { tooltip = true, lines = { cast({ unit = unit or "mouseover", help = false, dead = false, spell = sp }, { spell = sp }) } }
+	end
+end
+local function Pair(first, second) -- one press: first, then second (talent + spell)
+	return function(N)
+		return { tooltip = N(second), lines = { cast({ spell = N(first) }), cast({ spell = N(second) }) } }
+	end
+end
+local function E(name, desc, make) return { name = name, desc = desc, make = make } end
+
+local L = ns.MACRO_LIBRARY
+L.WARRIOR = {
+	E("Charge", "Battle Stance: Charge. Berserker Stance: Intercept. Otherwise Battle Stance.", function(N)
+		return { tooltip = true, lines = { cast({ form = 1, spell = N(100) }, { form = 3, spell = N(20252) }, { spell = N(2457) }) } }
+	end),
+	E("Overpower", "Overpower, switching to Battle Stance first if needed.", function(N)
+		return { tooltip = true, lines = { cast({ form = 1, spell = N(7384) }, { spell = N(2457) }) } }
+	end),
+	E("Interrupt", "Berserker Stance: Pummel. Otherwise Shield Bash.", function(N)
+		return { tooltip = true, lines = { cast({ form = 3, spell = N(6552) }, { spell = N(72) }) } }
+	end),
+	E("Taunt", "Taunt, switching to Defensive Stance first if needed.", function(N)
+		return { tooltip = true, lines = { cast({ form = 2, spell = N(355) }, { spell = N(71) }) } }
+	end),
+	E("Execute", "Execute, leaving Defensive Stance for Battle Stance if needed.", function(N)
+		return { tooltip = true, lines = { cast({ form = 2, spell = N(2457) }, { spell = N(5308) }) } }
+	end),
+	E("Strike", "Heroic Strike. Shift: Cleave.", function(N)
+		return { tooltip = true, lines = { cast({ shift = true, spell = N(845) }, { spell = N(78) }) } }
+	end),
+}
+L.MAGE = {
+	E("Polymorph", "Mouseover enemy, else target.", Harm(118)),
+	E("Counterspell", "Stops your cast. Counterspells your focus if it's an enemy, else your target.", function(N)
+		local m = Harm(2139, "focus")(N); m.stopcasting = true; return m
+	end),
+	E("Intellect", "Arcane Intellect. Alt: yourself, else mouseover friend, else target.", Help(1459)),
+	E("Remove Curse", "Remove Lesser Curse. Alt: yourself, else mouseover friend, else target.", Help(475)),
+	E("Blink", "Stops your cast, then Blinks.", function(N) return { tooltip = true, stopcasting = true, lines = { cast({ spell = N(1953) }) } } end),
+	E("PoM Pyro", "Presence of Mind, then Pyroblast (needs both talents).", Pair(12043, 11366)),
+}
+L.PRIEST = {
+	E("Shield", "Power Word: Shield. Alt: yourself, else mouseover friend, else target.", Help(17)),
+	E("Flash Heal", "Alt: yourself, else mouseover friend, else target.", Help(2061)),
+	E("Renew", "Alt: yourself, else mouseover friend, else target.", Help(139)),
+	E("Dispel", "Dispel Magic. Alt: yourself, else mouseover (friend or enemy), else target.", function(N)
+		local sp = N(527)
+		return { tooltip = true, lines = { cast({ alt = true, unit = "player", spell = sp }, { unit = "mouseover", dead = false, spell = sp }, { spell = sp }) } }
+	end),
+	E("Fortitude", "Power Word: Fortitude. Alt: yourself, else mouseover friend, else target.", Help(1243)),
+	E("Inner Focus", "Inner Focus, then Greater Heal (needs the talent).", Pair(14751, 2060)),
+	E("Shackle", "Shackle Undead: mouseover enemy, else target.", Harm(9484)),
+}
+L.DRUID = {
+	E("Rejuvenation", "Alt: yourself, else mouseover friend, else target.", Help(774)),
+	E("Healing Touch", "Alt: yourself, else mouseover friend, else target.", Help(5185)),
+	E("Innervate", "Alt: yourself, else mouseover friend, else target.", Help(29166)),
+	E("Remove Curse", "Alt: yourself, else mouseover friend, else target.", Help(2782)),
+	E("Abolish Poison", "Alt: yourself, else mouseover friend, else target.", Help(2893)),
+	E("Roots", "Entangling Roots: mouseover enemy, else target.", Harm(339)),
+	E("Hibernate", "Mouseover enemy, else target.", Harm(2637)),
+	E("NS Heal", "Nature's Swiftness, then Healing Touch (needs the talent).", Pair(17116, 5185)),
+	E("Cat Opener", "Prowling: Ravage (Ctrl: Pounce). Otherwise Shred.", function(N)
+		return { tooltip = true, lines = { cast({ stealth = true, ctrl = true, spell = N(9005) }, { stealth = true, spell = N(6785) }, { spell = N(5221) }) } }
+	end),
+}
+L.HUNTER = {
+	E("Feign Trap", "In combat: Feign Death. Out of combat (after feigning): Freezing Trap.", function(N)
+		return { tooltip = true, lines = { cast({ combat = true, spell = N(5384) }, { spell = N(1499) }) } }
+	end),
+	E("Pet Heal", "Dead pet: Revive Pet. Otherwise Mend Pet.", function(N)
+		return { tooltip = true, lines = { cast({ unit = "pet", dead = true, spell = N(982) }, { spell = N(136) }) } }
+	end),
+	E("Melee", "Mongoose Bite when it's up, then Raptor Strike.", function(N)
+		return { tooltip = N(2973), lines = { cast({ spell = N(1495) }), cast({ spell = N(2973) }) } }
+	end),
+	E("Aspects", "Aspect of the Hawk. Shift: Cheetah. Ctrl: Monkey.", function(N)
+		return { tooltip = true, lines = { cast({ shift = true, spell = N(5118) }, { ctrl = true, spell = N(13163) }, { spell = N(13165) }) } }
+	end),
+	E("Hunters Mark", "Mouseover enemy, else target.", Harm(1130)),
+	E("Tranq Shot", "Tranquilizing Shot: mouseover enemy, else target.", Harm(19801)),
+}
+L.WARLOCK = {
+	E("Fear", "Mouseover enemy, else target.", Harm(5782)),
+	E("Banish", "Mouseover enemy, else target.", Harm(710)),
+	E("Corruption", "Mouseover enemy, else target (dot several mobs).", Harm(172)),
+	E("Agony", "Curse of Agony: mouseover enemy, else target.", Harm(980)),
+	E("Spell Lock", "Felhunter Spell Lock on your focus if it's an enemy, else your target.", Harm(19244, "focus")),
+	E("Seduction", "Succubus Seduction: mouseover enemy, else target.", Harm(6358)),
+	E("Fel Felhunter", "Fel Domination, then Summon Felhunter (needs the talent).", Pair(18708, 691)),
+}
+L.PALADIN = {
+	E("Flash of Light", "Alt: yourself, else mouseover friend, else target.", Help(19750)),
+	E("Holy Light", "Alt: yourself, else mouseover friend, else target.", Help(635)),
+	E("Cleanse", "Alt: yourself, else mouseover friend, else target.", Help(4987)),
+	E("Protection", "Blessing of Protection. Alt: yourself, else mouseover friend, else target.", Help(1022)),
+	E("Freedom", "Blessing of Freedom. Alt: yourself, else mouseover friend, else target.", Help(1044)),
+	E("Hammer", "Hammer of Justice: mouseover enemy, else target.", Harm(853)),
+	E("DF Holy Light", "Divine Favor, then Holy Light (needs the talent).", Pair(20216, 635)),
+	E("Judge + Seal", "Judgement, then Seal of Righteousness again.", Pair(20271, 20154)),
+}
+L.SHAMAN = {
+	E("Healing Wave", "Alt: yourself, else mouseover friend, else target.", Help(331)),
+	E("Lesser Wave", "Lesser Healing Wave. Alt: yourself, else mouseover friend, else target.", Help(8004)),
+	E("Chain Heal", "Alt: yourself, else mouseover friend, else target.", Help(1064)),
+	E("Cure Poison", "Alt: yourself, else mouseover friend, else target.", Help(526)),
+	E("Interrupt", "Earth Shock on your focus if it's an enemy, else your target.", Harm(8042, "focus")),
+	E("Purge", "Mouseover enemy, else target.", Harm(370)),
+	E("NS Heal", "Nature's Swiftness, then Healing Wave (needs the talent).", Pair(16188, 331)),
+	E("EM Chain", "Elemental Mastery, then Chain Lightning (needs the talent).", Pair(16166, 421)),
+}
+
 if not CreateFrame then return end -- offline test stops here
+
+ns.slashCommands = ns.slashCommands or {}
+-- /tb macros check: library spell ids this client doesn't know
+ns.slashCommands["macros check"] = function()
+	ns.Diagnose(function(Say)
+		local missing, total = {}, 0
+		for class, list in pairs(ns.MACRO_LIBRARY) do
+			for _, e in ipairs(list) do
+				e.make(function(id)
+					total = total + 1
+					local name = C_Spell.GetSpellName(id)
+					if not name then missing[#missing + 1] = ("%s / %s: spell %d unknown"):format(class, e.name, id) end
+					return name or ("spell " .. id)
+				end)
+			end
+		end
+		Say(("macros: %d spell uses checked, %d unknown"):format(total, #missing))
+		for _, line in ipairs(missing) do Say("macros: " .. line) end
+	end)
+end
 
 local T = ns.Theme
 local MAX_ACCOUNT = MAX_ACCOUNT_MACROS or 120
