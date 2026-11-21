@@ -411,7 +411,10 @@ function ns.BuildMacrosPage(page)
 		for _, tab in ipairs(SpellBook()) do
 			local sub = book:CreateButton(tab.name)
 			for _, sp in ipairs(tab.spells) do
-				sub:CreateRadio(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function() return m.tooltip == sp.name end, Set(sp.name))
+				-- spells this macro uses are already listed above: a second radio would show the name twice
+				if not seen[sp.name] then
+					sub:CreateRadio(("|T%s:16|t %s"):format(sp.icon or QUESTION, sp.name), function() return m.tooltip == sp.name end, Set(sp.name))
+				end
 			end
 		end
 	end)
@@ -611,7 +614,7 @@ function ns.BuildMacrosPage(page)
 		scopeLabel:SetText(cur.scope == "char" and "Character macro" or "Account macro")
 		scopeA:SetOn(cur.scope == "account")
 		scopeC:SetOn(cur.scope == "char")
-		tipChip:SetOn(m.tooltip == true)
+		tipChip:SetOn(m.tooltip ~= nil) -- true or a spell name
 		stopChip:SetOn(m.stopcasting == true)
 		tipChip:SetShown(not m.raw)
 		stopChip:SetShown(not m.raw)
