@@ -46,11 +46,12 @@ end
 
 if not CreateFrame then return end -- offline test stops here
 
--- names in Key Bindings > AddOns (Bindings.xml)
+-- names in Key Bindings > Tinker's Belt (Bindings.xml): the category, the Totems heading, each binding
 BINDING_HEADER_TINKERSBELT = "Tinker's Belt"
-_G["BINDING_NAME_CLICK DpwsTotemSetButton:LeftButton"] = "Totems: drop the next totem of your set"
+BINDING_HEADER_TINKERSBELT_TOTEMS = "Totems"
+_G["BINDING_NAME_CLICK DpwsTotemSetButton:LeftButton"] = "Drop the next totem of your set"
 for _, e in ipairs(ns.TOTEM_ELEMENTS) do
-	_G["BINDING_NAME_CLICK DpwsTotem" .. e.name .. ":LeftButton"] = "Totems: place your set's " .. e.name .. " totem"
+	_G["BINDING_NAME_CLICK DpwsTotem" .. e.name .. ":LeftButton"] = "Place your set's " .. e.name .. " totem"
 end
 
 local T = ns.Theme
