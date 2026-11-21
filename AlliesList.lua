@@ -37,11 +37,28 @@ local function Secret(v) return issecretvalue and issecretvalue(v) end
 
 -- your class's main buff (rank 1 id; casting by name uses your highest rank)
 local BUFFS = { MAGE = 1459, PRIEST = 1243, DRUID = 1126, PALADIN = 19740 }
+local function Known(id) return (IsPlayerSpell and IsPlayerSpell(id)) or (IsSpellKnown and IsSpellKnown(id)) end
+local function SpellName(id) return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id)) end
+
+-- buffs your class can put on others (rank 1 ids, from the Buffs tool's list), known ones only
+function L.BuffChoices()
+	local out, seen = {}, {}
+	for _, def in ipairs(ns.BUFF_SPELLS and ns.BUFF_SPELLS[select(2, UnitClass("player"))] or {}) do
+		if not def.self then
+			for _, id in ipairs(def.cast or {}) do
+				if not seen[id] and Known(id) then seen[id] = true; out[#out + 1] = id end
+			end
+		end
+	end
+	return out
+end
+
+-- the right-click buff: your choice (Nearby allies settings), else your class's main buff
 local function BuffName()
-	local id = BUFFS[select(2, UnitClass("player"))]
-	if not id then return nil end
-	if IsPlayerSpell and not IsPlayerSpell(id) and not (IsSpellKnown and IsSpellKnown(id)) then return nil end
-	return (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id))
+	local chosen = S().buff
+	local id = (chosen and Known(chosen)) and chosen or BUFFS[select(2, UnitClass("player"))]
+	if not id or not Known(id) then return nil end
+	return SpellName(id)
 end
 
 local function Check(fn, ...)

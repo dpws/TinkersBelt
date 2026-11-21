@@ -654,6 +654,15 @@ local function BuildAlliesPage(parent)
 	P:Card("Nearby allies list")
 	P:Toggle("Show the nearby allies list", function() return list.enabled end, function(v) list.enabled = v; RefreshList() end)
 	P:Slider("Rows", 5, 20, 1, nil, function() return list.rows or 10 end, function(v) list.rows = v; RefreshList() end)
+	P:Dropdown("Right-click casts", function(root)
+		local choices = ns.AlliesList and ns.AlliesList.BuffChoices() or {}
+		root:CreateRadio("Class default", function() return list.buff == nil end, function() list.buff = nil; RefreshList() end)
+		for _, id in ipairs(choices) do
+			root:CreateRadio(("|T%s:16|t %s"):format(C_Spell.GetSpellTexture(id) or 134400, C_Spell.GetSpellName(id) or id),
+				function() return list.buff == id end, function() list.buff = id; RefreshList() end)
+		end
+		if #choices == 0 then root:CreateButton("No buffs for others known yet"):SetEnabled(false) end
+	end, 260)
 	P:Toggle("Hide the list in cities and inns", function() return list.hideInCities end, function(v) list.hideInCities = v; RefreshList() end)
 	P:Note("Closest first. Left-click: target, right-click: buff, +: invite. Paused in combat. Needs Friendly Names.")
 	P:Card("About")
