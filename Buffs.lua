@@ -142,6 +142,29 @@ function ns.BuffRankPick(ranks, level, known)
 	return best, best == top
 end
 
+-- In combat the reminder's buttons can't change. Matches this scan's needs to them: per[i] = the need button i
+-- still shows, "keep" = can't tell (their buffs are hidden from addons right now), nil = no longer needed (dim);
+-- extra = needs with no button (they ran out during the fight). buttons = { { spell, needy = { units } } },
+-- needs = { { spell } }, readable(unit) = their buffs could be read this scan
+function ns.BuffCombatView(buttons, needs, readable)
+	local bySpell, used, per, extra = {}, {}, {}, {}
+	for _, need in ipairs(needs) do bySpell[need.spell] = need end
+	for i, b in ipairs(buttons) do
+		local need = bySpell[b.spell]
+		if need then
+			per[i], used[need] = need, true
+		else
+			for _, u in ipairs(b.needy or {}) do
+				if not readable(u) then per[i] = "keep" break end
+			end
+		end
+	end
+	for _, need in ipairs(needs) do
+		if not used[need] then extra[#extra + 1] = need end
+	end
+	return per, extra
+end
+
 if not CreateFrame then return end -- offline test stops here
 
 -- what to /cast for a buff `name` on a target of `level`: the plain name (= your highest rank), or
@@ -325,6 +348,10 @@ local function ReminderButton(i)
 	b.count:SetPoint("BOTTOMRIGHT", -2, 2)
 	b.count:SetShadowColor(0, 0, 0, 1)
 	b.count:SetShadowOffset(1, -1)
+	b.time = T.Text(b, "semibold", 12, { 1, 0.82, 0, 1 })
+	b.time:SetPoint("TOP", b, "BOTTOM", 0, -1)
+	b.time:SetShadowColor(0, 0, 0, 1)
+	b.time:SetShadowOffset(1, -1)
 	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self.spell or "")
@@ -339,6 +366,38 @@ local function ReminderButton(i)
 	end)
 	b:SetScript("OnLeave", GameTooltip_Hide)
 	return b
+end
+
+-- rounded down like the game's timers; seconds in the last minute (not "0m")
+local function TimeText(left)
+	if not left then return "" end
+	return left >= 60 and (Loc["%dm"]):format(math.floor(left / 60)) or (Loc["%ds"]):format(math.floor(left))
+end
+local function ShowNeed(b, need)
+	b.icon:SetTexture(SpellIcon(need.spell))
+	b.count:SetText(#need.units > 1 and #need.units or "")
+	b.time:SetText(TimeText(need.left))
+end
+
+-- a buff that ran out during a fight: an icon only (the game allows no new buttons until combat ends)
+local live = {}
+local function LiveIcon(i)
+	local f = CreateFrame("Frame", nil, UIParent)
+	f:SetSize(SIZE, SIZE)
+	f:SetFrameStrata("MEDIUM")
+	f.icon = f:CreateTexture(nil, "ARTWORK")
+	f.icon:SetAllPoints()
+	f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	f.count = T.Text(f, "semibold", 14, { 1, 1, 1, 1 })
+	f.count:SetPoint("BOTTOMRIGHT", -2, 2)
+	f.count:SetShadowColor(0, 0, 0, 1)
+	f.count:SetShadowOffset(1, -1)
+	f.time = T.Text(f, "semibold", 12, { 1, 0.82, 0, 1 })
+	f.time:SetPoint("TOP", f, "BOTTOM", 0, -1)
+	f.time:SetShadowColor(0, 0, 0, 1)
+	f.time:SetShadowOffset(1, -1)
+	live[i] = f
+	return f
 end
 
 ---------------------------------------------------------------------------
@@ -508,12 +567,7 @@ local function Paint(b, status, left)
 	b.icon:SetDesaturated(dim)
 	b.icon:SetAlpha(dim and 0.35 or 1)
 	b.border:SetShown(status == "missing")
-	-- rounded down like the game's timers; seconds in the last minute (not "0m")
-	local text = ""
-	if status == "low" and left then
-		text = left >= 60 and (Loc["%dm"]):format(math.floor(left / 60)) or (Loc["%ds"]):format(math.floor(left))
-	end
-	b.time:SetText(text)
+	b.time:SetText(status == "low" and TimeText(left) or "")
 end
 
 local function UpdateStrips(auraCache, combat)
@@ -629,11 +683,11 @@ local function Update()
 	if s.enabled then
 		for _, e in ipairs(B.entries) do
 			if Reminded(e) then
-				local spell, list, first = CastName(e), {}, nil
+				local spell, list, first, soonest = CastName(e), {}, nil, nil
 				for _, u in ipairs(targets) do
 					local auras = auraCache[u]
 					if auras and (u == "player" or not e.def.self) then
-						local st = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
+						local st, left = ns.BuffStatus(Pick(e, auras), e.names, GetTime(), warn)
 						local cast = spell
 						if e.def.mine and e.def.remember then
 							-- blessings / auras: skip ones another paladin already has on them (yours would duplicate it)
@@ -650,11 +704,12 @@ local function Update()
 						if st ~= "ok" and cast and Reachable(u, cast) then
 							list[#list + 1] = u
 							first = first or cast
+							if st == "low" and left and (not soonest or left < soonest) then soonest = left end
 						end
 						if u == "player" and st == "missing" then selfMissing[#selfMissing + 1] = spell end
 					end
 				end
-				if #list > 0 then needs[#needs + 1] = { spell = first, units = list } end
+				if #list > 0 then needs[#needs + 1] = { spell = first, units = list, left = soonest } end
 			end
 		end
 		if mine then
@@ -673,7 +728,35 @@ local function Update()
 	B.selfMissing = selfMissing
 
 	UpdateStrips(auraCache, combat)
-	if combat then return end -- clickable buttons are frozen in combat
+	if combat then
+		-- clickable buttons are frozen in combat (a click casts what was set before the fight): update only what they show
+		local shown = {}
+		for _, b in ipairs(buttons) do
+			if b:IsShown() then shown[#shown + 1] = b end
+		end
+		local per, extra = ns.BuffCombatView(shown, needs, function(u) return auraCache[u] ~= nil end)
+		for i, b in ipairs(shown) do
+			local need = per[i]
+			if need == nil then -- back up: dim
+				b:SetAlpha(0.35)
+				b.count:SetText("")
+				b.time:SetText("")
+			elseif need ~= "keep" then
+				b:SetAlpha(1)
+				ShowNeed(b, need)
+			end
+		end
+		for k, need in ipairs(extra) do
+			local f = live[k] or LiveIcon(k)
+			f:ClearAllPoints()
+			f:SetPoint("LEFT", panel, "LEFT", (#shown + k - 1) * (SIZE + 4), 0)
+			ShowNeed(f, need)
+			f:Show()
+		end
+		for k = #extra + 1, #live do live[k]:Hide() end
+		return
+	end
+	for _, f in ipairs(live) do f:Hide() end
 
 	for i, need in ipairs(needs) do
 		local b = buttons[i] or ReminderButton(i)
@@ -691,8 +774,8 @@ local function Update()
 			b:SetAttribute("spell", ns.BuffCast(need.spell, Level(unit))) -- a rank their level allows
 			b:SetAttribute("unit", unit)
 		end
-		b.icon:SetTexture(SpellIcon(need.spell))
-		b.count:SetText(#need.units > 1 and #need.units or "")
+		b:SetAlpha(1)
+		ShowNeed(b, need)
 		b:ClearAllPoints()
 		b:SetPoint("LEFT", panel, "LEFT", (i - 1) * (SIZE + 4), 0)
 		b:Show()

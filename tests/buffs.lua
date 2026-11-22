@@ -79,4 +79,19 @@ check("unknown level: your highest", ns.BuffRankPick(AI, nil, upTo3) == 1461)
 id, top = ns.BuffRankPick(ns.BUFF_RANKS[3], 5, all) -- Divine Spirit rank 1 needs level 20
 check("too low even for rank 1: rank 1 (the game explains)", id == 14752 and not top)
 
+-- in combat: which reminder buttons stay, dim, or are unknown; needs without a button
+do
+	local might, kings, wis = { spell = "Might" }, { spell = "Kings" }, { spell = "Wisdom" }
+	local btns = { { spell = "Might", needy = { "party1" } }, { spell = "Kings", needy = { "party2" } },
+		{ spell = "Wisdom", needy = { "nameplate3" } } }
+	local readable = function(u) return u ~= "nameplate3" end
+	local per, extra = ns.BuffCombatView(btns, { might, { spell = "Fortitude" } }, readable)
+	check("still needed: keeps its need", per[1] == might)
+	check("buffed since: dimmed", per[2] == nil)
+	check("buffs unreadable: left as is", per[3] == "keep")
+	check("ran out in combat: icon without a button", #extra == 1 and extra[1].spell == "Fortitude")
+	per, extra = ns.BuffCombatView({}, { kings, wis }, readable)
+	check("no buttons: every need is an icon", #extra == 2)
+end
+
 print("buffs: " .. passed .. " passed")
