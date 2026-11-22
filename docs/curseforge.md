@@ -3,7 +3,7 @@
 Small quality-of-life tools for **World of Warcraft: Forever**. Type `/tb` in game to open the settings.
 
 ## For everyone
-- **Buff reminders**: buttons for buffs missing on you, your group and nearby players; buff buttons beside party frames (Blizzard, DandersFrames, ElvUI, Cell, Grid2 and others).
+- **Buff reminders**: buttons for buffs missing on you, your group and nearby players, kept up to date in combat; buff buttons beside party frames (Blizzard, DandersFrames, ElvUI, Cell, Grid2 and others).
 - **Macro builder**: build macros from blocks and switches with a live preview, start from templates or a curated set for your class, pick spells from your spellbook, and open your existing macros as blocks.
 - **Movable panels**: unlock to drag any panel, with a grid and live snapping; snapped panels stay on their line when they change size.
 - **Feature switches**: turn each tool on or off right in the settings list.

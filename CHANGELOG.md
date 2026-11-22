@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.8 - 2026-11-22
+
+### Changed
+- Buff reminder keeps updating in combat: buttons dim when the buff is back, show the time left, and buffs that run out mid-fight appear as icons (clickable after combat).
+
+### Fixed
+- Poison menu title and weapon warnings are in your language.
+- Blinding Powder no longer shows in the weapon poison menu.
+- No poison or imbue reminders while a fishing pole is equipped.
+
 ## 0.4.7 - 2026-11-21
 
 ### New
