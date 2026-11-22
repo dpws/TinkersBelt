@@ -61,7 +61,11 @@ end
 -- the item in a weapon slot; a shield or off-hand frill doesn't count (shamans)
 local function WeaponID(slot)
 	local id = GetInventoryItemID("player", slot)
-	if id and slot == 17 and C_Item and C_Item.GetItemInfoInstant and select(6, C_Item.GetItemInfoInstant(id)) ~= 2 then return nil end
+	if id and C_Item and C_Item.GetItemInfoInstant then
+		local classID, subclassID = select(6, C_Item.GetItemInfoInstant(id))
+		if slot == 17 and classID ~= 2 then return nil end -- shield, held-in-hand item
+		if classID == 2 and subclassID == 20 then return nil end -- fishing pole: no poison/imbue reminders
+	end
 	return id
 end
 
